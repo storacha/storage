@@ -22,16 +22,20 @@ type Allocation struct {
 	Digest multihash.Multihash
 	// Size of the data in bytes.
 	Size uint64
+	// Expiration is the time (in seconds since unix epoch) at which the
+	// allocation becomes invalid and can no longer be accepted.
+	Expiration uint64
 	// Cause is a link to the UCAN that requested the allocation.
 	Cause ucan.Link
 }
 
 func (al Allocation) ToIPLD() (datamodel.Node, error) {
 	md := &adm.AllocationModel{
-		Space:  al.Space.Bytes(),
-		Digest: al.Digest,
-		Size:   int(al.Size),
-		Cause:  al.Cause,
+		Space:      al.Space.Bytes(),
+		Digest:     al.Digest,
+		Size:       int64(al.Size),
+		Expiration: int64(al.Expiration),
+		Cause:      al.Cause,
 	}
 	return ipld.WrapWithRecovery(md, adm.AllocationType())
 }
@@ -75,10 +79,16 @@ func Decode(data []byte, dec codec.Decoder) (Allocation, error) {
 		return Allocation{}, fmt.Errorf("decoding space DID: %w", err)
 	}
 
+	digest, err := multihash.Cast(model.Digest)
+	if err != nil {
+		return Allocation{}, fmt.Errorf("decoding digest: %w", err)
+	}
+
 	return Allocation{
-		Space:  space,
-		Digest: multihash.Multihash(model.Digest),
-		Size:   uint64(model.Size),
-		Cause:  model.Cause,
+		Space:      space,
+		Digest:     digest,
+		Size:       uint64(model.Size),
+		Expiration: uint64(model.Expiration),
+		Cause:      model.Cause,
 	}, nil
 }

@@ -1,5 +1,0 @@
-package storage
-
-func NewStorage() {
-
-}

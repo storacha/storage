@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path"
 
@@ -67,6 +68,15 @@ func encodePath(digest multihash.Multihash) string {
 
 type FsBlobstore struct {
 	rootdir string
+}
+
+func (b *FsBlobstore) EncodePath(digest multihash.Multihash) string {
+	return encodePath(digest)
+}
+
+// FileSystem returns a filesystem interface for reading blobs.
+func (b *FsBlobstore) FileSystem() http.FileSystem {
+	return http.Dir(b.rootdir)
 }
 
 func (b *FsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts ...GetOption) (Object, error) {
@@ -132,6 +142,7 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, body 
 }
 
 var _ Blobstore = (*FsBlobstore)(nil)
+var _ FileSystemer = (*FsBlobstore)(nil)
 
 // NewFsBlobstore creates a [Blobstore] backed by the local filesystem.
 func NewFsBlobstore(rootdir string) (*FsBlobstore, error) {

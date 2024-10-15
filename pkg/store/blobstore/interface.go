@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 
 	"github.com/multiformats/go-multihash"
 )
@@ -47,4 +48,12 @@ type Blobstore interface {
 	//
 	// Note: data is not hashed on read.
 	Get(context.Context, multihash.Multihash, ...GetOption) (Object, error)
+}
+
+// FileSystemer exposes the filesystem interface for reading blobs.
+type FileSystemer interface {
+	// FileSystem returns a filesystem interface for reading blobs.
+	FileSystem() http.FileSystem
+	// EncodePath converts a digest to a filesystem path.
+	EncodePath(digest multihash.Multihash) string
 }

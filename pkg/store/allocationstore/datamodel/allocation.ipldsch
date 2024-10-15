@@ -4,5 +4,6 @@ type Allocation struct {
   space DID
   digest Bytes
   size Int
+  expiration Int
   cause Link
 }

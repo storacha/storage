@@ -26,8 +26,9 @@ func AllocationType() schema.Type {
 }
 
 type AllocationModel struct {
-	Space  []byte
-	Digest []byte
-	Size   int
-	Cause  ipld.Link
+	Space      []byte
+	Digest     []byte
+	Size       int64
+	Expiration int64
+	Cause      ipld.Link
 }

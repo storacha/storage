@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand/v2"
 	"testing"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/storacha/storage/pkg/internal/testutil"
@@ -17,10 +18,11 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc := allocation.Allocation{
-			Space:  testutil.RandomDID(),
-			Digest: testutil.RandomMultihash(),
-			Size:   uint64(1 + rand.IntN(1000)),
-			Cause:  testutil.RandomCID(),
+			Space:      testutil.RandomDID(),
+			Digest:     testutil.RandomMultihash(),
+			Size:       uint64(1 + rand.IntN(1000)),
+			Expiration: uint64(time.Now().Unix()),
+			Cause:      testutil.RandomCID(),
 		}
 
 		err = store.Put(context.Background(), alloc)
@@ -37,17 +39,19 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc0 := allocation.Allocation{
-			Space:  testutil.RandomDID(),
-			Digest: testutil.RandomMultihash(),
-			Size:   uint64(1 + rand.IntN(1000)),
-			Cause:  testutil.RandomCID(),
+			Space:      testutil.RandomDID(),
+			Digest:     testutil.RandomMultihash(),
+			Size:       uint64(1 + rand.IntN(1000)),
+			Expiration: uint64(time.Now().Unix()),
+			Cause:      testutil.RandomCID(),
 		}
 
 		alloc1 := allocation.Allocation{
-			Space:  testutil.RandomDID(),
-			Digest: alloc0.Digest,
-			Size:   alloc0.Size,
-			Cause:  testutil.RandomCID(),
+			Space:      testutil.RandomDID(),
+			Digest:     alloc0.Digest,
+			Size:       alloc0.Size,
+			Expiration: uint64(time.Now().Unix()),
+			Cause:      testutil.RandomCID(),
 		}
 
 		err = store.Put(context.Background(), alloc0)

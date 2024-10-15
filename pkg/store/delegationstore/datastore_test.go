@@ -17,7 +17,7 @@ func TestDsDelegationStore(t *testing.T) {
 		store, err := NewDsDelegationStore(datastore.NewMapDatastore())
 		require.NoError(t, err)
 
-		dlg, err := delegation.Delegate[capability.Unit](
+		dlg, err := delegation.Delegate(
 			testutil.RandomSigner(),
 			testutil.RandomDID(),
 			[]ucan.Capability[capability.Unit]{
