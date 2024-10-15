@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/store"
 )
 
 type MapObject struct {
@@ -44,7 +45,7 @@ func (mb *MapBlobstore) Get(ctx context.Context, digest multihash.Multihash, opt
 	k, _ := multibase.Encode(multibase.Base58BTC, digest)
 	b, ok := mb.data[k]
 	if !ok {
-		return nil, ErrNotFound
+		return nil, store.ErrNotFound
 	}
 
 	obj := MapObject{bytes: b, byteRange: o.byteRange}
@@ -80,6 +81,7 @@ func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, bod
 
 var _ Blobstore = (*MapBlobstore)(nil)
 
+// NewMapBlobstore creates a [Blobstore] backed by an in-memory map.
 func NewMapBlobstore() (*MapBlobstore, error) {
 	data := map[string][]byte{}
 	return &MapBlobstore{data}, nil

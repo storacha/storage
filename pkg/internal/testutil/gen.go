@@ -7,6 +7,9 @@ import (
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	mh "github.com/multiformats/go-multihash"
+	"github.com/storacha/go-ucanto/did"
+	"github.com/storacha/go-ucanto/principal"
+	"github.com/storacha/go-ucanto/principal/ed25519/signer"
 )
 
 func RandomBytes(size int) []byte {
@@ -14,8 +17,6 @@ func RandomBytes(size int) []byte {
 	_, _ = crand.Read(bytes)
 	return bytes
 }
-
-var seedSeq int64
 
 func RandomCID() datamodel.Link {
 	bytes := RandomBytes(10)
@@ -30,4 +31,13 @@ func RandomCID() datamodel.Link {
 
 func RandomMultihash() mh.Multihash {
 	return RandomCID().(cidlink.Link).Hash()
+}
+
+func RandomSigner() principal.Signer {
+	s, _ := signer.Generate()
+	return s
+}
+
+func RandomDID() did.DID {
+	return RandomSigner().DID()
 }

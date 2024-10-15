@@ -1,12 +1,9 @@
 package claimstore
 
 import (
-	"context"
-
-	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/store/delegationstore"
 )
 
 type ClaimStore interface {
-	Get(context.Context, multihash.Multihash) ([]byte, error)
-	Put(context.Context, multihash.Multihash) error
+	delegationstore.DelegationStore
 }

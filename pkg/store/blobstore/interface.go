@@ -8,13 +8,9 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var (
-	// ErrNotFound is returned when an objetc is not found in the store.
-	ErrNotFound = errors.New("not found")
-	// ErrDataInconsistent is returned when the data being written does not hash to
-	// the expected value.
-	ErrDataInconsistent = errors.New("data consistency check failed")
-)
+// ErrDataInconsistent is returned when the data being written does not hash to
+// the expected value.
+var ErrDataInconsistent = errors.New("data consistency check failed")
 
 // GetOption is an option configuring byte retrieval from a blobstore.
 type GetOption func(cfg *options) error

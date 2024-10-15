@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/store"
 )
 
 type FileObject struct {
@@ -51,7 +52,7 @@ func (o FileObject) Body() io.Reader {
 	return r
 }
 
-func toPath(digest multihash.Multihash) string {
+func encodePath(digest multihash.Multihash) string {
 	str, _ := multibase.Encode(multibase.Base58BTC, digest)
 	var parts []string
 	for i := 0; i < len(str); i += 2 {
@@ -74,11 +75,11 @@ func (b *FsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts 
 		opt(o)
 	}
 
-	n := path.Join(b.rootdir, toPath(digest))
+	n := path.Join(b.rootdir, encodePath(digest))
 	f, err := os.Open(n)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return nil, ErrNotFound
+			return nil, store.ErrNotFound
 		}
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
@@ -101,7 +102,7 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, body 
 		return fmt.Errorf("unsupported digest: 0x%x", info.Code)
 	}
 
-	n := path.Join(b.rootdir, toPath(digest))
+	n := path.Join(b.rootdir, encodePath(digest))
 	err = os.MkdirAll(path.Dir(n), 0755)
 	if err != nil {
 		return fmt.Errorf("creating intermediate directories: %w", err)
@@ -132,6 +133,7 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, body 
 
 var _ Blobstore = (*FsBlobstore)(nil)
 
+// NewFsBlobstore creates a [Blobstore] backed by the local filesystem.
 func NewFsBlobstore(rootdir string) (*FsBlobstore, error) {
 	err := os.MkdirAll(rootdir, 0755)
 	if err != nil {
