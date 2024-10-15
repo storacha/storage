@@ -1,0 +1,8 @@
+type DID bytes
+
+type Allocation struct {
+  space DID
+  digest Bytes
+  size Int
+  cause Link
+}
