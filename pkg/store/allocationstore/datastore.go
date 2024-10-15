@@ -57,6 +57,6 @@ func NewDsAllocationStore(ds datastore.Datastore) (*DsAllocationStore, error) {
 }
 
 func encodeKey(a allocation.Allocation) datastore.Key {
-	str, _ := multibase.Encode(multibase.Base58BTC, a.Digest)
+	str, _ := multibase.Encode(multibase.Base58BTC, a.Blob.Digest)
 	return datastore.NewKey(fmt.Sprintf("%s/%s", str, a.Cause.String()))
 }

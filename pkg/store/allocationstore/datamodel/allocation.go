@@ -25,10 +25,14 @@ func AllocationType() schema.Type {
 	return allocationTS.TypeByName("Allocation")
 }
 
+type BlobModel struct {
+	Digest []byte
+	Size   int64
+}
+
 type AllocationModel struct {
-	Space      []byte
-	Digest     []byte
-	Size       int64
-	Expiration int64
-	Cause      ipld.Link
+	Space   []byte
+	Blob    BlobModel
+	Expires int64
+	Cause   ipld.Link
 }

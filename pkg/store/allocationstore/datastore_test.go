@@ -18,17 +18,19 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc := allocation.Allocation{
-			Space:      testutil.RandomDID(),
-			Digest:     testutil.RandomMultihash(),
-			Size:       uint64(1 + rand.IntN(1000)),
-			Expiration: uint64(time.Now().Unix()),
-			Cause:      testutil.RandomCID(),
+			Space: testutil.RandomDID(),
+			Blob: allocation.Blob{
+				Digest: testutil.RandomMultihash(),
+				Size:   uint64(1 + rand.IntN(1000)),
+			},
+			Expires: uint64(time.Now().Unix()),
+			Cause:   testutil.RandomCID(),
 		}
 
 		err = store.Put(context.Background(), alloc)
 		require.NoError(t, err)
 
-		allocs, err := store.List(context.Background(), alloc.Digest)
+		allocs, err := store.List(context.Background(), alloc.Blob.Digest)
 		require.NoError(t, err)
 		require.Len(t, allocs, 1)
 		require.Equal(t, alloc, allocs[0])
@@ -39,19 +41,20 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc0 := allocation.Allocation{
-			Space:      testutil.RandomDID(),
-			Digest:     testutil.RandomMultihash(),
-			Size:       uint64(1 + rand.IntN(1000)),
-			Expiration: uint64(time.Now().Unix()),
-			Cause:      testutil.RandomCID(),
+			Space: testutil.RandomDID(),
+			Blob: allocation.Blob{
+				Digest: testutil.RandomMultihash(),
+				Size:   uint64(1 + rand.IntN(1000)),
+			},
+			Expires: uint64(time.Now().Unix()),
+			Cause:   testutil.RandomCID(),
 		}
 
 		alloc1 := allocation.Allocation{
-			Space:      testutil.RandomDID(),
-			Digest:     alloc0.Digest,
-			Size:       alloc0.Size,
-			Expiration: uint64(time.Now().Unix()),
-			Cause:      testutil.RandomCID(),
+			Space:   testutil.RandomDID(),
+			Blob:    alloc0.Blob,
+			Expires: uint64(time.Now().Unix()),
+			Cause:   testutil.RandomCID(),
 		}
 
 		err = store.Put(context.Background(), alloc0)
@@ -59,7 +62,7 @@ func TestDsAllocationStore(t *testing.T) {
 		err = store.Put(context.Background(), alloc1)
 		require.NoError(t, err)
 
-		allocs, err := store.List(context.Background(), alloc0.Digest)
+		allocs, err := store.List(context.Background(), alloc0.Blob.Digest)
 		require.NoError(t, err)
 		require.Len(t, allocs, 2)
 

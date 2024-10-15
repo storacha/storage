@@ -15,27 +15,34 @@ import (
 	adm "github.com/storacha/storage/pkg/store/allocationstore/datamodel"
 )
 
-type Allocation struct {
-	// Space is the DID of the space this data was allocated for.
-	Space did.DID
+type Blob struct {
 	// Digest is the hash of the data.
 	Digest multihash.Multihash
 	// Size of the data in bytes.
 	Size uint64
-	// Expiration is the time (in seconds since unix epoch) at which the
+}
+
+type Allocation struct {
+	// Space is the DID of the space this data was allocated for.
+	Space did.DID
+	// Blob is the details of the data that was allocated.å
+	Blob Blob
+	// Expires is the time (in seconds since unix epoch) at which the
 	// allocation becomes invalid and can no longer be accepted.
-	Expiration uint64
+	Expires uint64
 	// Cause is a link to the UCAN that requested the allocation.
 	Cause ucan.Link
 }
 
-func (al Allocation) ToIPLD() (datamodel.Node, error) {
+func (a Allocation) ToIPLD() (datamodel.Node, error) {
 	md := &adm.AllocationModel{
-		Space:      al.Space.Bytes(),
-		Digest:     al.Digest,
-		Size:       int64(al.Size),
-		Expiration: int64(al.Expiration),
-		Cause:      al.Cause,
+		Space: a.Space.Bytes(),
+		Blob: adm.BlobModel{
+			Digest: a.Blob.Digest,
+			Size:   int64(a.Blob.Size),
+		},
+		Expires: int64(a.Expires),
+		Cause:   a.Cause,
 	}
 	return ipld.WrapWithRecovery(md, adm.AllocationType())
 }
@@ -79,16 +86,18 @@ func Decode(data []byte, dec codec.Decoder) (Allocation, error) {
 		return Allocation{}, fmt.Errorf("decoding space DID: %w", err)
 	}
 
-	digest, err := multihash.Cast(model.Digest)
+	digest, err := multihash.Cast(model.Blob.Digest)
 	if err != nil {
 		return Allocation{}, fmt.Errorf("decoding digest: %w", err)
 	}
 
 	return Allocation{
-		Space:      space,
-		Digest:     digest,
-		Size:       uint64(model.Size),
-		Expiration: uint64(model.Expiration),
-		Cause:      model.Cause,
+		Space: space,
+		Blob: Blob{
+			Digest: digest,
+			Size:   uint64(model.Blob.Size),
+		},
+		Expires: uint64(model.Expires),
+		Cause:   model.Cause,
 	}, nil
 }

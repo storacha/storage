@@ -191,7 +191,7 @@ func putBlobHandler(allocs allocationstore.AllocationStore, blobs blobstore.Blob
 
 		expired := true
 		for _, a := range results {
-			exp := a.Expiration
+			exp := a.Expires
 			if exp > uint64(time.Now().Unix()) {
 				expired = false
 				break
