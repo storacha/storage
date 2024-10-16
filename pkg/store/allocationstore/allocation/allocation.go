@@ -25,7 +25,7 @@ type Blob struct {
 type Allocation struct {
 	// Space is the DID of the space this data was allocated for.
 	Space did.DID
-	// Blob is the details of the data that was allocated.å
+	// Blob is the details of the data that was allocated.
 	Blob Blob
 	// Expires is the time (in seconds since unix epoch) at which the
 	// allocation becomes invalid and can no longer be accepted.
