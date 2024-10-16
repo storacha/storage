@@ -26,11 +26,12 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 			blob.AllocateAbility,
 			server.Provide(
 				blob.Allocate,
-				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, ctx server.InvocationContext) (blob.AllocateOk, receipt.Effects, error) {
+				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AllocateOk, receipt.Effects, error) {
 					log.Infof("%s z%s => %s", blob.AllocateAbility, cap.Nb().Blob.Digest.B58String(), cap.Nb().Space)
+					ctx := context.TODO()
 
 					// check if we already have an allcoation for the blob in this space
-					allocs, err := storageService.Allocations().List(context.Background(), cap.Nb().Blob.Digest)
+					allocs, err := storageService.Allocations().List(ctx, cap.Nb().Blob.Digest)
 					if err != nil {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
@@ -38,7 +39,7 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 					for _, a := range allocs {
 						// if we find an allocation, check if we have the blob.
 						if a.Space == cap.Nb().Space {
-							_, err := storageService.Blobs().Get(context.Background(), cap.Nb().Blob.Digest)
+							_, err := storageService.Blobs().Get(ctx, cap.Nb().Blob.Digest)
 							if err == nil {
 								// if we have it, it does not need upload
 								return blob.AllocateOk{Size: 0}, nil, nil
@@ -51,12 +52,12 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 
 					expiresIn := uint64(60 * 60 * 24) // 1 day
 					expiresAt := uint64(time.Now().Unix()) + expiresIn
-					url, headers, err := storageService.SignURL(cap.Nb().Blob.Digest, cap.Nb().Blob.Size, expiresIn)
+					url, headers, err := storageService.Presigner().SignUploadURL(ctx, cap.Nb().Blob.Digest, cap.Nb().Blob.Size, expiresIn)
 					if err != nil {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
-					err = storageService.Allocations().Put(context.Background(), allocation.Allocation{
+					err = storageService.Allocations().Put(ctx, allocation.Allocation{
 						Space:   cap.Nb().Space,
 						Blob:    allocation.Blob(cap.Nb().Blob),
 						Expires: expiresAt,

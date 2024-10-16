@@ -103,7 +103,7 @@ func (b *FsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts 
 	return FileObject{name: n, size: inf.Size(), byteRange: o.byteRange}, nil
 }
 
-func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, body io.Reader) error {
+func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size uint64, body io.Reader) error {
 	info, err := multihash.Decode(digest)
 	if err != nil {
 		return fmt.Errorf("decoding digest: %w", err)
@@ -127,10 +127,17 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, body 
 	hash := sha256.New()
 	tee := io.TeeReader(body, hash)
 
-	_, err = io.Copy(f, tee)
+	written, err := io.Copy(f, tee)
 	if err != nil {
 		os.Remove(n) // remove any bytes written
 		return fmt.Errorf("writing file: %w", err)
+	}
+
+	if written > int64(size) {
+		return ErrTooLarge
+	}
+	if written < int64(size) {
+		return ErrTooSmall
 	}
 
 	if !bytes.Equal(hash.Sum(nil), info.Digest) {

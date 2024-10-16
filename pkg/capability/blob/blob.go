@@ -3,6 +3,7 @@ package blob
 import (
 	"fmt"
 	"maps"
+	"net/http"
 	"net/url"
 	"slices"
 
@@ -44,7 +45,7 @@ func (ac AllocateCaveats) ToIPLD() (datamodel.Node, error) {
 
 type Address struct {
 	URL     url.URL
-	Headers map[string]string
+	Headers http.Header
 	Expires uint64
 }
 
@@ -53,17 +54,33 @@ type AllocateOk struct {
 	Address *Address
 }
 
+func headersToMap(h http.Header) (map[string]string, error) {
+	headers := map[string]string{}
+	for k, v := range h {
+		if len(v) > 1 {
+			return nil, fmt.Errorf("unsupported multiple values in header: %s", k)
+		}
+		headers[k] = v[0]
+	}
+	return headers, nil
+}
+
 func (ao AllocateOk) ToIPLD() (datamodel.Node, error) {
 	md := &bdm.AllocateOkModel{Size: int64(ao.Size)}
 	if ao.Address != nil {
 		keys := slices.Collect(maps.Keys(ao.Address.Headers))
 		slices.Sort(keys)
 
+		headers, err := headersToMap(ao.Address.Headers)
+		if err != nil {
+			return nil, err
+		}
+
 		md.Address = &bdm.AddressModel{
 			URL: ao.Address.URL.String(),
 			Headers: bdm.HeadersModel{
 				Keys:   keys,
-				Values: ao.Address.Headers,
+				Values: headers,
 			},
 			Expires: int64(ao.Address.Expires),
 		}

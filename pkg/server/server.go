@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanhttp "github.com/storacha/go-ucanto/transport/http"
+	"github.com/storacha/storage/pkg/service/presigner"
 	"github.com/storacha/storage/pkg/service/storage"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore"
@@ -81,7 +83,7 @@ func NewServer(opts ...Option) *http.ServeMux {
 	mux.HandleFunc("POST /", postRootHandler(c.id, c.service))
 	mux.HandleFunc("GET /claim/{cid}", getClaimHandler(c.service.Claims()))
 	mux.HandleFunc("GET /blob/{digest}", getBlobHandler(c.service.Blobs()))
-	mux.HandleFunc("PUT /blob/{digest}", putBlobHandler(c.service.Allocations(), c.service.Blobs()))
+	mux.HandleFunc("PUT /blob/{digest}", putBlobHandler(c.service.Presigner(), c.service.Allocations(), c.service.Blobs()))
 	return mux
 }
 
@@ -167,8 +169,14 @@ func getBlobHandler(blobs blobstore.Blobstore) func(http.ResponseWriter, *http.R
 	}
 }
 
-func putBlobHandler(allocs allocationstore.AllocationStore, blobs blobstore.Blobstore) func(http.ResponseWriter, *http.Request) {
+func putBlobHandler(presigner presigner.RequestPresigner, allocs allocationstore.AllocationStore, blobs blobstore.Blobstore) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, sHeaders, err := presigner.VerifyUploadURL(r.Context(), *r.URL, r.Header)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
 		// trim base58btc multibase prefix if it was added
 		digest, err := mh.FromB58String(strings.TrimLeft(r.PathValue("digest"), "z"))
 		if err != nil {
@@ -216,8 +224,15 @@ func putBlobHandler(allocs allocationstore.AllocationStore, blobs blobstore.Blob
 			return
 		}
 
-		// TODO: decode and verify signed URL
-		err = blobs.Put(r.Context(), digest, r.Body)
+		// ensure the size comes from a signed header
+		contentLength, err := strconv.ParseInt(sHeaders.Get("Content-Length"), 10, 64)
+		if err != nil {
+			log.Warnf("parsing signed Content-Length header: %w", err)
+			http.Error(w, "invalid size", http.StatusInternalServerError)
+			return
+		}
+
+		err = blobs.Put(r.Context(), digest, uint64(contentLength), r.Body)
 		if err == nil {
 			log.Errorf("writing to: z%s: %w", digest.B58String(), err)
 			if errors.Is(err, blobstore.ErrDataInconsistent) {

@@ -30,7 +30,7 @@ func TestBlobstore(t *testing.T) {
 			data := testutil.RandomBytes(10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
-			err := s.Put(context.Background(), digest, bytes.NewBuffer(data))
+			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(data))
 			require.NoError(t, err)
 
 			obj, err := s.Get(context.Background(), digest)
@@ -54,7 +54,7 @@ func TestBlobstore(t *testing.T) {
 			baddata := testutil.RandomBytes(10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
-			err := s.Put(context.Background(), digest, bytes.NewBuffer(baddata))
+			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(baddata))
 			require.Equal(t, ErrDataInconsistent, err)
 		})
 	}

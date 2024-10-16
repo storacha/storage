@@ -13,6 +13,12 @@ import (
 // the expected value.
 var ErrDataInconsistent = errors.New("data consistency check failed")
 
+// ErrTooLarge is returned when the data being written is larger than expected.
+var ErrTooLarge = errors.New("payload too large")
+
+// ErrTooSmall is returned when the data being written is smaller than expected.
+var ErrTooSmall = errors.New("payload too small")
+
 // GetOption is an option configuring byte retrieval from a blobstore.
 type GetOption func(cfg *options) error
 
@@ -42,7 +48,7 @@ type Object interface {
 type Blobstore interface {
 	// Put stores the bytes to the store and ensures it hashes to the passed
 	// digest.
-	Put(context.Context, multihash.Multihash, io.Reader) error
+	Put(context.Context, multihash.Multihash, uint64, io.Reader) error
 	// Get retrieves the object identified by the passed digest. Returns nil and
 	// [ErrNotFound] if the object does not exist.
 	//

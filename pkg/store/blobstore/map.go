@@ -52,7 +52,7 @@ func (mb *MapBlobstore) Get(ctx context.Context, digest multihash.Multihash, opt
 	return obj, nil
 }
 
-func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, body io.Reader) error {
+func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, size uint64, body io.Reader) error {
 	info, err := multihash.Decode(digest)
 	if err != nil {
 		return fmt.Errorf("decoding digest: %w", err)
@@ -64,6 +64,13 @@ func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, bod
 	b, err := io.ReadAll(body)
 	if err != nil {
 		return fmt.Errorf("reading body: %w", err)
+	}
+
+	if len(b) > int(size) {
+		return ErrTooLarge
+	}
+	if len(b) < int(size) {
+		return ErrTooSmall
 	}
 
 	hash := sha256.New()

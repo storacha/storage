@@ -8,6 +8,6 @@ type Blob struct {
 type Allocation struct {
   space DID
   blob Blob
-  expiration Int
+  expires Int
   cause Link
 }
