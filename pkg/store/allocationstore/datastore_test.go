@@ -66,6 +66,10 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, allocs, 2)
 
-		require.Equal(t, []allocation.Allocation{alloc0, alloc1}, allocs)
+		if alloc0.Space.String() == allocs[0].Space.String() {
+			require.Equal(t, []allocation.Allocation{alloc0, alloc1}, allocs)
+		} else {
+			require.Equal(t, []allocation.Allocation{alloc1, alloc0}, allocs)
+		}
 	})
 }
