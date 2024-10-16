@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 )
 
@@ -42,7 +42,7 @@ func (mb *MapBlobstore) Get(ctx context.Context, digest multihash.Multihash, opt
 		opt(o)
 	}
 
-	k, _ := multibase.Encode(multibase.Base58BTC, digest)
+	k := digestutil.Format(digest)
 	b, ok := mb.data[k]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -80,7 +80,7 @@ func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, siz
 		return ErrDataInconsistent
 	}
 
-	k, _ := multibase.Encode(multibase.Base58BTC, digest)
+	k := digestutil.Format(digest)
 	mb.data[k] = b
 
 	return nil

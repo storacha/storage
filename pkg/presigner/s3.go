@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 )
 
 const ISO8601BasicFormat = "20060102T150405Z"
@@ -25,8 +25,7 @@ type S3RequestPresigner struct {
 }
 
 func encodeKey(digest multihash.Multihash) string {
-	key, _ := multibase.Encode(multibase.Base58BTC, digest)
-	return key
+	return digestutil.Format(digest)
 }
 
 func (ss *S3RequestPresigner) SignUploadURL(ctx context.Context, digest multihash.Multihash, size uint64, ttl uint64) (url.URL, http.Header, error) {

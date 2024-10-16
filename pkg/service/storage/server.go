@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result/failure"
@@ -14,7 +16,9 @@ import (
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/capability"
+	"github.com/storacha/storage/pkg/capability/assert"
 	"github.com/storacha/storage/pkg/capability/blob"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
 )
@@ -31,26 +35,29 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 			server.Provide(
 				blob.Allocate,
 				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AllocateOk, receipt.Effects, error) {
-					log.Infof("%s z%s => %s", blob.AllocateAbility, cap.Nb().Blob.Digest.B58String(), cap.Nb().Space)
 					ctx := context.TODO()
+					digest := cap.Nb().Blob.Digest
+					log.Infof("%s %s => %s", blob.AllocateAbility, digestutil.Format(digest), cap.Nb().Space)
 
 					// TODO: restrict invocation to authority (storacha service)
 
 					// check if we already have an allcoation for the blob in this space
-					allocs, err := storageService.Allocations().List(ctx, cap.Nb().Blob.Digest)
+					allocs, err := storageService.Allocations().List(ctx, digest)
 					if err != nil {
+						log.Errorf("getting allocations for blob: %s: %w", digestutil.Format(digest), err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
 					for _, a := range allocs {
 						// if we find an allocation, check if we have the blob.
 						if a.Space == cap.Nb().Space {
-							_, err := storageService.Blobs().Get(ctx, cap.Nb().Blob.Digest)
+							_, err := storageService.Blobs().Get(ctx, digest)
 							if err == nil {
 								// if we have it, it does not need upload
 								return blob.AllocateOk{Size: 0}, nil, nil
 							}
 							if !errors.Is(err, store.ErrNotFound) {
+								log.Errorf("getting blob: %s: %w", digestutil.Format(digest), err)
 								return blob.AllocateOk{}, nil, failure.FromError(err)
 							}
 						}
@@ -65,8 +72,9 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 
 					expiresIn := uint64(60 * 60 * 24) // 1 day
 					expiresAt := uint64(time.Now().Unix()) + expiresIn
-					url, headers, err := storageService.Presigner().SignUploadURL(ctx, cap.Nb().Blob.Digest, cap.Nb().Blob.Size, expiresIn)
+					url, headers, err := storageService.Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
 					if err != nil {
+						log.Errorf("signing upload URL for blob: %s: %w", digestutil.Format(digest), err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
@@ -77,6 +85,7 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 						Cause:   inv.Link(),
 					})
 					if err != nil {
+						log.Errorf("putting allocation for blob: %s: %w", digestutil.Format(digest), err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
@@ -96,12 +105,13 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 			server.Provide(
 				blob.Accept,
 				func(cap ucan.Capability[blob.AcceptCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AcceptOk, receipt.Effects, error) {
-					log.Infof("%s z%s => %s", blob.AcceptAbility, cap.Nb().Blob.Digest.B58String(), cap.Nb().Space)
 					ctx := context.TODO()
+					digest := cap.Nb().Blob.Digest
+					log.Infof("%s %s => %s", blob.AcceptAbility, digestutil.Format(digest), cap.Nb().Space)
 
 					// TODO: restrict invocation to authority (storacha service)
 
-					_, err := storageService.Blobs().Get(ctx, cap.Nb().Blob.Digest)
+					_, err := storageService.Blobs().Get(ctx, digest)
 					if err != nil {
 						if errors.Is(err, store.ErrNotFound) {
 							return blob.AcceptOk{}, nil, capability.Failure{
@@ -109,10 +119,42 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 								Message: "Blob not found",
 							}
 						}
+						log.Errorf("getting blob: %s: %w", digestutil.Format(digest), err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					return blob.AcceptOk{}, nil, nil
+					loc, err := storageService.Access().GetDownloadURL(digest)
+					if err != nil {
+						log.Errorf("creating download URL for blob: %s: %w", digestutil.Format(digest), err)
+						return blob.AcceptOk{}, nil, failure.FromError(err)
+					}
+
+					claim, err := assert.Location.Delegate(
+						storageService.ID(),
+						cap.Nb().Space,
+						storageService.ID().DID().String(),
+						assert.LocationCaveats{
+							Space:    cap.Nb().Space,
+							Content:  digest,
+							Location: []url.URL{loc},
+						},
+						delegation.WithNoExpiration(),
+					)
+					if err != nil {
+						log.Errorf("creating location claim for blob: %s: %w", digestutil.Format(digest), err)
+						return blob.AcceptOk{}, nil, failure.FromError(err)
+					}
+
+					err = storageService.Claims().Put(ctx, claim)
+					if err != nil {
+						log.Errorf("putting location claim for blob: %s: %w", digestutil.Format(digest), err)
+						return blob.AcceptOk{}, nil, failure.FromError(err)
+					}
+
+					// TODO: publish to IPNI
+					// TODO: cache in indexing service
+
+					return blob.AcceptOk{Site: claim.Link()}, nil, nil
 				},
 			),
 		),

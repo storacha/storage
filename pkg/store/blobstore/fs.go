@@ -12,8 +12,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 )
 
@@ -54,7 +54,7 @@ func (o FileObject) Body() io.Reader {
 }
 
 func encodePath(digest multihash.Multihash) string {
-	str, _ := multibase.Encode(multibase.Base58BTC, digest)
+	str := digestutil.Format(digest)
 	var parts []string
 	for i := 0; i < len(str); i += 2 {
 		end := i + 2

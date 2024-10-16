@@ -7,8 +7,8 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"
-	"github.com/multiformats/go-multibase"
 	multihash "github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
 )
 
@@ -17,7 +17,7 @@ type DsAllocationStore struct {
 }
 
 func (d *DsAllocationStore) List(ctx context.Context, digest multihash.Multihash) ([]allocation.Allocation, error) {
-	pfx, _ := multibase.Encode(multibase.Base58BTC, digest)
+	pfx := digestutil.Format(digest)
 	results, err := d.data.Query(ctx, query.Query{Prefix: pfx})
 	if err != nil {
 		return nil, fmt.Errorf("querying datastore: %w", err)
@@ -57,6 +57,6 @@ func NewDsAllocationStore(ds datastore.Datastore) (*DsAllocationStore, error) {
 }
 
 func encodeKey(a allocation.Allocation) datastore.Key {
-	str, _ := multibase.Encode(multibase.Base58BTC, a.Blob.Digest)
+	str := digestutil.Format(a.Blob.Digest)
 	return datastore.NewKey(fmt.Sprintf("%s/%s", str, a.Cause.String()))
 }
