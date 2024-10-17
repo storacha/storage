@@ -6,12 +6,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"github.com/multiformats/go-multibase"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
@@ -81,9 +81,9 @@ func NewServer(opts ...Option) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", getRootHandler(c.id))
 	mux.HandleFunc("POST /", postRootHandler(c.id, c.service))
-	mux.HandleFunc("GET /claim/{cid}", getClaimHandler(c.service.Claims()))
-	mux.HandleFunc("GET /blob/{digest}", getBlobHandler(c.service.Blobs()))
-	mux.HandleFunc("PUT /blob/{digest}", putBlobHandler(c.service.Presigner(), c.service.Allocations(), c.service.Blobs()))
+	mux.HandleFunc("GET /claim/{claim}", getClaimHandler(c.service.Claims()))
+	mux.HandleFunc("GET /blob/{blob}", getBlobHandler(c.service.Blobs()))
+	mux.HandleFunc("PUT /blob/{blob}", putBlobHandler(c.service.Presigner(), c.service.Allocations(), c.service.Blobs()))
 	return mux
 }
 
@@ -124,7 +124,7 @@ func postRootHandler(id principal.Signer, service storage.Service) func(http.Res
 
 func getClaimHandler(claims claimstore.ClaimStore) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := cid.Parse(r.PathValue("cid"))
+		c, err := cid.Parse(r.PathValue("claim"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("invalid CID: %s", err), http.StatusBadRequest)
 			return
@@ -152,12 +152,18 @@ func getBlobHandler(blobs blobstore.Blobstore) func(http.ResponseWriter, *http.R
 	if fsblobs, ok := blobs.(blobstore.FileSystemer); ok {
 		serveHTTP := http.FileServer(fsblobs.FileSystem()).ServeHTTP
 		return func(w http.ResponseWriter, r *http.Request) {
-			// trim base58btc multibase prefix if it was added
-			digest, err := mh.FromB58String(strings.TrimLeft(r.PathValue("digest"), "z"))
+			_, bytes, err := multibase.Decode(r.PathValue("blob"))
+			if err != nil {
+				http.Error(w, fmt.Sprintf("decoding multibase encoded digest: %s", err), http.StatusBadRequest)
+				return
+			}
+
+			digest, err := mh.Cast(bytes)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("invalid multihash digest: %s", err), http.StatusBadRequest)
 				return
 			}
+
 			r.URL.Path = fsblobs.EncodePath(digest)
 			serveHTTP(w, r)
 		}
@@ -177,8 +183,13 @@ func putBlobHandler(presigner presigner.RequestPresigner, allocs allocationstore
 			return
 		}
 
-		// trim base58btc multibase prefix if it was added
-		digest, err := mh.FromB58String(strings.TrimLeft(r.PathValue("digest"), "z"))
+		_, bytes, err := multibase.Decode(r.PathValue("blob"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("decoding multibase encoded digest: %s", err), http.StatusBadRequest)
+			return
+		}
+
+		digest, err := mh.Cast(bytes)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("invalid multihash digest: %s", err), http.StatusBadRequest)
 			return
