@@ -4,8 +4,8 @@ type Range struct {
 } representation tuple
 
 type LocationCommitmentMetadata struct {
-  shard optional Link (rename "s")
-  range optional Range (rename "r") 
-  expiration Int (rename "e")
   claim Link (rename "c")
+  expiration Int (rename "e")
+  shard nullable Link (rename "s")
+  range nullable Range (rename "r")
 }

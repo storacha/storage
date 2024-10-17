@@ -27,25 +27,24 @@ var (
 	locationCommitmentMetadata schema.TypedPrototype
 )
 
-func init() {
-	typeSystem, err := ipld.LoadSchemaBytes(schemaBytes)
-	if err != nil {
-		panic(fmt.Errorf("failed to load schema: %w", err))
-	}
-	locationCommitmentMetadata = bindnode.Prototype((*LocationCommitmentMetadata)(nil), typeSystem.TypeByName("LocationCommitmentMetadata"))
-}
-
 // metadata identifiers
 // currently we just use experimental codecs for now
 
 // LocationCommitmentID is the multicodec for location commitments
 const LocationCommitmentID = 0x3E0002
 
-var nodePrototypes = map[multicodec.Code]schema.TypedPrototype{
-	LocationCommitmentID: locationCommitmentMetadata,
-}
+var nodePrototypes = map[multicodec.Code]schema.TypedPrototype{}
 
 var MetadataContext ipnimd.MetadataContext
+
+func init() {
+	typeSystem, err := ipld.LoadSchemaBytes(schemaBytes)
+	if err != nil {
+		panic(fmt.Errorf("failed to load schema: %w", err))
+	}
+	locationCommitmentMetadata = bindnode.Prototype((*LocationCommitmentMetadata)(nil), typeSystem.TypeByName("LocationCommitmentMetadata"))
+	nodePrototypes[LocationCommitmentID] = locationCommitmentMetadata
+}
 
 func init() {
 	mdctx := ipnimd.Default
@@ -64,16 +63,16 @@ type Range struct {
 
 // LocationCommitmentMetadata represents metadata for an location commitment.
 type LocationCommitmentMetadata struct {
+	// Claim indicates the CID of the claim - the claim should be fetchable by
+	// combining the HTTP multiaddr of the provider with the claim CID.
+	Claim ipld.Link
+	// Expiration as unix epoch in seconds.
+	Expiration int64
 	// Shard is an optional alternate CID to use to lookup this location --
 	// if the looked up shard is part of a larger shard
 	Shard *ipld.Link
 	// Range is an optional byte range within a shard.
 	Range *Range
-	// Expiration as unix epoch in seconds.
-	Expiration int64
-	// Claim indicates the CID of the claim - the claim should be fetchable by
-	// combining the HTTP multiaddr of the provider with the claim CID.
-	Claim ipld.Link
 }
 
 func (l *LocationCommitmentMetadata) ID() multicodec.Code {

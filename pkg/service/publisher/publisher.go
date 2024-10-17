@@ -11,10 +11,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/core/delegation"
-	"github.com/storacha/go-ucanto/core/schema"
 	ipni "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/storage/pkg/capability/assert"
-	"github.com/storacha/storage/pkg/capability/assert/datamodel"
 	"github.com/storacha/storage/pkg/metadata"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
@@ -23,13 +21,13 @@ const claimPattern = "{cid}"
 
 var log = logging.Logger("publisher")
 
-type IPNIPublisher struct {
+type PublisherService struct {
 	publisher        ipni.Publisher
 	peerInfo         peer.AddrInfo
 	claimPathPattern string
 }
 
-func (pub *IPNIPublisher) Publish(ctx context.Context, claim delegation.Delegation) error {
+func (pub *PublisherService) Publish(ctx context.Context, claim delegation.Delegation) error {
 	ability := claim.Capabilities()[0].Can()
 	switch ability {
 	case assert.LocationAbility:
@@ -50,8 +48,7 @@ func PublishLocationCommitment(ctx context.Context, publisher ipni.Publisher, pe
 	}
 
 	cap := claim.Capabilities()[0]
-	reader := schema.Struct[assert.LocationCaveats](datamodel.LocationCaveatsType(), nil)
-	nb, rerr := reader.Read(cap.Nb())
+	nb, rerr := assert.LocationCaveatsReader.Read(cap.Nb())
 	if rerr != nil {
 		return fmt.Errorf("reading location commitment data: %w", rerr)
 	}
@@ -85,10 +82,10 @@ func PublishLocationCommitment(ctx context.Context, publisher ipni.Publisher, pe
 	return nil
 }
 
-var _ Publisher = (*IPNIPublisher)(nil)
+var _ Publisher = (*PublisherService)(nil)
 
-// NewIPNIPublisher creates a [Publisher] that publishes content
-// claims/commitments to IPNI and caches them in the indexing service.
+// New creates a [Publisher] that publishes content claims/commitments to IPNI
+// and caches them with the indexing service.
 //
 // The peerInfo parameter is the base public peer information. When publishing,
 // all addresses are suffixed with a /http-path/<path> multiaddr, where "path"
@@ -105,7 +102,7 @@ var _ Publisher = (*IPNIPublisher)(nil)
 // e.g. If peerInfo contains a multiaddr /dns4/n0.storacha.network/tcp/443/https
 // with pathPattern: "claim/{cid}", then a claim should be retrievable at URL:
 // https://n0.storacha.network/claim/bafyreidn6rkycfi2wvn6zbzgd2jnpi362opytoyprt5e27g44whrnh453a
-func NewIPNIPublisher(publisher ipni.Publisher, peerInfo peer.AddrInfo, claimPathPattern string) (*IPNIPublisher, error) {
+func New(publisher ipni.Publisher, peerInfo peer.AddrInfo, claimPathPattern string) (*PublisherService, error) {
 	for _, addr := range peerInfo.Addrs {
 		found := false
 		for _, p := range addr.Protocols() {
@@ -122,5 +119,5 @@ func NewIPNIPublisher(publisher ipni.Publisher, peerInfo peer.AddrInfo, claimPat
 		return nil, fmt.Errorf(`path string does not contain required pattern: "%s"`, claimPattern)
 	}
 	claimPathPattern = strings.TrimPrefix(claimPathPattern, "/")
-	return &IPNIPublisher{publisher, peerInfo, claimPathPattern}, nil
+	return &PublisherService{publisher, peerInfo, claimPathPattern}, nil
 }

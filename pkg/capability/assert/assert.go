@@ -47,43 +47,42 @@ func (lc LocationCaveats) ToIPLD() (datamodel.Node, error) {
 
 const LocationAbility = "assert/location"
 
-var Location = validator.NewCapability(
-	LocationAbility,
-	schema.DIDString(),
-	schema.Mapped(schema.Struct[adm.LocationCaveatsModel](adm.LocationCaveatsType(), nil), func(model adm.LocationCaveatsModel) (LocationCaveats, failure.Failure) {
-		content, err := multihash.Cast(model.Content)
+var LocationCaveatsReader = schema.Mapped(schema.Struct[adm.LocationCaveatsModel](adm.LocationCaveatsType(), nil), func(model adm.LocationCaveatsModel) (LocationCaveats, failure.Failure) {
+	content, err := multihash.Cast(model.Content)
+	if err != nil {
+		return LocationCaveats{}, failure.FromError(err)
+	}
+
+	location := make([]url.URL, 0, len(model.Location))
+	for _, l := range model.Location {
+		url, err := schema.URI().Read(l)
 		if err != nil {
-			return LocationCaveats{}, failure.FromError(err)
+			return LocationCaveats{}, err
 		}
+		location = append(location, url)
+	}
 
-		location := make([]url.URL, 0, len(model.Location))
-		for _, l := range model.Location {
-			url, err := schema.URI().Read(l)
-			if err != nil {
-				return LocationCaveats{}, err
-			}
-			location = append(location, url)
+	space := did.Undef
+	if len(model.Space) > 0 {
+		var serr error
+		space, serr = did.Decode(model.Space)
+		if serr != nil {
+			return LocationCaveats{}, failure.FromError(serr)
 		}
+	}
 
-		space := did.Undef
-		if len(model.Space) > 0 {
-			var serr error
-			space, serr = did.Decode(model.Space)
-			if serr != nil {
-				return LocationCaveats{}, failure.FromError(serr)
-			}
+	lc := LocationCaveats{
+		Content:  content,
+		Location: location,
+		Space:    space,
+	}
+	if model.Range != nil {
+		lc.Range = &Range{
+			Offset: model.Range.Offset,
+			Length: model.Range.Length,
 		}
+	}
+	return lc, nil
+})
 
-		lc := LocationCaveats{
-			Content:  content,
-			Location: location,
-			Space:    space,
-		}
-		if model.Range != nil {
-			lc.Range = &Range{
-				Offset: model.Range.Offset,
-				Length: model.Range.Length,
-			}
-		}
-		return lc, nil
-	}), nil)
+var Location = validator.NewCapability(LocationAbility, schema.DIDString(), LocationCaveatsReader, nil)

@@ -1,5 +1,5 @@
 package storage
 
-func NewStorage() {
+func New() {
 	// TODO: implement me
 }
