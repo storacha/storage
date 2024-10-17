@@ -12,7 +12,7 @@ import (
 func TestPatternAccess(t *testing.T) {
 	t.Run("gets URL", func(t *testing.T) {
 		prefix := "http://localhost/blob/"
-		access, err := NewPatternAccess(fmt.Sprintf("%s{digest}", prefix))
+		access, err := NewPatternAccess(fmt.Sprintf("%s{blob}", prefix))
 		require.NoError(t, err)
 
 		url, err := access.GetDownloadURL(testutil.RandomMultihash())
@@ -27,7 +27,7 @@ func TestPatternAccess(t *testing.T) {
 	})
 
 	t.Run("invalid url", func(t *testing.T) {
-		access, err := NewPatternAccess("://localhost/{digest}")
+		access, err := NewPatternAccess("://localhost/{blob}")
 		require.NoError(t, err)
 
 		_, err = access.GetDownloadURL(testutil.RandomMultihash())

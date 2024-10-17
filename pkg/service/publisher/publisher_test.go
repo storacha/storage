@@ -51,7 +51,7 @@ func TestPublisherService(t *testing.T) {
 		ipnipubr, err := ipnipub.New(priv, publisherStore)
 		require.NoError(t, err)
 
-		svc, err := New(ipnipubr, peerInfo, "claim/{cid}")
+		svc, err := New(ipnipubr, peerInfo, "claim/{claim}")
 		require.NoError(t, err)
 
 		space := testutil.RandomDID()

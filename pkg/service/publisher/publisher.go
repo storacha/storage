@@ -17,7 +17,7 @@ import (
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
 
-const claimPattern = "{cid}"
+const claimPattern = "{claim}"
 
 var log = logging.Logger("publisher")
 
@@ -93,14 +93,14 @@ var _ Publisher = (*PublisherService)(nil)
 //
 // Note: peerInfo addresses must be HTTP(S).
 //
-// The claimPathPattern parameter MUST include the string "{cid}", which upon
+// The claimPathPattern parameter MUST include the string "{claim}", which upon
 // retrieval is replaced with the CID of a content claim. That is to say, the
-// combination of each address in peerInfo + claimPathPattern (with "{cid}"
+// combination of each address in peerInfo + claimPathPattern (with "{claim}"
 // replaced with a real CID) should be the URL allowing to GET that content
 // claim on this node.
 //
 // e.g. If peerInfo contains a multiaddr /dns4/n0.storacha.network/tcp/443/https
-// with pathPattern: "claim/{cid}", then a claim should be retrievable at URL:
+// with pathPattern: "claim/{claim}", then a claim should be retrievable at URL:
 // https://n0.storacha.network/claim/bafyreidn6rkycfi2wvn6zbzgd2jnpi362opytoyprt5e27g44whrnh453a
 func New(publisher ipni.Publisher, peerInfo peer.AddrInfo, claimPathPattern string) (*PublisherService, error) {
 	for _, addr := range peerInfo.Addrs {

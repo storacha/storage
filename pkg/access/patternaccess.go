@@ -9,7 +9,7 @@ import (
 	"github.com/storacha/storage/pkg/internal/digestutil"
 )
 
-const pattern = "{digest}"
+const pattern = "{blob}"
 
 type PatternAccess struct {
 	urlPattern string
@@ -28,9 +28,9 @@ var _ Access = (*PatternAccess)(nil)
 
 // NewPatternAccess creates a new [Access] instance for accessing blobs where
 // the URL is created from a string that contains the placeholder pattern:
-// "{digest}".
+// "{blob}".
 //
-// e.g. "http://localhost:3000/blob/{digest}"
+// e.g. "http://localhost:3000/blob/{blob}"
 func NewPatternAccess(urlPattern string) (*PatternAccess, error) {
 	if !strings.Contains(urlPattern, pattern) {
 		return nil, fmt.Errorf(`URL string does not contain required pattern: "%s"`, pattern)
