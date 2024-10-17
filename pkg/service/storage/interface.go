@@ -4,6 +4,7 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/presigner"
+	"github.com/storacha/storage/pkg/service/publisher"
 	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/claimstore"
@@ -22,4 +23,7 @@ type Service interface {
 	Presigner() presigner.RequestPresigner
 	// Access provides an interface to allowing public access to download blobs.
 	Access() access.Access
+	// Publisher advertises content claims/commitments found on this node to the
+	// storacha network.
+	Publisher() publisher.Publisher
 }

@@ -37,14 +37,15 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AllocateOk, receipt.Effects, error) {
 					ctx := context.TODO()
 					digest := cap.Nb().Blob.Digest
-					log.Infof("%s %s => %s", blob.AllocateAbility, digestutil.Format(digest), cap.Nb().Space)
+					log := log.With("blob", digestutil.Format(digest))
+					log.Infof("%s space: %s", blob.AllocateAbility, cap.Nb().Space)
 
 					// TODO: restrict invocation to authority (storacha service)
 
 					// check if we already have an allcoation for the blob in this space
 					allocs, err := storageService.Allocations().List(ctx, digest)
 					if err != nil {
-						log.Errorf("getting allocations for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("getting allocations: %w", err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
@@ -57,7 +58,7 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 								return blob.AllocateOk{Size: 0}, nil, nil
 							}
 							if !errors.Is(err, store.ErrNotFound) {
-								log.Errorf("getting blob: %s: %w", digestutil.Format(digest), err)
+								log.Errorf("getting blob: %w", err)
 								return blob.AllocateOk{}, nil, failure.FromError(err)
 							}
 						}
@@ -74,7 +75,7 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 					expiresAt := uint64(time.Now().Unix()) + expiresIn
 					url, headers, err := storageService.Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
 					if err != nil {
-						log.Errorf("signing upload URL for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("signing upload URL: %w", err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
@@ -85,7 +86,7 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 						Cause:   inv.Link(),
 					})
 					if err != nil {
-						log.Errorf("putting allocation for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("putting allocation: %w", err)
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
@@ -107,7 +108,8 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 				func(cap ucan.Capability[blob.AcceptCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AcceptOk, receipt.Effects, error) {
 					ctx := context.TODO()
 					digest := cap.Nb().Blob.Digest
-					log.Infof("%s %s => %s", blob.AcceptAbility, digestutil.Format(digest), cap.Nb().Space)
+					log := log.With("blob", digestutil.Format(digest))
+					log.Infof("%s %s", blob.AcceptAbility, cap.Nb().Space)
 
 					// TODO: restrict invocation to authority (storacha service)
 
@@ -119,13 +121,13 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 								Message: "Blob not found",
 							}
 						}
-						log.Errorf("getting blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("getting blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
 					loc, err := storageService.Access().GetDownloadURL(digest)
 					if err != nil {
-						log.Errorf("creating download URL for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("creating download URL for blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
@@ -141,18 +143,21 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 						delegation.WithNoExpiration(),
 					)
 					if err != nil {
-						log.Errorf("creating location claim for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("creating location commitment: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
 					err = storageService.Claims().Put(ctx, claim)
 					if err != nil {
-						log.Errorf("putting location claim for blob: %s: %w", digestutil.Format(digest), err)
+						log.Errorf("putting location claim for blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					// TODO: publish to IPNI
-					// TODO: cache in indexing service
+					err = storageService.Publisher().Publish(ctx, claim)
+					if err != nil {
+						log.Errorf("publishing location commitment: %w", err)
+						return blob.AcceptOk{}, nil, failure.FromError(err)
+					}
 
 					return blob.AcceptOk{Site: claim.Link()}, nil, nil
 				},
