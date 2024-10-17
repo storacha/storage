@@ -19,7 +19,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/multiformats/go-varint v0.0.7
 	github.com/storacha/go-ucanto v0.1.1-0.20241013210933-3949fc84d5ab
-	github.com/storacha/ipni-publisher v0.0.0-20241016214701-f8b92dc002d6
+	github.com/storacha/ipni-publisher v0.0.0-20241017141940-e2c4c6e12360
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )

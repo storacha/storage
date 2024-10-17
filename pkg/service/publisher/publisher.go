@@ -71,7 +71,7 @@ func PublishLocationCommitment(ctx context.Context, publisher ipni.Publisher, pe
 		},
 	)
 
-	adlink, err := publisher.Publish(ctx, &provider, string(contextid), digests, meta)
+	adlink, err := publisher.Publish(ctx, provider, string(contextid), digests, meta)
 	if err != nil {
 		return fmt.Errorf("publishing claim: %w", err)
 	}

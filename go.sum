@@ -528,6 +528,8 @@ github.com/storacha/go-ucanto v0.1.1-0.20241013210933-3949fc84d5ab h1:tia+krWb17
 github.com/storacha/go-ucanto v0.1.1-0.20241013210933-3949fc84d5ab/go.mod h1:Bi7DFuo0nj9/QmkqbLNLWf41xnOoJSFGg21G+UtzWoY=
 github.com/storacha/ipni-publisher v0.0.0-20241016214701-f8b92dc002d6 h1:8TtMztCBf2bVc+B6uNjKFvNZEuQfOGk6AqdE+3rohMA=
 github.com/storacha/ipni-publisher v0.0.0-20241016214701-f8b92dc002d6/go.mod h1:do/EI/uEQyTT4g7YTsjcrnh+DDyES8G1JdtxP1RtVjo=
+github.com/storacha/ipni-publisher v0.0.0-20241017141940-e2c4c6e12360 h1:zUXYE7Kg4TfhYQpiMyT4B44Tu+NdU2QlpxIqgt/xl1s=
+github.com/storacha/ipni-publisher v0.0.0-20241017141940-e2c4c6e12360/go.mod h1:do/EI/uEQyTT4g7YTsjcrnh+DDyES8G1JdtxP1RtVjo=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
