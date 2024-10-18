@@ -1,0 +1,13 @@
+type DID bytes
+
+type Range struct {
+	offset Int
+	length optional Int
+}
+
+type LocationCaveats struct {
+	content Bytes
+	location [String]
+	range optional Range
+	space optional DID
+}

@@ -1,0 +1,43 @@
+type DID bytes
+
+type Blob struct {
+  digest Bytes
+  size Int
+}
+
+type AllocateCaveats struct {
+  space DID
+  blob Blob
+  cause Link
+}
+
+type Address struct {
+  url String
+  headers {String:String}
+  expires Int
+}
+
+type AllocateOk struct {
+  size Int
+  address optional Address
+}
+
+type Result struct {
+  selector String
+  link Link
+} representation tuple
+
+type Promise struct {
+  ucanAwait Result (rename "ucan/await")
+}
+
+type AcceptCaveats struct {
+  space DID
+  blob Blob
+  expires Int
+  put Promise (rename "_put")
+}
+
+type AcceptOk struct {
+  site Link
+}
