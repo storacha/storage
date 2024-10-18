@@ -136,6 +136,15 @@ func TestServer(t *testing.T) {
 		result.MatchResultR0(rcpt.Out(), func(ok bdm.AllocateOkModel) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
+
+			allocs, err := svc.Allocations().List(context.Background(), digest)
+			require.NoError(t, err)
+
+			require.Len(t, allocs, 1)
+			require.Equal(t, digest, allocs[0].Blob.Digest)
+			require.Equal(t, size, allocs[0].Blob.Size)
+			require.Equal(t, space, allocs[0].Space)
+			require.Equal(t, inv.Link(), allocs[0].Cause)
 		}, func(x ipld.Node) {
 			f := testutil.BindFailure(t, x)
 			fmt.Println(f.Message)
