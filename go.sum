@@ -541,10 +541,8 @@ github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t6
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
-github.com/storacha/go-ucanto v0.1.1-0.20241018055500-0909684492ae h1:G23iM87q8UIIK7BWMFg6b11LgwoYS1BONN/dz7D2dq8=
-github.com/storacha/go-ucanto v0.1.1-0.20241018055500-0909684492ae/go.mod h1:Bi7DFuo0nj9/QmkqbLNLWf41xnOoJSFGg21G+UtzWoY=
-github.com/storacha/go-ucanto v0.1.1-0.20241018131343-b4b28cbefa15 h1:soyfOsBsgJUXk4PqZOFPPJtkjY/QGsNdxoZIt0jZdEE=
-github.com/storacha/go-ucanto v0.1.1-0.20241018131343-b4b28cbefa15/go.mod h1:Bi7DFuo0nj9/QmkqbLNLWf41xnOoJSFGg21G+UtzWoY=
+github.com/storacha/go-ucanto v0.1.1-0.20241018155815-175193fb3b33 h1:CUzsUgY1WPlUMsHD+9o1TbAbaxYQy3iesIf12a4+qpQ=
+github.com/storacha/go-ucanto v0.1.1-0.20241018155815-175193fb3b33/go.mod h1:Bi7DFuo0nj9/QmkqbLNLWf41xnOoJSFGg21G+UtzWoY=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f h1:62fTASO3wRPCWCkl6we2DftsFy/DfbmVpwJyqK7gmUc=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f/go.mod h1:fEuGSF5WMaOSAyDQCYAvow6Y+YKzpXczEk3A+H+s1fQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
