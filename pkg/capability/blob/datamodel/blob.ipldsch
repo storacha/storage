@@ -8,7 +8,6 @@ type Blob struct {
 type AllocateCaveats struct {
   space DID
   blob Blob
-  expires Int
   cause Link
 }
 
@@ -36,5 +35,9 @@ type AcceptCaveats struct {
   space DID
   blob Blob
   expires Int
-  put Link (rename "_put")
+  put Promise (rename "_put")
+}
+
+type AcceptOk struct {
+  site Link
 }

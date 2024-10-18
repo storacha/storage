@@ -21,7 +21,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:  "start",
-				Usage: "Start storage node daemon.",
+				Usage: "Start the storage node daemon.",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "private-key",

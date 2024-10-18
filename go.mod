@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
+	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipld/go-ipld-prime v0.21.1-0.20240917223228-6148356a4c2e
 	github.com/ipni/go-libipni v0.6.13
@@ -18,8 +19,8 @@ require (
 	github.com/multiformats/go-multicodec v0.9.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/multiformats/go-varint v0.0.7
-	github.com/storacha/go-ucanto v0.1.1-0.20241017162431-e9b4aa03b81c
-	github.com/storacha/ipni-publisher v0.0.0-20241017141940-e2c4c6e12360
+	github.com/storacha/go-ucanto v0.1.1-0.20241018131343-b4b28cbefa15
+	github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )
@@ -50,7 +51,6 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
-	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.3.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.1 // indirect
@@ -78,6 +78,7 @@ require (
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.20.2 // indirect
+	github.com/onsi/gomega v1.34.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pion/ice/v2 v2.3.36 // indirect
 	github.com/pion/interceptor v0.1.37 // indirect

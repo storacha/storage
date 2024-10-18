@@ -62,7 +62,7 @@ func (ao AcceptOk) ToIPLD() (datamodel.Node, error) {
 var Accept = validator.NewCapability(
 	AcceptAbility,
 	schema.DIDString(),
-	schema.Mapped(schema.Struct[bdm.AcceptCaveatsModel](bdm.AllocateCaveatsType(), nil), func(model bdm.AcceptCaveatsModel) (AcceptCaveats, failure.Failure) {
+	schema.Mapped(schema.Struct[bdm.AcceptCaveatsModel](bdm.AcceptCaveatsType(), nil), func(model bdm.AcceptCaveatsModel) (AcceptCaveats, failure.Failure) {
 		space, err := did.Decode(model.Space)
 		if err != nil {
 			return AcceptCaveats{}, failure.FromError(fmt.Errorf("decoding space DID: %w", err))

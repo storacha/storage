@@ -40,7 +40,13 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 					log := log.With("blob", digestutil.Format(digest))
 					log.Infof("%s space: %s", blob.AllocateAbility, cap.Nb().Space)
 
-					// TODO: restrict invocation to authority (storacha service)
+					// only service principal can perform an allocation
+					if cap.With() != iCtx.ID().DID().String() {
+						return blob.AllocateOk{}, nil, capability.Failure{
+							Name:    "UnsupportedCapability",
+							Message: fmt.Sprintf(`%s does not have a "%s" capability provider`, cap.With(), cap.Can()),
+						}
+					}
 
 					// check if we already have an allcoation for the blob in this space
 					allocs, err := storageService.Allocations().List(ctx, digest)
@@ -111,7 +117,13 @@ func NewServer(id principal.Signer, storageService Service) (server.ServerView, 
 					log := log.With("blob", digestutil.Format(digest))
 					log.Infof("%s %s", blob.AcceptAbility, cap.Nb().Space)
 
-					// TODO: restrict invocation to authority (storacha service)
+					// only service principal can perform an allocation
+					if cap.With() != iCtx.ID().DID().String() {
+						return blob.AcceptOk{}, nil, capability.Failure{
+							Name:    "UnsupportedCapability",
+							Message: fmt.Sprintf(`%s does not have a "%s" capability provider`, cap.With(), cap.Can()),
+						}
+					}
 
 					_, err := storageService.Blobs().Get(ctx, digest)
 					if err != nil {

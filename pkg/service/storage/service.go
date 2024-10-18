@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -14,7 +15,7 @@ import (
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/go-ucanto/principal/rsa/verifier"
+	"github.com/storacha/go-ucanto/principal/ed25519/verifier"
 	"github.com/storacha/go-ucanto/ucan"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
@@ -36,6 +37,8 @@ type StorageService struct {
 	access      access.Access
 	presigner   presigner.RequestPresigner
 	publisher   publisher.Publisher
+	closeFuncs  []func() error
+	io.Closer
 }
 
 func (s *StorageService) Access() access.Access {
@@ -66,16 +69,28 @@ func (s *StorageService) Publisher() publisher.Publisher {
 	return s.publisher
 }
 
+func (s *StorageService) Close() error {
+	var err error
+	for _, close := range s.closeFuncs {
+		err = close()
+	}
+	s.closeFuncs = []func() error{}
+	return err
+}
+
 var _ Service = (*StorageService)(nil)
 
 func New(opts ...Option) (*StorageService, error) {
 	c := &config{}
 	for _, opt := range opts {
-		opt(c)
+		err := opt(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if c.id == nil {
-		log.Warn("Generating a server identity as one has not been set!")
+		log.Warn("Generating a server identity as one has not been configured!")
 		id, err := ed25519.Generate()
 		if err != nil {
 			return nil, err
@@ -84,31 +99,47 @@ func New(opts ...Option) (*StorageService, error) {
 	}
 	log.Infof("Server ID: %s", c.id.DID())
 
-	homedir, err := os.UserHomeDir()
+	peerid, err := toPeerID(c.id)
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("Peer ID: %s", peerid.String())
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting user home directory: %w", err)
+	}
+
+	var closeFuncs []func() error
 
 	dataDir := c.dataDir
 	if dataDir == "" {
-		dataDir := path.Join(homedir, ".storage", "blob")
-		log.Warnf("Data directory not set, using default: %s", dataDir)
+		dir, err := mkdirp(homeDir, ".storacha")
+		if err != nil {
+			return nil, err
+		}
+		log.Warnf("Data directory not configured, using default: %s", dir)
+		dataDir = dir
 	}
 
-	blobs, err := blobstore.NewFsBlobstore(dataDir)
+	blobs, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"))
 	if err != nil {
 		return nil, err
 	}
 
 	allocDs := c.allocationDatastore
 	if allocDs == nil {
-		dir := path.Join(homedir, ".storage", "allocation")
+		dir, err := mkdirp(dataDir, "allocation")
+		if err != nil {
+			return nil, err
+		}
 		allocDs, err = leveldb.NewDatastore(dir, nil)
 		if err != nil {
 			return nil, err
 		}
-		log.Warnf("Allocation datastore not set, using LevelDB: %s", dir)
+		log.Warnf("Allocation datastore not configured, using LevelDB: %s", dir)
 	}
+	closeFuncs = append(closeFuncs, allocDs.Close)
 
 	allocations, err := allocationstore.NewDsAllocationStore(allocDs)
 	if err != nil {
@@ -117,13 +148,17 @@ func New(opts ...Option) (*StorageService, error) {
 
 	claimDs := c.claimDatastore
 	if claimDs == nil {
-		dir := path.Join(homedir, ".storage", "claim")
+		dir, err := mkdirp(dataDir, "claim")
+		if err != nil {
+			return nil, err
+		}
 		claimDs, err = leveldb.NewDatastore(dir, nil)
 		if err != nil {
 			return nil, err
 		}
-		log.Warnf("Claim datastore not set, using LevelDB: %s", dir)
+		log.Warnf("Claim datastore not configured, using LevelDB: %s", dir)
 	}
+	closeFuncs = append(closeFuncs, claimDs.Close)
 
 	claims, err := delegationstore.NewDsDelegationStore(claimDs)
 	if err != nil {
@@ -136,7 +171,7 @@ func New(opts ...Option) (*StorageService, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Warnf("Public URL not set, using default: %s", u)
+		log.Warnf("Public URL not configured, using default: %s", u)
 		pubURL = *u
 	}
 
@@ -162,32 +197,33 @@ func New(opts ...Option) (*StorageService, error) {
 
 	publisherDs := c.publisherDatastore
 	if publisherDs == nil {
-		dir := path.Join(homedir, ".storage", "publisher")
-		claimDs, err = leveldb.NewDatastore(dir, nil)
+		dir, err := mkdirp(dataDir, "publisher")
 		if err != nil {
 			return nil, err
 		}
-		log.Warnf("Publisher datastore not set, using LevelDB: %s", dir)
+		publisherDs, err = leveldb.NewDatastore(dir, nil)
+		if err != nil {
+			return nil, err
+		}
+		log.Warnf("Publisher datastore not configured, using LevelDB: %s", dir)
+	}
+	closeFuncs = append(closeFuncs, publisherDs.Close)
+
+	addr, err := maurl.FromURL(&pubURL)
+	if err != nil {
+		return nil, err
 	}
 
 	ipni, err := ipnipub.New(
 		priv,
 		store.FromDatastore(publisherDs),
 		ipnipub.WithDirectAnnounce("https://cid.contact/announce"),
-		ipnipub.WithAnnounceAddrs("/dns4/localhost/tcp/3000/https"),
+		ipnipub.WithAnnounceAddrs(addr.String()),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	peerid, err := toPeerID(c.id)
-	if err != nil {
-		return nil, err
-	}
-	addr, err := maurl.FromURL(&pubURL)
-	if err != nil {
-		return nil, err
-	}
 	peerInfo := peer.AddrInfo{
 		ID:    peerid,
 		Addrs: []multiaddr.Multiaddr{addr},
@@ -205,7 +241,17 @@ func New(opts ...Option) (*StorageService, error) {
 		access:      access,
 		presigner:   presigner,
 		publisher:   publisher,
+		closeFuncs:  closeFuncs,
 	}, nil
+}
+
+func mkdirp(dirpath ...string) (string, error) {
+	dir := path.Join(dirpath...)
+	err := os.MkdirAll(dir, 0777)
+	if err != nil {
+		return "", fmt.Errorf("creating directory: %s: %w", dir, err)
+	}
+	return dir, nil
 }
 
 func toPeerID(principal ucan.Principal) (peer.ID, error) {

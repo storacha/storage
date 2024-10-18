@@ -77,7 +77,7 @@ func (ao AllocateOk) ToIPLD() (datamodel.Node, error) {
 		}
 
 		md.Address = &bdm.AddressModel{
-			URL: ao.Address.URL.String(),
+			Url: ao.Address.URL.String(),
 			Headers: bdm.HeadersModel{
 				Keys:   keys,
 				Values: headers,

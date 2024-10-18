@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/ipfs/go-datastore"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/principal"
 )
 
@@ -69,6 +70,15 @@ func WithClaimDatastore(dstore datastore.Datastore) Option {
 func WithPublisherDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
 		c.publisherDatastore = dstore
+		return nil
+	}
+}
+
+// WithLogLevel changes the log level of a specific subsystem name=="*" changes
+// all subsystems.
+func WithLogLevel(name string, level string) Option {
+	return func(c *config) error {
+		logging.SetLogLevel(name, level)
 		return nil
 	}
 }

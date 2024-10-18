@@ -54,7 +54,7 @@ type HeadersModel struct {
 }
 
 type AddressModel struct {
-	URL     string
+	Url     string
 	Headers HeadersModel
 	Expires int64
 }
