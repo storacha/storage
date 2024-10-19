@@ -6,12 +6,13 @@ import (
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/principal"
+	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
 type config struct {
 	id                  principal.Signer
 	publicURL           url.URL
-	dataDir             string
+	blobStore           blobstore.Blobstore
 	allocationDatastore datastore.Datastore
 	claimDatastore      datastore.Datastore
 	publisherDatastore  datastore.Datastore
@@ -37,11 +38,10 @@ func WithPublicURL(url url.URL) Option {
 	}
 }
 
-// WithDataDir configures the path to the filesystem directory where uploads
-// will be stored.
-func WithDataDir(dir string) Option {
+// WithBlobstore configures the blob storage to use.
+func WithBlobstore(blobStore blobstore.Blobstore) Option {
 	return func(c *config) error {
-		c.dataDir = dir
+		c.blobStore = blobStore
 		return nil
 	}
 }

@@ -10,12 +10,10 @@ import (
 	dssync "github.com/ipfs/go-datastore/sync"
 
 	"github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/principal/ed25519/signer"
-	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/capability/assert"
 	"github.com/storacha/storage/pkg/internal/digestutil"
@@ -32,26 +30,16 @@ func TestPublisherService(t *testing.T) {
 	priv, err := crypto.UnmarshalEd25519PrivateKey(signer.Raw())
 	require.NoError(t, err)
 
-	pid, err := peer.IDFromPrivateKey(priv)
-	require.NoError(t, err)
-
 	addr, err := multiaddr.NewMultiaddr("/dns4/localhost/tcp/3000/http")
 	require.NoError(t, err)
-
-	peerInfo := peer.AddrInfo{
-		ID:    pid,
-		Addrs: []multiaddr.Multiaddr{addr},
-	}
 
 	ctx := context.Background()
 
 	t.Run("publishes location commitments", func(t *testing.T) {
 		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
 		publisherStore := store.FromDatastore(dstore)
-		ipnipubr, err := ipnipub.New(priv, publisherStore)
-		require.NoError(t, err)
 
-		svc, err := New(ipnipubr, peerInfo, "claim/{claim}")
+		svc, err := New(priv, publisherStore, addr)
 		require.NoError(t, err)
 
 		space := testutil.RandomDID()

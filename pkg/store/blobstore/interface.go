@@ -48,12 +48,12 @@ type Object interface {
 type Blobstore interface {
 	// Put stores the bytes to the store and ensures it hashes to the passed
 	// digest.
-	Put(context.Context, multihash.Multihash, uint64, io.Reader) error
+	Put(ctx context.Context, digest multihash.Multihash, size uint64, body io.Reader) error
 	// Get retrieves the object identified by the passed digest. Returns nil and
 	// [ErrNotFound] if the object does not exist.
 	//
 	// Note: data is not hashed on read.
-	Get(context.Context, multihash.Multihash, ...GetOption) (Object, error)
+	Get(ctx context.Context, digest multihash.Multihash, opts ...GetOption) (Object, error)
 }
 
 // FileSystemer exposes the filesystem interface for reading blobs.

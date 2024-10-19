@@ -5,14 +5,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
-	"net/url"
-	"os"
-	"path"
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/client"
@@ -59,27 +54,11 @@ var acceptReceiptSchema = []byte(`
 `)
 
 func TestServer(t *testing.T) {
-	pubURL, err := url.Parse("http://localhost:3000")
-	require.NoError(t, err)
-
-	dataDir := path.Join(os.TempDir(), fmt.Sprintf("storage%d", time.Now().UnixMilli()))
-	t.Cleanup(func() { os.RemoveAll(dataDir) })
-
-	dstore := datastore.NewMapDatastore()
-
-	svc, err := New(
-		WithIdentity(testutil.Alice),
-		WithDataDir(dataDir),
-		WithPublicURL(*pubURL),
-		WithAllocationDatastore(namespace.Wrap(dstore, datastore.NewKey("allocation"))),
-		WithClaimDatastore(namespace.Wrap(dstore, datastore.NewKey("claim"))),
-		WithPublisherDatastore(namespace.Wrap(dstore, datastore.NewKey("publisher"))),
-		WithLogLevel("*", "info"),
-	)
+	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "info"))
 	require.NoError(t, err)
 	t.Cleanup(func() { svc.Close() })
 
-	srv, err := NewServer(testutil.Alice, svc)
+	srv, err := NewUCANServer(svc)
 	require.NoError(t, err)
 
 	conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
@@ -137,7 +116,7 @@ func TestServer(t *testing.T) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 
-			allocs, err := svc.Allocations().List(context.Background(), digest)
+			allocs, err := svc.Blobs().Allocations().List(context.Background(), digest)
 			require.NoError(t, err)
 
 			require.Len(t, allocs, 1)
@@ -177,10 +156,10 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 
 		// simulate a blob upload
-		err = svc.Blobs().Put(context.Background(), digest, size, bytes.NewReader(data))
+		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
 		require.NoError(t, err)
 		// get the expected download URL
-		loc, err := svc.Access().GetDownloadURL(digest)
+		loc, err := svc.Blobs().Access().GetDownloadURL(digest)
 		require.NoError(t, err)
 
 		// eventually service will invoke blob/accept
@@ -216,7 +195,7 @@ func TestServer(t *testing.T) {
 		result.MatchResultR0(rcpt.Out(), func(ok bdm.AcceptOkModel) {
 			fmt.Printf("%+v\n", ok)
 
-			claim, err := svc.Claims().Get(context.Background(), ok.Site)
+			claim, err := svc.Claims().Store().Get(context.Background(), ok.Site)
 			require.NoError(t, err)
 
 			require.Equal(t, testutil.Alice.DID(), claim.Issuer())
