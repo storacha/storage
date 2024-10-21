@@ -106,7 +106,7 @@ func NewBlobPutHandler(presigner presigner.RequestPresigner, allocs allocationst
 			return
 		}
 
-		log.Infof("found %d allocations for write to: z%s", len(results), digest.B58String())
+		log.Infof("Found %d allocations for write to: z%s", len(results), digest.B58String())
 
 		_, err = blobs.Get(r.Context(), digest)
 		if err == nil {

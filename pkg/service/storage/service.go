@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/service/blobs"
@@ -65,11 +64,6 @@ func New(opts ...Option) (*StorageService, error) {
 	}
 	log.Infof("Server ID: %s", id.DID())
 
-	priv, err := crypto.UnmarshalEd25519PrivateKey(id.Raw())
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling private key: %w", err)
-	}
-
 	var closeFuncs []func() error
 
 	blobStore := c.blobStore
@@ -115,7 +109,8 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating blob service: %w", err)
 	}
 
-	claims, err := claims.New(priv, claimDs, publisherDs, pubURL)
+	claimsOpts := []claims.Option{claims.WithPublisherDirectAnnounce(c.announceURLs...)}
+	claims, err := claims.New(id, claimDs, publisherDs, pubURL, claimsOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("creating claim service: %w", err)
 	}
