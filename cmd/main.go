@@ -47,6 +47,11 @@ func main() {
 						Usage:   "Root directory to store data in.",
 					},
 					&cli.StringFlag{
+						Name:    "tmp-dir",
+						Aliases: []string{"t"},
+						Usage:   "Temporary directory data is uploaded to before being moved to data-dir.",
+					},
+					&cli.StringFlag{
 						Name:    "public-url",
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
@@ -83,7 +88,17 @@ func main() {
 						dataDir = dir
 					}
 
-					blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"))
+					tmpDir := cCtx.String("tmp-dir")
+					if tmpDir == "" {
+						dir, err := mkdirp(path.Join(os.TempDir(), "storage"))
+						if err != nil {
+							return err
+						}
+						log.Warnf("Tmp directory is not configured, using default: %s", dir)
+						tmpDir = dir
+					}
+
+					blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"), path.Join(tmpDir, "blobs"))
 					if err != nil {
 						return fmt.Errorf("creating blob storage: %w", err)
 					}
