@@ -13,12 +13,12 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/metadata"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 	"github.com/stretchr/testify/require"
 )
@@ -84,7 +84,7 @@ func TestPublisherService(t *testing.T) {
 		lcmeta, ok := protocol.(*metadata.LocationCommitmentMetadata)
 		require.True(t, ok)
 
-		require.Equal(t, claim.Link(), lcmeta.Claim)
+		require.Equal(t, claim.Link().String(), lcmeta.Claim.String())
 
 		var ents []multihash.Multihash
 		for digest, err := range publisherStore.Entries(ctx, ad.Entries) {

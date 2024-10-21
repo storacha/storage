@@ -6,16 +6,19 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipld/go-ipld-prime"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-ucanto/core/delegation"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/metadata"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
 
@@ -73,7 +76,7 @@ func PublishLocationCommitment(ctx context.Context, publisher ipnipub.Publisher,
 
 	meta := metadata.MetadataContext.New(
 		&metadata.LocationCommitmentMetadata{
-			Claim:      claim.Link(),
+			Claim:      asCID(claim.Link()),
 			Expiration: int64(exp),
 		},
 	)
@@ -147,4 +150,11 @@ func New(id crypto.PrivKey, publisherStore store.PublisherStore, publicAddr mult
 		Addrs: []multiaddr.Multiaddr{publicAddr},
 	}
 	return &PublisherService{publisherStore, publisher, peerInfo, claimPath}, nil
+}
+
+func asCID(link ipld.Link) cid.Cid {
+	if cl, ok := link.(cidlink.Link); ok {
+		return cl.Cid
+	}
+	return cid.MustParse(link.String())
 }
