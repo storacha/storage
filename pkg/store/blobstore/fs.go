@@ -123,14 +123,23 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
-	defer f.Close()
+
+	closed := false
+	moved := false
+	defer func() {
+		if !closed {
+			f.Close()
+		}
+		if !moved {
+			os.Remove(tmpname)
+		}
+	}()
 
 	hash := sha256.New()
 	tee := io.TeeReader(body, hash)
 
 	written, err := io.Copy(f, tee)
 	if err != nil {
-		os.Remove(tmpname) // remove any bytes written
 		return fmt.Errorf("writing file: %w", err)
 	}
 
@@ -142,7 +151,6 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	}
 
 	if !bytes.Equal(hash.Sum(nil), info.Digest) {
-		os.Remove(tmpname)
 		return ErrDataInconsistent
 	}
 
@@ -151,11 +159,15 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	if err != nil {
 		return fmt.Errorf("creating intermediate directories: %w", err)
 	}
+
+	_ = f.Close()
+	closed = true
+
 	err = os.Rename(tmpname, name)
 	if err != nil {
 		return fmt.Errorf("moving file: %w", err)
 	}
-	os.Remove(tmpname)
+	moved = true
 
 	return nil
 }
