@@ -17,12 +17,14 @@ import (
 )
 
 func TestBlobstore(t *testing.T) {
-	tmpdir := path.Join(os.TempDir(), fmt.Sprintf("blobstore%d", time.Now().UnixMilli()))
+	rootdir := path.Join(os.TempDir(), fmt.Sprintf("blobstore%d", time.Now().UnixMilli()))
+	t.Cleanup(func() { os.RemoveAll(rootdir) })
+	tmpdir := path.Join(os.TempDir(), fmt.Sprintf("blobstore-tmp%d", time.Now().UnixMilli()))
 	t.Cleanup(func() { os.RemoveAll(tmpdir) })
 
 	impls := map[string]Blobstore{
-		"MapBlobstore": testutil.Must(NewMapBlobstore())(t),
-		"FsBlobstore":  testutil.Must(NewFsBlobstore(tmpdir))(t),
+		"MapBlobstore": NewMapBlobstore(),
+		"FsBlobstore":  testutil.Must(NewFsBlobstore(rootdir, tmpdir))(t),
 	}
 
 	for k, s := range impls {

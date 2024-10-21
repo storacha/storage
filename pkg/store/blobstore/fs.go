@@ -68,6 +68,7 @@ func encodePath(digest multihash.Multihash) string {
 
 type FsBlobstore struct {
 	rootdir string
+	tmpdir  string
 }
 
 func (b *FsBlobstore) EncodePath(digest multihash.Multihash) string {
@@ -112,13 +113,13 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 		return fmt.Errorf("unsupported digest: 0x%x", info.Code)
 	}
 
-	n := path.Join(b.rootdir, encodePath(digest))
-	err = os.MkdirAll(path.Dir(n), 0755)
+	tmpname := path.Join(b.tmpdir, encodePath(digest))
+	err = os.MkdirAll(path.Dir(tmpname), 0755)
 	if err != nil {
 		return fmt.Errorf("creating intermediate directories: %w", err)
 	}
 
-	f, err := os.Create(n)
+	f, err := os.Create(tmpname)
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
@@ -129,7 +130,7 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 
 	written, err := io.Copy(f, tee)
 	if err != nil {
-		os.Remove(n) // remove any bytes written
+		os.Remove(tmpname) // remove any bytes written
 		return fmt.Errorf("writing file: %w", err)
 	}
 
@@ -141,9 +142,20 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	}
 
 	if !bytes.Equal(hash.Sum(nil), info.Digest) {
-		os.Remove(n)
+		os.Remove(tmpname)
 		return ErrDataInconsistent
 	}
+
+	name := path.Join(b.rootdir, encodePath(digest))
+	err = os.MkdirAll(path.Dir(name), 0755)
+	if err != nil {
+		return fmt.Errorf("creating intermediate directories: %w", err)
+	}
+	err = os.Rename(tmpname, name)
+	if err != nil {
+		return fmt.Errorf("moving file: %w", err)
+	}
+	os.Remove(tmpname)
 
 	return nil
 }
@@ -152,10 +164,21 @@ var _ Blobstore = (*FsBlobstore)(nil)
 var _ FileSystemer = (*FsBlobstore)(nil)
 
 // NewFsBlobstore creates a [Blobstore] backed by the local filesystem.
-func NewFsBlobstore(rootdir string) (*FsBlobstore, error) {
+// The tmpdir parameter is optional, defaulting to [os.TempDir] + "blobs".
+func NewFsBlobstore(rootdir string, tmpdir string) (*FsBlobstore, error) {
 	err := os.MkdirAll(rootdir, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("root directory not writable: %w", err)
 	}
-	return &FsBlobstore{rootdir}, nil
+	if tmpdir == "" {
+		tmpdir = path.Join(os.TempDir(), "blobs")
+	}
+	if tmpdir == rootdir {
+		return nil, errors.New("tmp directory must NOT be the same as root directory")
+	}
+	err = os.MkdirAll(tmpdir, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("tmp directory not writable: %w", err)
+	}
+	return &FsBlobstore{rootdir, tmpdir}, nil
 }
