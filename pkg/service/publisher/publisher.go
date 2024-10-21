@@ -11,10 +11,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-capabilities/pkg/assert"
 	"github.com/storacha/go-ucanto/core/delegation"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/capability/assert"
 	"github.com/storacha/storage/pkg/metadata"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
@@ -60,8 +60,8 @@ func PublishLocationCommitment(ctx context.Context, publisher ipnipub.Publisher,
 		return fmt.Errorf("reading location commitment data: %w", rerr)
 	}
 
-	digests := []multihash.Multihash{nb.Content}
-	contextid, err := advertisement.EncodeContextID(nb.Space, nb.Content)
+	digests := []multihash.Multihash{nb.Content.Hash()}
+	contextid, err := advertisement.EncodeContextID(nb.Space, nb.Content.Hash())
 	if err != nil {
 		return fmt.Errorf("encoding advertisement context ID: %w", err)
 	}

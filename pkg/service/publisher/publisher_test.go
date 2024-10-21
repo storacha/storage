@@ -12,10 +12,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-capabilities/pkg/assert"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/capability/assert"
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/storacha/storage/pkg/metadata"
@@ -52,7 +52,7 @@ func TestPublisherService(t *testing.T) {
 			signer.DID().String(),
 			assert.LocationCaveats{
 				Space:    space,
-				Content:  shard,
+				Content:  assert.FromHash(shard),
 				Location: []url.URL{*location},
 			},
 			delegation.WithNoExpiration(),
