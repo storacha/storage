@@ -1,0 +1,11 @@
+type Range struct {
+	offset Int
+	length nullable Int
+} representation tuple
+
+type LocationCommitmentMetadata struct {
+  claim Link (rename "c")
+  expiration Int (rename "e")
+  shard nullable Link (rename "s")
+  range nullable Range (rename "r")
+}

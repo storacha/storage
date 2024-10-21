@@ -1,0 +1,13 @@
+type DID bytes
+
+type Blob struct {
+  digest Bytes
+  size Int
+}
+
+type Allocation struct {
+  space DID
+  blob Blob
+  expires Int
+  cause Link
+}
