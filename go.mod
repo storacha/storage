@@ -88,6 +88,7 @@ require (
 	github.com/prometheus/common v0.60.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/storacha/go-capabilities v0.0.0-20241021134022-7144600f5aeb // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/ucan-wg/go-ucan v0.0.0-20240916120445-37f52863156c // indirect
 	github.com/whyrusleeping/cbor-gen v0.1.2 // indirect
