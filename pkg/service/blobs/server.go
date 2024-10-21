@@ -11,7 +11,6 @@ import (
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
@@ -108,18 +107,6 @@ func NewBlobPutHandler(presigner presigner.RequestPresigner, allocs allocationst
 
 		log.Infof("Found %d allocations for write to: z%s", len(results), digest.B58String())
 
-		_, err = blobs.Get(r.Context(), digest)
-		if err == nil {
-			log.Warnf("repeated write to: z%s", digest.B58String())
-			http.Error(w, "object exists", http.StatusConflict)
-			return
-		}
-		if !errors.Is(err, store.ErrNotFound) {
-			log.Errorf("getting exising blob: %w", err)
-			http.Error(w, "read failed", http.StatusInternalServerError)
-			return
-		}
-
 		// ensure the size comes from a signed header
 		contentLength, err := strconv.ParseInt(sHeaders.Get("Content-Length"), 10, 64)
 		if err != nil {
@@ -129,10 +116,10 @@ func NewBlobPutHandler(presigner presigner.RequestPresigner, allocs allocationst
 		}
 
 		err = blobs.Put(r.Context(), digest, uint64(contentLength), r.Body)
-		if err == nil {
+		if err != nil {
 			log.Errorf("writing to: z%s: %w", digest.B58String(), err)
 			if errors.Is(err, blobstore.ErrDataInconsistent) {
-				http.Error(w, "data consistency check failed", http.StatusBadRequest)
+				http.Error(w, "data consistency check failed", http.StatusConflict)
 				return
 			}
 			http.Error(w, "write failed", http.StatusInternalServerError)
