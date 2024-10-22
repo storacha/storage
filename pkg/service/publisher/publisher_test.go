@@ -9,27 +9,27 @@ import (
 	"github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 
-	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-capabilities/pkg/claim"
+	"github.com/storacha/go-metadata"
+	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
-	"github.com/storacha/go-ucanto/principal/ed25519/signer"
+	"github.com/storacha/go-ucanto/core/invocation"
+	"github.com/storacha/go-ucanto/core/receipt"
+	"github.com/storacha/go-ucanto/principal"
+	"github.com/storacha/go-ucanto/server"
+	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/capability/assert"
+	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/metadata"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPublisherService(t *testing.T) {
-	signer, err := signer.Generate()
-	require.NoError(t, err)
-
-	priv, err := crypto.UnmarshalEd25519PrivateKey(signer.Raw())
-	require.NoError(t, err)
-
 	addr, err := multiaddr.NewMultiaddr("/dns4/localhost/tcp/3000/http")
 	require.NoError(t, err)
 
@@ -39,7 +39,7 @@ func TestPublisherService(t *testing.T) {
 		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
 		publisherStore := store.FromDatastore(dstore)
 
-		svc, err := New(priv, publisherStore, addr)
+		svc, err := New(testutil.Alice, publisherStore, addr, WithLogLevel("info"))
 		require.NoError(t, err)
 
 		space := testutil.RandomDID()
@@ -47,12 +47,12 @@ func TestPublisherService(t *testing.T) {
 		location := testutil.Must(url.Parse(fmt.Sprintf("http://localhost:3000/blob/%s", digestutil.Format(shard))))(t)
 
 		claim, err := assert.Location.Delegate(
-			signer,
+			testutil.Alice,
 			space,
-			signer.DID().String(),
+			testutil.Alice.DID().String(),
 			assert.LocationCaveats{
 				Space:    space,
-				Content:  shard,
+				Content:  assert.FromHash(shard),
 				Location: []url.URL{*location},
 			},
 			delegation.WithNoExpiration(),
@@ -84,7 +84,7 @@ func TestPublisherService(t *testing.T) {
 		lcmeta, ok := protocol.(*metadata.LocationCommitmentMetadata)
 		require.True(t, ok)
 
-		require.Equal(t, claim.Link(), lcmeta.Claim)
+		require.Equal(t, claim.Link().String(), lcmeta.Claim.String())
 
 		var ents []multihash.Multihash
 		for digest, err := range publisherStore.Entries(ctx, ad.Entries) {
@@ -94,4 +94,75 @@ func TestPublisherService(t *testing.T) {
 		require.Len(t, ents, 1)
 		require.Equal(t, shard, ents[0])
 	})
+
+	t.Run("caches claims", func(t *testing.T) {
+		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
+		publisherStore := store.FromDatastore(dstore)
+
+		idxSvc := mockIndexingService(t, testutil.Bob)
+		idxConn, err := client.NewConnection(testutil.Bob, idxSvc)
+		require.NoError(t, err)
+
+		// authorize alice to cache claim on bob
+		prf, err := delegation.Delegate(
+			testutil.Bob,
+			testutil.Alice,
+			[]ucan.Capability[ucan.NoCaveats]{
+				ucan.NewCapability(
+					claim.CacheAbility,
+					testutil.Bob.DID().String(),
+					ucan.NoCaveats{},
+				),
+			},
+		)
+		require.NoError(t, err)
+
+		svc, err := New(
+			testutil.Alice,
+			publisherStore,
+			addr,
+			WithIndexingService(idxConn),
+			WithIndexingServiceProof(delegation.FromDelegation(prf)),
+			WithLogLevel("info"),
+		)
+		require.NoError(t, err)
+
+		space := testutil.RandomDID()
+		shard := testutil.RandomMultihash()
+		location := testutil.Must(url.Parse(fmt.Sprintf("http://localhost:3000/blob/%s", digestutil.Format(shard))))(t)
+
+		claim, err := assert.Location.Delegate(
+			testutil.Alice,
+			space,
+			testutil.Alice.DID().String(),
+			assert.LocationCaveats{
+				Space:    space,
+				Content:  assert.FromHash(shard),
+				Location: []url.URL{*location},
+			},
+			delegation.WithNoExpiration(),
+		)
+		require.NoError(t, err)
+
+		err = svc.Publish(ctx, claim)
+		require.NoError(t, err)
+	})
+}
+
+func mockIndexingService(t *testing.T, id principal.Signer) server.ServerView {
+	t.Helper()
+	return testutil.Must(
+		server.NewServer(
+			id,
+			server.WithServiceMethod(
+				claim.CacheAbility,
+				server.Provide(
+					claim.Cache,
+					func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (capability.Unit, receipt.Effects, error) {
+						return capability.Unit{}, nil, nil
+					},
+				),
+			),
+		),
+	)(t)
 }

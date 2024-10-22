@@ -5,17 +5,24 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/storacha/go-ucanto/client"
+	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/principal"
+	"github.com/storacha/go-ucanto/transport/http"
+	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
 type config struct {
-	id                  principal.Signer
-	publicURL           url.URL
-	blobStore           blobstore.Blobstore
-	allocationDatastore datastore.Datastore
-	claimDatastore      datastore.Datastore
-	publisherDatastore  datastore.Datastore
+	id                    principal.Signer
+	publicURL             url.URL
+	blobStore             blobstore.Blobstore
+	allocationDatastore   datastore.Datastore
+	claimDatastore        datastore.Datastore
+	publisherDatastore    datastore.Datastore
+	announceURLs          []url.URL
+	indexingService       client.Connection
+	indexingServiceProofs delegation.Proofs
 }
 
 type Option func(*config) error
@@ -70,6 +77,47 @@ func WithClaimDatastore(dstore datastore.Datastore) Option {
 func WithPublisherDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
 		c.publisherDatastore = dstore
+		return nil
+	}
+}
+
+// WithPublisherDirectAnnounce sets IPNI node URLs to send direct HTTP
+// announcements to.
+func WithPublisherDirectAnnounce(announceURLs ...url.URL) Option {
+	return func(c *config) error {
+		c.announceURLs = append(c.announceURLs, announceURLs...)
+		return nil
+	}
+}
+
+// WithPublisherIndexingService sets the client connection to the indexing UCAN
+// service.
+func WithPublisherIndexingService(conn client.Connection) Option {
+	return func(c *config) error {
+		c.indexingService = conn
+		return nil
+	}
+}
+
+// WithPublisherIndexingServiceConfig configures UCAN service invocation details
+// for communicating with the indexing service.
+func WithPublisherIndexingServiceConfig(serviceDID ucan.Principal, serviceURL url.URL) Option {
+	return func(c *config) error {
+		channel := http.NewHTTPChannel(&serviceURL)
+		conn, err := client.NewConnection(serviceDID, channel)
+		if err != nil {
+			return err
+		}
+		c.indexingService = conn
+		return nil
+	}
+}
+
+// WithPublisherIndexingServiceProof configures proofs for UCAN invocations to
+// the indexing service.
+func WithPublisherIndexingServiceProof(proof ...delegation.Proof) Option {
+	return func(c *config) error {
+		c.indexingServiceProofs = proof
 		return nil
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-capabilities/pkg/blob"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
@@ -15,8 +17,6 @@ import (
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/capability"
-	"github.com/storacha/storage/pkg/capability/assert"
-	"github.com/storacha/storage/pkg/capability/blob"
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
@@ -138,7 +138,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 
 					loc, err := storageService.Blobs().Access().GetDownloadURL(digest)
 					if err != nil {
-						log.Errorf("creating download URL for blob: %w", err)
+						log.Errorf("creating retrieval URL for blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
@@ -148,7 +148,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 						storageService.ID().DID().String(),
 						assert.LocationCaveats{
 							Space:    cap.Nb().Space,
-							Content:  digest,
+							Content:  assert.FromHash(digest),
 							Location: []url.URL{loc},
 						},
 						delegation.WithNoExpiration(),

@@ -10,6 +10,9 @@ import (
 
 	"github.com/ipld/go-ipld-prime"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-capabilities/pkg/blob"
+	bdm "github.com/storacha/go-capabilities/pkg/blob/datamodel"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
@@ -17,9 +20,6 @@ import (
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/capability"
-	"github.com/storacha/storage/pkg/capability/assert"
-	"github.com/storacha/storage/pkg/capability/blob"
-	bdm "github.com/storacha/storage/pkg/capability/blob/datamodel"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -207,7 +207,7 @@ func TestServer(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, space, nb.Space)
-			require.Equal(t, digest, nb.Content)
+			require.Equal(t, digest, nb.Content.Hash())
 			require.Equal(t, loc.String(), nb.Location[0].String())
 
 			// TODO: assert IPNI advert published

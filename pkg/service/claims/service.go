@@ -5,7 +5,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipni/go-libipni/maurl"
-	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/service/publisher"
 	"github.com/storacha/storage/pkg/store/claimstore"
@@ -27,7 +27,15 @@ func (c *ClaimService) Store() claimstore.ClaimStore {
 
 var _ Claims = (*ClaimService)(nil)
 
-func New(priv crypto.PrivKey, claimsDatastore datastore.Datastore, publisherDatastore datastore.Datastore, publicURL url.URL) (*ClaimService, error) {
+func New(id principal.Signer, claimsDatastore datastore.Datastore, publisherDatastore datastore.Datastore, publicURL url.URL, opts ...Option) (*ClaimService, error) {
+	o := &options{}
+	for _, opt := range opts {
+		err := opt(o)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	claimStore, err := delegationstore.NewDsDelegationStore(claimsDatastore)
 	if err != nil {
 		return nil, err
@@ -40,7 +48,14 @@ func New(priv crypto.PrivKey, claimsDatastore datastore.Datastore, publisherData
 
 	publisherStore := store.FromDatastore(publisherDatastore)
 
-	publisher, err := publisher.New(priv, publisherStore, addr)
+	publisher, err := publisher.New(
+		id,
+		publisherStore,
+		addr,
+		publisher.WithDirectAnnounce(o.announceURLs...),
+		publisher.WithIndexingService(o.indexingService),
+		publisher.WithIndexingServiceProof(o.indexingServiceProofs...),
+	)
 	if err != nil {
 		return nil, err
 	}
