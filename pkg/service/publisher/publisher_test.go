@@ -99,7 +99,22 @@ func TestPublisherService(t *testing.T) {
 		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
 		publisherStore := store.FromDatastore(dstore)
 
-		idxSvc := mockIndexingService(t, testutil.Bob)
+		handlerCalled := false
+		handler := func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (capability.Unit, receipt.Effects, error) {
+			handlerCalled = true
+			claim := cap.Nb().Claim
+			for b, err := range inv.Blocks() {
+				if err != nil {
+					return capability.Unit{}, nil, err
+				}
+				if b.Link() == claim {
+					return capability.Unit{}, nil, nil
+				}
+			}
+			return capability.Unit{}, nil, fmt.Errorf("claim not found in invocation blocks: %s", claim.String())
+		}
+
+		idxSvc := mockIndexingService(t, testutil.Bob, handler)
 		idxConn, err := client.NewConnection(testutil.Bob, idxSvc)
 		require.NoError(t, err)
 
@@ -146,10 +161,11 @@ func TestPublisherService(t *testing.T) {
 
 		err = svc.Publish(ctx, claim)
 		require.NoError(t, err)
+		require.True(t, handlerCalled)
 	})
 }
 
-func mockIndexingService(t *testing.T, id principal.Signer) server.ServerView {
+func mockIndexingService(t *testing.T, id principal.Signer, handler server.HandlerFunc[claim.CacheCaveats, capability.Unit]) server.ServerView {
 	t.Helper()
 	return testutil.Must(
 		server.NewServer(
@@ -158,9 +174,7 @@ func mockIndexingService(t *testing.T, id principal.Signer) server.ServerView {
 				claim.CacheAbility,
 				server.Provide(
 					claim.Cache,
-					func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (capability.Unit, receipt.Effects, error) {
-						return capability.Unit{}, nil, nil
-					},
+					handler,
 				),
 			),
 		),

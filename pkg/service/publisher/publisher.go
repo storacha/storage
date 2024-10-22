@@ -137,6 +137,16 @@ func CacheClaim(
 		return fmt.Errorf("creating invocation: %w", err)
 	}
 
+	for b, err := range clm.Blocks() {
+		if err != nil {
+			return fmt.Errorf("iterating claim blocks: %w", err)
+		}
+		err = inv.Attach(b)
+		if err != nil {
+			return fmt.Errorf("attaching block: %s: %w", b.Link(), err)
+		}
+	}
+
 	res, err := client.Execute([]invocation.Invocation{inv}, indexingService)
 	if err != nil {
 		return fmt.Errorf("executing invocation: %w", err)
