@@ -11,7 +11,6 @@ import (
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/did"
-	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/server"
 	"github.com/storacha/storage/pkg/service/storage"
@@ -20,6 +19,12 @@ import (
 )
 
 var log = logging.Logger("cmd")
+
+var (
+	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
+	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
+	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
+)
 
 func main() {
 	app := &cli.App{
@@ -35,37 +40,47 @@ func main() {
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
+						EnvVars: []string{"PORT"},
 					},
 					&cli.StringFlag{
 						Name:    "private-key",
 						Aliases: []string{"s"},
 						Usage:   "Multibase base64 encoded private key identity for the node.",
+						EnvVars: []string{"PRIVATE_KEY"},
 					},
 					&cli.StringFlag{
 						Name:    "data-dir",
 						Aliases: []string{"d"},
 						Usage:   "Root directory to store data in.",
+						EnvVars: []string{"DATA_DIR"},
 					},
 					&cli.StringFlag{
 						Name:    "public-url",
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
+						EnvVars: []string{"PUBLIC_URL"},
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					var id principal.Signer
 					var err error
-					if cCtx.String("private-key") == "" {
-						id, err = ed25519.Generate()
+					port := cCtx.Int("port")
+
+					pkstr := cCtx.String("private-key")
+					if pkstr == "" {
+						signer, err := ed25519.Generate()
 						if err != nil {
 							return fmt.Errorf("generating ed25519 key: %w", err)
 						}
-						log.Errorf("Server ID is not configured, generated one for you: %s", id.DID().String())
-					} else {
-						id, err = ed25519.Parse(cCtx.String("private-key"))
+						log.Errorf("Server ID is not configured, generated one for you: %s", signer.DID().String())
+						pkstr, err = ed25519.Format(signer)
 						if err != nil {
-							return fmt.Errorf("parsing private key: %w", err)
+							return fmt.Errorf("formatting ed25519 key: %w", err)
 						}
+					}
+
+					id, err := ed25519.Parse(pkstr)
+					if err != nil {
+						return fmt.Errorf("parsing private key: %w", err)
 					}
 
 					homeDir, err := os.UserHomeDir()
@@ -115,12 +130,39 @@ func main() {
 
 					pubURLstr := cCtx.String("public-url")
 					if pubURLstr == "" {
-						pubURLstr = fmt.Sprintf("http://localhost:%d", cCtx.Int("port"))
+						pubURLstr = fmt.Sprintf("http://localhost:%d", port)
 						log.Errorf("Public URL is not configured, using: %s", pubURLstr)
 					}
 					pubURL, err := url.Parse(pubURLstr)
 					if err != nil {
 						return fmt.Errorf("parsing public URL: %w", err)
+					}
+
+					announceURL := *AnnounceURL
+					if os.Getenv("ANNOUNCE_URL") != "" {
+						u, err := url.Parse(os.Getenv("ANNOUNCE_URL"))
+						if err != nil {
+							return fmt.Errorf("parsing announce URL: %w", err)
+						}
+						announceURL = *u
+					}
+
+					indexingServiceDID := IndexingServiceDID
+					if os.Getenv("INDEXING_SERVICE_DID") != "" {
+						d, err := did.Parse(os.Getenv("INDEXING_SERVICE_DID"))
+						if err != nil {
+							return fmt.Errorf("parsing indexing service DID: %w", err)
+						}
+						indexingServiceDID = d
+					}
+
+					indexingServiceURL := *IndexingServiceURL
+					if os.Getenv("INDEXING_SERVICE_URL") != "" {
+						u, err := url.Parse(os.Getenv("INDEXING_SERVICE_URL"))
+						if err != nil {
+							return fmt.Errorf("parsing indexing service URL: %w", err)
+						}
+						indexingServiceURL = *u
 					}
 
 					svc, err := storage.New(
@@ -130,6 +172,8 @@ func main() {
 						storage.WithClaimDatastore(claimDs),
 						storage.WithPublisherDatastore(publisherDs),
 						storage.WithPublicURL(*pubURL),
+						storage.WithPublisherDirectAnnounce(announceURL),
+						storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 					)
 					if err != nil {
 						return fmt.Errorf("creating service instance: %w", err)
@@ -215,7 +259,7 @@ func printHero(id did.DID) {
 
 func mkdirp(dirpath ...string) (string, error) {
 	dir := path.Join(dirpath...)
-	err := os.MkdirAll(dir, 0777)
+	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("creating directory: %s: %w", dir, err)
 	}

@@ -1,4 +1,4 @@
-package publisher
+package claims
 
 import (
 	"net/url"
@@ -18,25 +18,27 @@ type options struct {
 
 type Option func(*options) error
 
-// WithDirectAnnounce sets indexer URLs to send direct HTTP announcements to.
-func WithDirectAnnounce(announceURLs ...url.URL) Option {
+// WithPublisherDirectAnnounce sets indexer URLs to send direct HTTP
+// announcements to.
+func WithPublisherDirectAnnounce(announceURLs ...url.URL) Option {
 	return func(o *options) error {
 		o.announceURLs = append(o.announceURLs, announceURLs...)
 		return nil
 	}
 }
 
-// WithIndexingService sets the client connection to the indexing UCAN service.
-func WithIndexingService(conn client.Connection) Option {
+// WithPublisherIndexingService sets the client connection to the indexing UCAN
+// service.
+func WithPublisherIndexingService(conn client.Connection) Option {
 	return func(opts *options) error {
 		opts.indexingService = conn
 		return nil
 	}
 }
 
-// WithIndexingServiceConfig configures UCAN service invocation details for
-// communicating with the indexing service.
-func WithIndexingServiceConfig(serviceDID ucan.Principal, serviceURL url.URL) Option {
+// WithPublisherIndexingServiceConfig configures UCAN service invocation details
+// for communicating with the indexing service.
+func WithPublisherIndexingServiceConfig(serviceDID ucan.Principal, serviceURL url.URL) Option {
 	return func(opts *options) error {
 		channel := http.NewHTTPChannel(&serviceURL)
 		conn, err := client.NewConnection(serviceDID, channel)
@@ -48,19 +50,19 @@ func WithIndexingServiceConfig(serviceDID ucan.Principal, serviceURL url.URL) Op
 	}
 }
 
-// WithIndexingServiceProof configures proofs for UCAN invocations to the
-// indexing service.
-func WithIndexingServiceProof(proof ...delegation.Proof) Option {
+// WithPublisherIndexingServiceProof configures proofs for UCAN invocations to
+// the indexing service.
+func WithPublisherIndexingServiceProof(proof ...delegation.Proof) Option {
 	return func(opts *options) error {
 		opts.indexingServiceProofs = proof
 		return nil
 	}
 }
 
-// WithLogLevel changes the log level for the publisher subsystem.
+// WithLogLevel changes the log level for the claims subsystem.
 func WithLogLevel(level string) Option {
 	return func(c *options) error {
-		logging.SetLogLevel("publisher", level)
+		logging.SetLogLevel("claims", level)
 		return nil
 	}
 }
