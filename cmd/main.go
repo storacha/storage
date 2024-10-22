@@ -58,6 +58,7 @@ func main() {
 						Name:    "tmp-dir",
 						Aliases: []string{"t"},
 						Usage:   "Temporary directory data is uploaded to before being moved to data-dir.",
+						EnvVars: []string{"TMP_DIR"},
 					},
 					&cli.StringFlag{
 						Name:    "public-url",
