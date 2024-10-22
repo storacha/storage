@@ -542,6 +542,8 @@ github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78 h1:NAti9hMLMo
 github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78/go.mod h1:DcwwQnyFuTk531cKD9sUkQg/gzpwKaIqH9I7oZYyeRc=
 github.com/storacha/go-ucanto v0.1.1-0.20241022082502-7edcd3716f2d h1:hgc/F88Klbj+HMFdfHGAjcAfoMz3FHFKRW6yhUPHYgs=
 github.com/storacha/go-ucanto v0.1.1-0.20241022082502-7edcd3716f2d/go.mod h1:Bi7DFuo0nj9/QmkqbLNLWf41xnOoJSFGg21G+UtzWoY=
+github.com/storacha/go-ucanto v0.1.1-0.20241022122125-fc561a4d642c h1:Z8MZyBenGPhGE+w43UBhPq5uF2cri5o9zzyTmWM337Q=
+github.com/storacha/go-ucanto v0.1.1-0.20241022122125-fc561a4d642c/go.mod h1:vzifzvheQKs507Yr7qj2x4MYNrdBwjdKXtHsD3xpDm4=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f h1:62fTASO3wRPCWCkl6we2DftsFy/DfbmVpwJyqK7gmUc=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f/go.mod h1:fEuGSF5WMaOSAyDQCYAvow6Y+YKzpXczEk3A+H+s1fQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

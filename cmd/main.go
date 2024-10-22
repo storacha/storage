@@ -10,6 +10,7 @@ import (
 
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/server"
@@ -65,6 +66,11 @@ func main() {
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
 						EnvVars: []string{"STORAGE_PUBLIC_URL"},
+					},
+					&cli.StringFlag{
+						Name:    "indexing-service-proof",
+						Usage:   "A delegation that allows the node to cache claims with the indexing service.",
+						EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
@@ -181,6 +187,15 @@ func main() {
 						indexingServiceURL = *u
 					}
 
+					var indexingServiceProofs delegation.Proofs
+					if cCtx.String("indexing-service-proof") != "" {
+						dlg, err := delegation.Parse(cCtx.String("indexing-service-proof"))
+						if err != nil {
+							return fmt.Errorf("parsing indexing service proof: %w", err)
+						}
+						indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(dlg))
+					}
+
 					svc, err := storage.New(
 						storage.WithIdentity(id),
 						storage.WithBlobstore(blobStore),
@@ -190,6 +205,7 @@ func main() {
 						storage.WithPublicURL(*pubURL),
 						storage.WithPublisherDirectAnnounce(announceURL),
 						storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
+						storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 					)
 					if err != nil {
 						return fmt.Errorf("creating service instance: %w", err)

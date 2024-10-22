@@ -105,8 +105,15 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating blob service: %w", err)
 	}
 
-	claimsOpts := []claims.Option{claims.WithPublisherDirectAnnounce(c.announceURLs...)}
-	claims, err := claims.New(id, claimDs, publisherDs, pubURL, claimsOpts...)
+	claims, err := claims.New(
+		id,
+		claimDs,
+		publisherDs,
+		pubURL,
+		claims.WithPublisherDirectAnnounce(c.announceURLs...),
+		claims.WithPublisherIndexingService(c.indexingService),
+		claims.WithPublisherIndexingServiceProof(c.indexingServiceProofs...),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating claim service: %w", err)
 	}
