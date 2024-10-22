@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/storacha/go-ucanto/core/result/failure"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
@@ -41,10 +39,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 
 					// only service principal can perform an allocation
 					if cap.With() != iCtx.ID().DID().String() {
-						return blob.AllocateOk{}, nil, capability.Failure{
-							Name:    "UnsupportedCapability",
-							Message: fmt.Sprintf(`%s does not have a "%s" capability provider`, cap.With(), cap.Can()),
-						}
+						return blob.AllocateOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
 
 					// check if we already have an allcoation for the blob in this space
@@ -70,10 +65,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 					}
 
 					if cap.Nb().Blob.Size > maxUploadSize {
-						return blob.AllocateOk{}, nil, capability.Failure{
-							Name:    "BlobSizeOutsideOfSupportedRange",
-							Message: fmt.Sprintf("Blob of %d bytes, exceeds size limit of %d bytes", cap.Nb().Blob.Size, maxUploadSize),
-						}
+						return blob.AllocateOk{}, nil, NewBlobSizeLimitExceededError(cap.Nb().Blob.Size, maxUploadSize)
 					}
 
 					expiresIn := uint64(60 * 60 * 24) // 1 day
@@ -118,19 +110,13 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 
 					// only service principal can perform an allocation
 					if cap.With() != iCtx.ID().DID().String() {
-						return blob.AcceptOk{}, nil, capability.Failure{
-							Name:    "UnsupportedCapability",
-							Message: fmt.Sprintf(`%s does not have a "%s" capability provider`, cap.With(), cap.Can()),
-						}
+						return blob.AcceptOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
 
 					_, err := storageService.Blobs().Store().Get(ctx, digest)
 					if err != nil {
 						if errors.Is(err, store.ErrNotFound) {
-							return blob.AcceptOk{}, nil, capability.Failure{
-								Name:    "AllocatedMemoryHadNotBeenWrittenTo",
-								Message: "Blob not found",
-							}
+							return blob.AcceptOk{}, nil, NewAllocatedMemoryNotWrittenError()
 						}
 						log.Errorf("getting blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
