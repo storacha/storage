@@ -21,10 +21,10 @@ import (
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
+	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/principal"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
 
@@ -106,7 +106,7 @@ var claimCacheReceiptSchema = []byte(`
 
 	type Unit struct {}
 `)
-var claimCacheReceiptReader, _ = receipt.NewReceiptReader[capability.Unit, ipld.Node](claimCacheReceiptSchema)
+var claimCacheReceiptReader, _ = receipt.NewReceiptReader[ok.Unit, ipld.Node](claimCacheReceiptSchema)
 
 func CacheClaim(
 	ctx context.Context,
@@ -152,8 +152,8 @@ func CacheClaim(
 		return fmt.Errorf("executing invocation: %w", err)
 	}
 
-	rcptLink, ok := res.Get(inv.Link())
-	if !ok {
+	rcptLink, exists := res.Get(inv.Link())
+	if !exists {
 		return fmt.Errorf("getting receipt link: %w", err)
 	}
 	rcpt, err := claimCacheReceiptReader.Read(rcptLink, res.Blocks())
@@ -162,7 +162,7 @@ func CacheClaim(
 	}
 	return result.MatchResultR1(
 		rcpt.Out(),
-		func(ok capability.Unit) error {
+		func(ok ok.Unit) error {
 			log.Info("Cached location commitment with indexing service")
 			return nil
 		},
