@@ -21,7 +21,6 @@ import (
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
-	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
@@ -30,12 +29,6 @@ import (
 )
 
 var log = logging.Logger("publisher")
-
-var (
-	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
-	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
-	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
-)
 
 type PublisherService struct {
 	id                    principal.Signer

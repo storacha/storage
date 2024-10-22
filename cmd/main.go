@@ -11,16 +11,20 @@ import (
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/did"
-	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/server"
-	"github.com/storacha/storage/pkg/service/publisher"
 	"github.com/storacha/storage/pkg/service/storage"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/urfave/cli/v2"
 )
 
 var log = logging.Logger("cmd")
+
+var (
+	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
+	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
+	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
+)
 
 func main() {
 	app := &cli.App{
@@ -36,45 +40,45 @@ func main() {
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
+						EnvVars: []string{"PORT"},
 					},
 					&cli.StringFlag{
 						Name:    "private-key",
 						Aliases: []string{"s"},
 						Usage:   "Multibase base64 encoded private key identity for the node.",
+						EnvVars: []string{"PRIVATE_KEY"},
 					},
 					&cli.StringFlag{
 						Name:    "data-dir",
 						Aliases: []string{"d"},
 						Usage:   "Root directory to store data in.",
+						EnvVars: []string{"DATA_DIR"},
 					},
 					&cli.StringFlag{
 						Name:    "public-url",
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
+						EnvVars: []string{"PUBLIC_URL"},
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					var id principal.Signer
 					var err error
+					port := cCtx.Int("port")
 
 					pkstr := cCtx.String("private-key")
 					if pkstr == "" {
-						if os.Getenv("PRIVATE_KEY") != "" {
-							pkstr = os.Getenv("PRIVATE_KEY")
-						} else {
-							id, err = ed25519.Generate()
-							if err != nil {
-								return fmt.Errorf("generating ed25519 key: %w", err)
-							}
-							log.Errorf("Server ID is not configured, generated one for you: %s", id.DID().String())
-							pkstr, err = ed25519.Format(id)
-							if err != nil {
-								return fmt.Errorf("formatting ed25519 key: %w", err)
-							}
+						signer, err := ed25519.Generate()
+						if err != nil {
+							return fmt.Errorf("generating ed25519 key: %w", err)
+						}
+						log.Errorf("Server ID is not configured, generated one for you: %s", signer.DID().String())
+						pkstr, err = ed25519.Format(signer)
+						if err != nil {
+							return fmt.Errorf("formatting ed25519 key: %w", err)
 						}
 					}
 
-					id, err = ed25519.Parse(pkstr)
+					id, err := ed25519.Parse(pkstr)
 					if err != nil {
 						return fmt.Errorf("parsing private key: %w", err)
 					}
@@ -86,16 +90,12 @@ func main() {
 
 					dataDir := cCtx.String("data-dir")
 					if dataDir == "" {
-						if os.Getenv("DATA_DIR") != "" {
-							dataDir = os.Getenv("DATA_DIR")
-						} else {
-							dir, err := mkdirp(homeDir, ".storacha")
-							if err != nil {
-								return err
-							}
-							log.Errorf("Data directory is not configured, using default: %s", dir)
-							dataDir = dir
+						dir, err := mkdirp(homeDir, ".storacha")
+						if err != nil {
+							return err
 						}
+						log.Errorf("Data directory is not configured, using default: %s", dir)
+						dataDir = dir
 					}
 
 					blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"))
@@ -130,19 +130,15 @@ func main() {
 
 					pubURLstr := cCtx.String("public-url")
 					if pubURLstr == "" {
-						if os.Getenv("PUBLIC_URL") != "" {
-							pubURLstr = os.Getenv("PUBLIC_URL")
-						} else {
-							pubURLstr = fmt.Sprintf("http://localhost:%d", cCtx.Int("port"))
-							log.Errorf("Public URL is not configured, using: %s", pubURLstr)
-						}
+						pubURLstr = fmt.Sprintf("http://localhost:%d", port)
+						log.Errorf("Public URL is not configured, using: %s", pubURLstr)
 					}
 					pubURL, err := url.Parse(pubURLstr)
 					if err != nil {
 						return fmt.Errorf("parsing public URL: %w", err)
 					}
 
-					announceURL := *publisher.AnnounceURL
+					announceURL := *AnnounceURL
 					if os.Getenv("ANNOUNCE_URL") != "" {
 						u, err := url.Parse(os.Getenv("ANNOUNCE_URL"))
 						if err != nil {
@@ -151,7 +147,7 @@ func main() {
 						announceURL = *u
 					}
 
-					indexingServiceDID := publisher.IndexingServiceDID
+					indexingServiceDID := IndexingServiceDID
 					if os.Getenv("INDEXING_SERVICE_DID") != "" {
 						d, err := did.Parse(os.Getenv("INDEXING_SERVICE_DID"))
 						if err != nil {
@@ -160,7 +156,7 @@ func main() {
 						indexingServiceDID = d
 					}
 
-					indexingServiceURL := *publisher.IndexingServiceURL
+					indexingServiceURL := *IndexingServiceURL
 					if os.Getenv("INDEXING_SERVICE_URL") != "" {
 						u, err := url.Parse(os.Getenv("INDEXING_SERVICE_URL"))
 						if err != nil {
