@@ -89,7 +89,7 @@ func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, siz
 var _ Blobstore = (*MapBlobstore)(nil)
 
 // NewMapBlobstore creates a [Blobstore] backed by an in-memory map.
-func NewMapBlobstore() (*MapBlobstore, error) {
+func NewMapBlobstore() *MapBlobstore {
 	data := map[string][]byte{}
-	return &MapBlobstore{data}, nil
+	return &MapBlobstore{data}
 }

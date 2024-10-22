@@ -40,25 +40,31 @@ func main() {
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
-						EnvVars: []string{"PORT"},
+						EnvVars: []string{"STORAGE_PORT"},
 					},
 					&cli.StringFlag{
 						Name:    "private-key",
 						Aliases: []string{"s"},
 						Usage:   "Multibase base64 encoded private key identity for the node.",
-						EnvVars: []string{"PRIVATE_KEY"},
+						EnvVars: []string{"STORAGE_PRIVATE_KEY"},
 					},
 					&cli.StringFlag{
 						Name:    "data-dir",
 						Aliases: []string{"d"},
 						Usage:   "Root directory to store data in.",
-						EnvVars: []string{"DATA_DIR"},
+						EnvVars: []string{"STORAGE_DATA_DIR"},
+					},
+					&cli.StringFlag{
+						Name:    "tmp-dir",
+						Aliases: []string{"t"},
+						Usage:   "Temporary directory data is uploaded to before being moved to data-dir.",
+						EnvVars: []string{"STORAGE_TMP_DIR"},
 					},
 					&cli.StringFlag{
 						Name:    "public-url",
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
-						EnvVars: []string{"PUBLIC_URL"},
+						EnvVars: []string{"STORAGE_PUBLIC_URL"},
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
@@ -98,7 +104,17 @@ func main() {
 						dataDir = dir
 					}
 
-					blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"))
+					tmpDir := cCtx.String("tmp-dir")
+					if tmpDir == "" {
+						dir, err := mkdirp(path.Join(os.TempDir(), "storage"))
+						if err != nil {
+							return err
+						}
+						log.Warnf("Tmp directory is not configured, using default: %s", dir)
+						tmpDir = dir
+					}
+
+					blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"), path.Join(tmpDir, "blobs"))
 					if err != nil {
 						return fmt.Errorf("creating blob storage: %w", err)
 					}

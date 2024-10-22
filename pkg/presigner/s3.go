@@ -20,6 +20,7 @@ import (
 const ISO8601BasicFormat = "20060102T150405Z"
 
 type S3RequestPresigner struct {
+	endpoint      url.URL
 	bucketName    string
 	presignClient *s3.PresignClient
 }
@@ -65,6 +66,7 @@ func (pps pointInTimePresigner) PresignHTTP(
 }
 
 func (ss *S3RequestPresigner) VerifyUploadURL(ctx context.Context, requestURL url.URL, requestHeaders http.Header) (url.URL, http.Header, error) {
+	requestURL = *ss.endpoint.ResolveReference(&requestURL)
 	key := strings.Join(strings.Split(requestURL.Path, "/")[2:], "/")
 
 	contentLength, err := strconv.ParseInt(requestHeaders.Get("Content-Length"), 10, 64)
@@ -140,5 +142,5 @@ func NewS3RequestPresigner(accessKeyID string, secretAcessKey string, endpoint u
 		bucketName = "blob"
 	}
 
-	return &S3RequestPresigner{bucketName, presign}, nil
+	return &S3RequestPresigner{endpoint, bucketName, presign}, nil
 }

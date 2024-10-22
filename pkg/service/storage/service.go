@@ -68,11 +68,7 @@ func New(opts ...Option) (*StorageService, error) {
 
 	blobStore := c.blobStore
 	if blobStore == nil {
-		ds, err := blobstore.NewMapBlobstore()
-		if err != nil {
-			return nil, err
-		}
-		blobStore = ds
+		blobStore = blobstore.NewMapBlobstore()
 		log.Warn("Blob store not configured, using in-memory store")
 	}
 
