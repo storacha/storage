@@ -13,7 +13,7 @@ import (
 	"github.com/storacha/storage/pkg/store/claimstore"
 )
 
-var log = logging.Logger("blobs")
+var log = logging.Logger("claims")
 
 type Server struct {
 	claims claimstore.ClaimStore

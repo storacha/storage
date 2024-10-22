@@ -39,7 +39,15 @@ func (b *BlobService) Store() blobstore.Blobstore {
 
 var _ Blobs = (*BlobService)(nil)
 
-func New(id principal.Signer, blobStore blobstore.Blobstore, allocsDatastore datastore.Datastore, publicURL url.URL) (*BlobService, error) {
+func New(id principal.Signer, blobStore blobstore.Blobstore, allocsDatastore datastore.Datastore, publicURL url.URL, opts ...Option) (*BlobService, error) {
+	o := &options{}
+	for _, opt := range opts {
+		err := opt(o)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	allocStore, err := allocationstore.NewDsAllocationStore(allocsDatastore)
 	if err != nil {
 		return nil, err

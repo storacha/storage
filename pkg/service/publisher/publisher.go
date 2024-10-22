@@ -4,30 +4,39 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strings"
 
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipld/go-ipld-prime"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-capabilities/pkg/assert"
+	"github.com/storacha/go-capabilities/pkg/claim"
+	"github.com/storacha/go-metadata"
+	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
+	"github.com/storacha/go-ucanto/core/invocation"
+	"github.com/storacha/go-ucanto/core/receipt"
+	"github.com/storacha/go-ucanto/core/result"
+	"github.com/storacha/go-ucanto/principal"
 	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/metadata"
+	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
-
-const claimPattern = "{claim}"
 
 var log = logging.Logger("publisher")
 
 type PublisherService struct {
-	store            store.PublisherStore
-	publisher        ipnipub.Publisher
-	peerInfo         peer.AddrInfo
-	claimPathPattern string
+	id                    principal.Signer
+	store                 store.PublisherStore
+	publisher             ipnipub.Publisher
+	provider              peer.AddrInfo
+	indexingService       client.Connection
+	indexingServiceProofs delegation.Proofs
 }
 
 func (pub *PublisherService) Store() store.PublisherStore {
@@ -38,23 +47,25 @@ func (pub *PublisherService) Publish(ctx context.Context, claim delegation.Deleg
 	ability := claim.Capabilities()[0].Can()
 	switch ability {
 	case assert.LocationAbility:
-		return PublishLocationCommitment(ctx, pub.publisher, pub.peerInfo, pub.claimPathPattern, claim)
+		err := PublishLocationCommitment(ctx, pub.publisher, pub.provider, claim)
+		if err != nil {
+			return err
+		}
+		return CacheClaim(ctx, pub.id, pub.indexingService, pub.indexingServiceProofs, claim, pub.provider.Addrs)
 	default:
 		return fmt.Errorf("unknown claim: %s", ability)
 	}
 }
 
-func PublishLocationCommitment(ctx context.Context, publisher ipnipub.Publisher, peerInfo peer.AddrInfo, pathPattern string, claim delegation.Delegation) error {
-	provider := peer.AddrInfo{ID: peerInfo.ID}
-	suffix, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape(pathPattern))
-	if err != nil {
-		return fmt.Errorf("building http-path suffix: %w", err)
-	}
-	for _, addr := range peerInfo.Addrs {
-		provider.Addrs = append(provider.Addrs, multiaddr.Join(addr, suffix))
-	}
+func PublishLocationCommitment(
+	ctx context.Context,
+	publisher ipnipub.Publisher,
+	provider peer.AddrInfo,
+	locationCommitment delegation.Delegation,
+) error {
+	log := log.With("claim", locationCommitment.Link())
 
-	cap := claim.Capabilities()[0]
+	cap := locationCommitment.Capabilities()[0]
 	nb, rerr := assert.LocationCaveatsReader.Read(cap.Nb())
 	if rerr != nil {
 		return fmt.Errorf("reading location commitment data: %w", rerr)
@@ -67,13 +78,13 @@ func PublishLocationCommitment(ctx context.Context, publisher ipnipub.Publisher,
 	}
 
 	var exp int
-	if claim.Expiration() != nil {
-		exp = *claim.Expiration()
+	if locationCommitment.Expiration() != nil {
+		exp = *locationCommitment.Expiration()
 	}
 
 	meta := metadata.MetadataContext.New(
 		&metadata.LocationCommitmentMetadata{
-			Claim:      claim.Link(),
+			Claim:      asCID(locationCommitment.Link()),
 			Expiration: int64(exp),
 		},
 	)
@@ -83,10 +94,88 @@ func PublishLocationCommitment(ctx context.Context, publisher ipnipub.Publisher,
 		return fmt.Errorf("publishing claim: %w", err)
 	}
 
-	log.Infof("published advertisement for location commitment: %s", adlink)
-
-	// TODO: cache in indexing-service
+	log.Infof("Published advertisement: %s", adlink)
 	return nil
+}
+
+var claimCacheReceiptSchema = []byte(`
+	type Result union {
+		| Unit "ok"
+		| Any "error"
+	} representation keyed
+
+	type Unit struct {}
+`)
+var claimCacheReceiptReader, _ = receipt.NewReceiptReader[capability.Unit, ipld.Node](claimCacheReceiptSchema)
+
+func CacheClaim(
+	ctx context.Context,
+	id principal.Signer,
+	indexingService client.Connection,
+	invocationProofs delegation.Proofs,
+	clm delegation.Delegation,
+	providerAddresses []multiaddr.Multiaddr,
+) error {
+	log := log.With("claim", clm.Link())
+
+	if indexingService == nil {
+		log.Warnf("Cannot cache claim - indexing service is not configured")
+		return nil
+	}
+
+	inv, err := claim.Cache.Invoke(
+		id,
+		indexingService.ID(),
+		indexingService.ID().DID().String(),
+		claim.CacheCaveats{
+			Claim:    clm.Link(),
+			Provider: claim.Provider{Addresses: providerAddresses},
+		},
+		delegation.WithProof(invocationProofs...),
+	)
+	if err != nil {
+		return fmt.Errorf("creating invocation: %w", err)
+	}
+
+	res, err := client.Execute([]invocation.Invocation{inv}, indexingService)
+	if err != nil {
+		return fmt.Errorf("executing invocation: %w", err)
+	}
+
+	rcptLink, ok := res.Get(inv.Link())
+	if !ok {
+		return fmt.Errorf("getting receipt link: %w", err)
+	}
+	rcpt, err := claimCacheReceiptReader.Read(rcptLink, res.Blocks())
+	if err != nil {
+		return fmt.Errorf("reading receipt: %w", err)
+	}
+	return result.MatchResultR1(
+		rcpt.Out(),
+		func(ok capability.Unit) error {
+			log.Info("Cached location commitment with indexing service")
+			return nil
+		},
+		func(node ipld.Node) error {
+			name := "UnknownError"
+			message := "claim/cache invocation failed"
+			nn, err := node.LookupByString("name")
+			if err == nil {
+				n, err := nn.AsString()
+				if err == nil {
+					name = n
+				}
+			}
+			mn, err := node.LookupByString("message")
+			if err == nil {
+				m, err := mn.AsString()
+				if err == nil {
+					message = m
+				}
+			}
+			return fmt.Errorf("%s: %s", name, message)
+		},
+	)
 }
 
 var _ Publisher = (*PublisherService)(nil)
@@ -100,7 +189,12 @@ var _ Publisher = (*PublisherService)(nil)
 // configured claim path.
 //
 // Note: publicAddr address must be HTTP(S).
-func New(id crypto.PrivKey, publisherStore store.PublisherStore, publicAddr multiaddr.Multiaddr, opts ...Option) (*PublisherService, error) {
+func New(
+	id principal.Signer,
+	publisherStore store.PublisherStore,
+	publicAddr multiaddr.Multiaddr,
+	opts ...Option,
+) (*PublisherService, error) {
 	o := &options{}
 	for _, opt := range opts {
 		err := opt(o)
@@ -109,14 +203,19 @@ func New(id crypto.PrivKey, publisherStore store.PublisherStore, publicAddr mult
 		}
 	}
 
-	publisher, err := ipnipub.New(
-		id,
-		publisherStore,
-		ipnipub.WithDirectAnnounce("https://cid.contact/announce"),
-		ipnipub.WithAnnounceAddrs(publicAddr.String()),
-	)
+	priv, err := crypto.UnmarshalEd25519PrivateKey(id.Raw())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshaling private key: %w", err)
+	}
+
+	ipnipubOpts := []ipnipub.Option{ipnipub.WithAnnounceAddrs(publicAddr.String())}
+	for _, u := range o.announceURLs {
+		log.Infof("Announcing new IPNI adverts to: %s", u.String())
+		ipnipubOpts = append(ipnipubOpts, ipnipub.WithDirectAnnounce(u.String()))
+	}
+	publisher, err := ipnipub.New(priv, publisherStore, ipnipubOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("creating IPNI publisher instance: %w", err)
 	}
 
 	found := false
@@ -129,22 +228,39 @@ func New(id crypto.PrivKey, publisherStore store.PublisherStore, publicAddr mult
 	if !found {
 		return nil, fmt.Errorf("IPNI publisher address is not HTTP(S): %s", publicAddr)
 	}
-	claimPath := o.claimPath
-	if claimPath == "" {
-		claimPath = fmt.Sprintf("claim/%s", claimPattern)
-	}
-	if !strings.Contains(claimPath, claimPattern) {
-		return nil, fmt.Errorf(`path string does not contain required pattern: "%s"`, claimPattern)
-	}
-	claimPath = strings.TrimPrefix(claimPath, "/")
 
-	peerid, err := peer.IDFromPrivateKey(id)
+	peerid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating libp2p peer ID from private key: %w", err)
 	}
-	peerInfo := peer.AddrInfo{
-		ID:    peerid,
-		Addrs: []multiaddr.Multiaddr{publicAddr},
+	provInfo := providerInfo(peerid, publicAddr)
+
+	if o.indexingService == nil {
+		log.Errorf("Indexing service is not configured - claims will not be cached")
 	}
-	return &PublisherService{publisherStore, publisher, peerInfo, claimPath}, nil
+
+	return &PublisherService{
+		id,
+		publisherStore,
+		publisher,
+		provInfo,
+		o.indexingService,
+		o.indexingServiceProofs,
+	}, nil
+}
+
+func providerInfo(peerID peer.ID, publicAddr multiaddr.Multiaddr) peer.AddrInfo {
+	provider := peer.AddrInfo{ID: peerID}
+	blobSuffix, _ := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("blob/{blob}"))
+	claimSuffix, _ := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("claim/{claim}"))
+	provider.Addrs = append(provider.Addrs, multiaddr.Join(publicAddr, blobSuffix))
+	provider.Addrs = append(provider.Addrs, multiaddr.Join(publicAddr, claimSuffix))
+	return provider
+}
+
+func asCID(link ipld.Link) cid.Cid {
+	if cl, ok := link.(cidlink.Link); ok {
+		return cl.Cid
+	}
+	return cid.MustParse(link.String())
 }

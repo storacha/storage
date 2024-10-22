@@ -138,7 +138,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 
 					loc, err := storageService.Blobs().Access().GetDownloadURL(digest)
 					if err != nil {
-						log.Errorf("creating download URL for blob: %w", err)
+						log.Errorf("creating retrieval URL for blob: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
