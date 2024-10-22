@@ -6,8 +6,8 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/storacha/go-ucanto/core/delegation"
+	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +20,8 @@ func TestDsDelegationStore(t *testing.T) {
 		dlg, err := delegation.Delegate(
 			testutil.RandomSigner(),
 			testutil.RandomDID(),
-			[]ucan.Capability[capability.Unit]{
-				ucan.NewCapability("test/test", testutil.RandomDID().String(), capability.Unit{}),
+			[]ucan.Capability[ok.Unit]{
+				ucan.NewCapability("test/test", testutil.RandomDID().String(), ok.Unit{}),
 			},
 		)
 		require.NoError(t, err)

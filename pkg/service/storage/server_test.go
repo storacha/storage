@@ -18,8 +18,8 @@ import (
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
+	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/capability"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -72,12 +72,12 @@ func TestServer(t *testing.T) {
 					ucan.NewCapability(
 						blob.AllocateAbility,
 						testutil.Alice.DID().String(),
-						ucan.CaveatBuilder(capability.Unit{}),
+						ucan.CaveatBuilder(ok.Unit{}),
 					),
 					ucan.NewCapability(
 						blob.AcceptAbility,
 						testutil.Alice.DID().String(),
-						ucan.CaveatBuilder(capability.Unit{}),
+						ucan.CaveatBuilder(ok.Unit{}),
 					),
 				},
 			),
