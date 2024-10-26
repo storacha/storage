@@ -60,6 +60,4 @@ type Blobstore interface {
 type FileSystemer interface {
 	// FileSystem returns a filesystem interface for reading blobs.
 	FileSystem() http.FileSystem
-	// EncodePath converts a digest to a filesystem path.
-	EncodePath(digest multihash.Multihash) string
 }

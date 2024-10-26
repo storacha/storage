@@ -36,19 +36,7 @@ func NewBlobGetHandler(blobs blobstore.Blobstore) func(http.ResponseWriter, *htt
 	if fsblobs, ok := blobs.(blobstore.FileSystemer); ok {
 		serveHTTP := http.FileServer(fsblobs.FileSystem()).ServeHTTP
 		return func(w http.ResponseWriter, r *http.Request) {
-			_, bytes, err := multibase.Decode(r.PathValue("blob"))
-			if err != nil {
-				http.Error(w, fmt.Sprintf("decoding multibase encoded digest: %s", err), http.StatusBadRequest)
-				return
-			}
-
-			digest, err := multihash.Cast(bytes)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("invalid multihash digest: %s", err), http.StatusBadRequest)
-				return
-			}
-
-			r.URL.Path = fsblobs.EncodePath(digest)
+			r.URL.Path = r.URL.Path[len("/blob"):]
 			serveHTTP(w, r)
 		}
 	}
