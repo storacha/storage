@@ -82,9 +82,22 @@ type (
 		url string
 	}
 
+	PieceHash struct {
+		// Name of the hash function used
+		// sha2-256-trunc254-padded - CommP
+		// sha2-256 - Blob sha256
+		Name string `json:"name"`
+
+		// hex encoded hash
+		Hash string `json:"hash"`
+
+		// Size of the piece in bytes
+		Size int64 `json:"size"`
+	}
+
 	AddPiece struct {
-		PieceCID string `json:"pieceCid"`
-		Notify   string `json:"notify,omitempty"`
+		Check  PieceHash `json:"check"`
+		Notify string    `json:"notify,omitempty"`
 	}
 
 	Client struct {
