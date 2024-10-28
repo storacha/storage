@@ -8,6 +8,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/storage/pkg/build"
 	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/service/claims"
 	"github.com/storacha/storage/pkg/service/publisher"
@@ -75,7 +76,7 @@ func NewServer(service storage.Service) (*http.ServeMux, error) {
 // NewHandler displays version info.
 func NewHandler(id principal.Signer) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("🔥 storage v0.0.0\n"))
+		w.Write([]byte(fmt.Sprintf("🔥 storage %s\n", build.Version)))
 		w.Write([]byte("- https://github.com/storacha/storage\n"))
 		w.Write([]byte(fmt.Sprintf("- %s", id.DID())))
 	}
