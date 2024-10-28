@@ -6,6 +6,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/fs"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/storage/pkg/internal/digestutil"
@@ -86,6 +90,10 @@ func (mb *MapBlobstore) Put(ctx context.Context, digest multihash.Multihash, siz
 	return nil
 }
 
+func (mb *MapBlobstore) FileSystem() http.FileSystem {
+	return &mapDir{mb.data}
+}
+
 var _ Blobstore = (*MapBlobstore)(nil)
 
 // NewMapBlobstore creates a [Blobstore] backed by an in-memory map.
@@ -93,3 +101,54 @@ func NewMapBlobstore() *MapBlobstore {
 	data := map[string][]byte{}
 	return &MapBlobstore{data}
 }
+
+type mapDir struct {
+	data map[string][]byte
+}
+
+var _ http.FileSystem = (*mapDir)(nil)
+
+func (d *mapDir) Open(path string) (http.File, error) {
+	name := path[1:]
+	data, ok := d.data[name]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
+	return &mapFile{
+		Reader: bytes.NewReader(data),
+		info:   mapFileInfo{name, int64(len(data))},
+	}, nil
+}
+
+type mapFile struct {
+	*bytes.Reader
+	info fs.FileInfo
+}
+
+func (m *mapFile) Close() error {
+	return nil
+}
+
+func (m *mapFile) Readdir(count int) ([]fs.FileInfo, error) {
+	panic("unimplemented") // should not be called - there are no directories
+}
+
+func (m *mapFile) Stat() (fs.FileInfo, error) {
+	return m.info, nil
+}
+
+var _ http.File = (*mapFile)(nil)
+
+type mapFileInfo struct {
+	name string
+	size int64
+}
+
+func (mfi mapFileInfo) Name() string       { return mfi.name }
+func (mfi mapFileInfo) Size() int64        { return mfi.size }
+func (mfi mapFileInfo) Mode() os.FileMode  { return 0444 }
+func (mfi mapFileInfo) ModTime() time.Time { return time.Time{} }
+func (mfi mapFileInfo) IsDir() bool        { return false }
+func (mfi mapFileInfo) Sys() interface{}   { return nil }
+
+var _ fs.FileInfo = (*mapFileInfo)(nil)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/stretchr/testify/require"
@@ -58,6 +59,25 @@ func TestBlobstore(t *testing.T) {
 
 			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(baddata))
 			require.Equal(t, ErrDataInconsistent, err)
+		})
+
+		t.Run("filesystemer "+k, func(t *testing.T) {
+			data := testutil.RandomBytes(10)
+			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
+
+			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(data))
+			require.NoError(t, err)
+
+			fsr, ok := s.(FileSystemer)
+			require.True(t, ok)
+
+			f, err := fsr.FileSystem().Open(fmt.Sprintf("/%s", digestutil.Format(digest)))
+			require.NoError(t, err)
+
+			b, err := io.ReadAll(f)
+			require.NoError(t, err)
+
+			require.Equal(t, data, b)
 		})
 	}
 }

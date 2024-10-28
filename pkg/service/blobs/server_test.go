@@ -147,6 +147,7 @@ func requireRetrievableBlob(t *testing.T, endpoint url.URL, digest multihash.Mul
 	res, err := http.Get(bloburl.String())
 	require.NoError(t, err)
 
+	require.Equal(t, http.StatusOK, res.StatusCode)
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	require.Equal(t, data, body)

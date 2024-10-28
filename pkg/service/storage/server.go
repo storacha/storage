@@ -28,7 +28,12 @@ func (srv *Server) Serve(mux *http.ServeMux) {
 
 func NewHandler(server server.ServerView) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res, _ := server.Request(ucanhttp.NewHTTPRequest(r.Body, r.Header))
+		res, err := server.Request(ucanhttp.NewHTTPRequest(r.Body, r.Header))
+		if err != nil {
+			log.Errorf("handling UCAN request: %w", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		for key, vals := range res.Headers() {
 			for _, v := range vals {
@@ -40,7 +45,7 @@ func NewHandler(server server.ServerView) func(http.ResponseWriter, *http.Reques
 			w.WriteHeader(res.Status())
 		}
 
-		_, err := io.Copy(w, res.Body())
+		_, err = io.Copy(w, res.Body())
 		if err != nil {
 			log.Errorf("sending UCAN response: %w", err)
 		}
