@@ -11,7 +11,7 @@ import (
 	"github.com/storacha/go-capabilities/pkg/blob"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
-	"github.com/storacha/go-ucanto/core/receipt"
+	"github.com/storacha/go-ucanto/core/receipt/fx"
 	"github.com/storacha/go-ucanto/core/result/failure"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
@@ -31,7 +31,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 			blob.AllocateAbility,
 			server.Provide(
 				blob.Allocate,
-				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AllocateOk, receipt.Effects, error) {
+				func(cap ucan.Capability[blob.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AllocateOk, fx.Effects, error) {
 					ctx := context.TODO()
 					digest := cap.Nb().Blob.Digest
 					log := log.With("blob", digestutil.Format(digest))
@@ -102,7 +102,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 			blob.AcceptAbility,
 			server.Provide(
 				blob.Accept,
-				func(cap ucan.Capability[blob.AcceptCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AcceptOk, receipt.Effects, error) {
+				func(cap ucan.Capability[blob.AcceptCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (blob.AcceptOk, fx.Effects, error) {
 					ctx := context.TODO()
 					digest := cap.Nb().Blob.Digest
 					log := log.With("blob", digestutil.Format(digest))
@@ -156,7 +156,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					return blob.AcceptOk{Site: claim.Link()}, nil, nil
+					return blob.AcceptOk{Site: claim.Link()}, fx.NewEffects(fx.WithFork(fx.FromInvocation(claim))), nil
 				},
 			),
 		),

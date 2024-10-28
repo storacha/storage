@@ -17,7 +17,7 @@ import (
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
-	"github.com/storacha/go-ucanto/core/receipt"
+	"github.com/storacha/go-ucanto/core/receipt/fx"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/server"
@@ -100,7 +100,7 @@ func TestPublisherService(t *testing.T) {
 		publisherStore := store.FromDatastore(dstore)
 
 		handlerCalled := false
-		handler := func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (ok.Unit, receipt.Effects, error) {
+		handler := func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (ok.Unit, fx.Effects, error) {
 			handlerCalled = true
 			claim := cap.Nb().Claim
 			for b, err := range inv.Blocks() {
