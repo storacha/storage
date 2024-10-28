@@ -38,7 +38,7 @@ func ListenAndServe(addr string, service storage.Service) error {
 // NewServer creates a new storage node server.
 func NewServer(service storage.Service) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", NewHandler(service.ID()))
+	mux.HandleFunc("GET /{$}", NewHandler(service.ID()))
 
 	httpUcanSrv, err := storage.NewServer(service)
 	if err != nil {
@@ -61,7 +61,7 @@ func NewServer(service storage.Service) (*http.ServeMux, error) {
 	publisherStore := service.Claims().Publisher().Store()
 	encodableStore, ok := publisherStore.(store.EncodeableStore)
 	if !ok {
-		return nil, errors.New("publisher store doe snot implement EncodableStore")
+		return nil, errors.New("publisher store does not implement EncodableStore")
 	}
 
 	httpPublisherSrv, err := publisher.NewServer(encodableStore)

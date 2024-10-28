@@ -21,5 +21,5 @@ func NewServer(store store.EncodeableStore) (*Server, error) {
 }
 
 func (srv *Server) Serve(mux *http.ServeMux) {
-	mux.HandleFunc(fmt.Sprintf("GET %s", server.IPNIPath), srv.server.ServeHTTP)
+	mux.HandleFunc(fmt.Sprintf("GET %s/{ad}", server.IPNIPath), srv.server.ServeHTTP)
 }
