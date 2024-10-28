@@ -548,6 +548,10 @@ github.com/storacha/go-ucanto v0.1.1-0.20241027115844-258d6f3c5ad1 h1:Pg9mpPTJFJ
 github.com/storacha/go-ucanto v0.1.1-0.20241027115844-258d6f3c5ad1/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
 github.com/storacha/go-ucanto v0.1.1-0.20241028093931-42d9e1db4bfb h1:bjubXTmLyLl7eap6HhIoFmwIH6H4CCtnJlcE4hbc2Qo=
 github.com/storacha/go-ucanto v0.1.1-0.20241028093931-42d9e1db4bfb/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
+github.com/storacha/go-ucanto v0.1.1-0.20241028120259-a92a70795f51 h1:o8AMiYrFzDDoigYwRtmnUMGXkKJ3amZU2AJlErb830U=
+github.com/storacha/go-ucanto v0.1.1-0.20241028120259-a92a70795f51/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
+github.com/storacha/go-ucanto v0.1.1-0.20241028122439-0d529756b469 h1:DBD9Ldp+Sa2/BMYWUo7o93kE5x1vGP9GKVyXUOFigSA=
+github.com/storacha/go-ucanto v0.1.1-0.20241028122439-0d529756b469/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f h1:62fTASO3wRPCWCkl6we2DftsFy/DfbmVpwJyqK7gmUc=
 github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f/go.mod h1:fEuGSF5WMaOSAyDQCYAvow6Y+YKzpXczEk3A+H+s1fQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

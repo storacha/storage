@@ -217,5 +217,11 @@ func TestServer(t *testing.T) {
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
 		})
+
+		require.NotEmpty(t, rcpt.Fx().Fork())
+		effect := rcpt.Fx().Fork()[0]
+		claim, ok := effect.Invocation()
+		require.True(t, ok)
+		require.Equal(t, assert.LocationAbility, claim.Capabilities()[0].Can())
 	})
 }
