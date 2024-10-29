@@ -7,6 +7,7 @@ toolchain go1.23.2
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
+	github.com/filecoin-project/go-fil-commcid v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
@@ -17,6 +18,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
+	github.com/multiformats/go-varint v0.0.7
 	github.com/storacha/go-capabilities v0.0.0-20241021134022-7144600f5aeb
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
 	github.com/storacha/go-ucanto v0.1.1-0.20241028163940-34de8cd912bb
@@ -78,7 +80,6 @@ require (
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
-	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/gomega v1.34.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
