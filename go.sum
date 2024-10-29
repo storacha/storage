@@ -542,8 +542,8 @@ github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78 h1:NAti9hMLMo
 github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78/go.mod h1:DcwwQnyFuTk531cKD9sUkQg/gzpwKaIqH9I7oZYyeRc=
 github.com/storacha/go-ucanto v0.1.1-0.20241028163940-34de8cd912bb h1:lFwFtMjgt162ot9pnu230haLjRQ1rqwJOIAyywOqAX8=
 github.com/storacha/go-ucanto v0.1.1-0.20241028163940-34de8cd912bb/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
-github.com/storacha/ipni-publisher v0.0.0-20241029163008-3137e5b088fd h1:wFo5ltLnzojCwti9Mla6FWQMnIyqiukdgNI7QYif0AU=
-github.com/storacha/ipni-publisher v0.0.0-20241029163008-3137e5b088fd/go.mod h1:fEuGSF5WMaOSAyDQCYAvow6Y+YKzpXczEk3A+H+s1fQ=
+github.com/storacha/ipni-publisher v0.0.0-20241029210117-3286a26a47a8 h1:QnLy9Y1x5NL1b8NFj71i+0bN+alPgjdcR0SMozXNeLU=
+github.com/storacha/ipni-publisher v0.0.0-20241029210117-3286a26a47a8/go.mod h1:fEuGSF5WMaOSAyDQCYAvow6Y+YKzpXczEk3A+H+s1fQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=

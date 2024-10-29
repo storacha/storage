@@ -20,7 +20,7 @@ require (
 	github.com/storacha/go-capabilities v0.0.0-20241021134022-7144600f5aeb
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
 	github.com/storacha/go-ucanto v0.1.1-0.20241028163940-34de8cd912bb
-	github.com/storacha/ipni-publisher v0.0.0-20241029163008-3137e5b088fd
+	github.com/storacha/ipni-publisher v0.0.0-20241029210117-3286a26a47a8
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )
