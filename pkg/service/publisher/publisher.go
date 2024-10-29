@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"slices"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -89,7 +90,7 @@ func PublishLocationCommitment(
 		},
 	)
 
-	adlink, err := publisher.Publish(ctx, provider, string(contextid), digests, meta)
+	adlink, err := publisher.Publish(ctx, provider, string(contextid), slices.Values(digests), meta)
 	if err != nil {
 		return fmt.Errorf("publishing claim: %w", err)
 	}
