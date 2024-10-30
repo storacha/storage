@@ -17,7 +17,7 @@ import (
 
 var log = logging.Logger("server")
 
-// ListenAndServe creates a new indexing service HTTP server, and starts it up.
+// ListenAndServe creates a new storage node HTTP server, and starts it up.
 func ListenAndServe(addr string, service storage.Service) error {
 	srvMux, err := NewServer(service)
 	if err != nil {

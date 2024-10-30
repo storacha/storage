@@ -41,7 +41,6 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 					if cap.With() != iCtx.ID().DID().String() {
 						return blob.AllocateOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
-
 					// check if we already have an allcoation for the blob in this space
 					allocs, err := storageService.Blobs().Allocations().List(ctx, digest)
 					if err != nil {
@@ -49,19 +48,38 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
+					allocated := false
 					for _, a := range allocs {
-						// if we find an allocation, check if we have the blob.
 						if a.Space == cap.Nb().Space {
-							_, err := storageService.Blobs().Store().Get(ctx, digest)
-							if err == nil {
-								// if we have it, it does not need upload
-								return blob.AllocateOk{Size: 0}, nil, nil
-							}
-							if !errors.Is(err, store.ErrNotFound) {
-								log.Errorf("getting blob: %w", err)
-								return blob.AllocateOk{}, nil, failure.FromError(err)
-							}
+							allocated = true
+							break
 						}
+					}
+
+					received := false
+					// check if we received the blob (only possible if we have an allocation)
+					if len(allocs) > 0 {
+						_, err = storageService.Blobs().Store().Get(ctx, digest)
+						if err == nil {
+							received = true
+						}
+						if err != nil && !errors.Is(err, store.ErrNotFound) {
+							log.Errorf("getting blob: %w", err)
+							return blob.AllocateOk{}, nil, failure.FromError(err)
+						}
+					}
+
+					// the size reported in the receipt is the number of bytes allocated
+					// in the space - if a previous allocation already exists, this has
+					// already been done, so the allocation size is 0
+					size := cap.Nb().Blob.Size
+					if allocated {
+						size = 0
+					}
+
+					// nothing to do
+					if allocated && received {
+						return blob.AllocateOk{Size: size}, nil, nil
 					}
 
 					if cap.Nb().Blob.Size > maxUploadSize {
@@ -70,12 +88,25 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 
 					expiresIn := uint64(60 * 60 * 24) // 1 day
 					expiresAt := uint64(time.Now().Unix()) + expiresIn
-					url, headers, err := storageService.Blobs().Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
-					if err != nil {
-						log.Errorf("signing upload URL: %w", err)
-						return blob.AllocateOk{}, nil, failure.FromError(err)
+
+					var address *blob.Address
+					// if not received yet, we need to generate a signed URL for the
+					// upload, and include it in the receipt.
+					if !received {
+						url, headers, err := storageService.Blobs().Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
+						if err != nil {
+							log.Errorf("signing upload URL: %w", err)
+							return blob.AllocateOk{}, nil, failure.FromError(err)
+						}
+						address = &blob.Address{
+							URL:     url,
+							Headers: headers,
+							Expires: expiresAt,
+						}
 					}
 
+					// even if a previous allocation was made in this space, we create
+					// another for the new invocation.
 					err = storageService.Blobs().Allocations().Put(ctx, allocation.Allocation{
 						Space:   cap.Nb().Space,
 						Blob:    allocation.Blob(cap.Nb().Blob),
@@ -87,14 +118,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
 					}
 
-					return blob.AllocateOk{
-						Size: cap.Nb().Blob.Size,
-						Address: &blob.Address{
-							URL:     url,
-							Headers: headers,
-							Expires: expiresAt,
-						},
-					}, nil, nil
+					return blob.AllocateOk{Size: size, Address: address}, nil, nil
 				},
 			),
 		),
