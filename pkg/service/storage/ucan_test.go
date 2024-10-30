@@ -302,7 +302,7 @@ func TestServer(t *testing.T) {
 				Size:   size,
 			},
 			Put: blob.Promise{
-				UcanAwait: blob.Result{
+				UcanAwait: blob.Await{
 					Selector: ".out.ok",
 					Link:     testutil.RandomCID(),
 				},
