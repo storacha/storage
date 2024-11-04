@@ -3,16 +3,22 @@ package storage
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-capabilities/pkg/assert"
 	"github.com/storacha/go-capabilities/pkg/blob"
+	"github.com/storacha/go-capabilities/pkg/pdp"
+	"github.com/storacha/go-capabilities/pkg/types"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
+	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/receipt/fx"
+	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/core/result/failure"
+	fdm "github.com/storacha/go-ucanto/core/result/failure/datamodel"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/internal/digestutil"
@@ -93,10 +99,22 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					// if not received yet, we need to generate a signed URL for the
 					// upload, and include it in the receipt.
 					if !received {
-						url, headers, err := storageService.Blobs().Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
-						if err != nil {
-							log.Errorf("signing upload URL: %w", err)
-							return blob.AllocateOk{}, nil, failure.FromError(err)
+						var url url.URL
+						headers := http.Header{}
+						if storageService.PDP() == nil {
+							// use standard blob upload
+							url, headers, err = storageService.Blobs().Presigner().SignUploadURL(ctx, digest, cap.Nb().Blob.Size, expiresIn)
+							if err != nil {
+								log.Errorf("signing upload URL: %w", err)
+								return blob.AllocateOk{}, nil, failure.FromError(err)
+							}
+						} else {
+							// use pdp service upload
+							url, err = storageService.PDP().PieceAdder().AddPiece(ctx, digest, cap.Nb().Blob.Size)
+							if err != nil {
+								log.Errorf("adding to pdp service: %w", err)
+								return blob.AllocateOk{}, nil, failure.FromError(err)
+							}
 						}
 						address = &blob.Address{
 							URL:     url,
@@ -137,28 +155,60 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return blob.AcceptOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
 
-					_, err := storageService.Blobs().Store().Get(ctx, digest)
-					if err != nil {
-						if errors.Is(err, store.ErrNotFound) {
-							return blob.AcceptOk{}, nil, NewAllocatedMemoryNotWrittenError()
+					var loc url.URL
+
+					var forks []fx.Effect
+					if storageService.PDP() == nil {
+						_, err := storageService.Blobs().Store().Get(ctx, digest)
+						if err != nil {
+							if errors.Is(err, store.ErrNotFound) {
+								return blob.AcceptOk{}, nil, NewAllocatedMemoryNotWrittenError()
+							}
+							log.Errorf("getting blob: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
-						log.Errorf("getting blob: %w", err)
-						return blob.AcceptOk{}, nil, failure.FromError(err)
-					}
 
-					loc, err := storageService.Blobs().Access().GetDownloadURL(digest)
-					if err != nil {
-						log.Errorf("creating retrieval URL for blob: %w", err)
-						return blob.AcceptOk{}, nil, failure.FromError(err)
+						loc, err = storageService.Blobs().Access().GetDownloadURL(digest)
+						if err != nil {
+							log.Errorf("creating retrieval URL for blob: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
+						}
+					} else {
+						// locate the piece from the pdp service
+						piece, err := storageService.PDP().PieceFinder().FindPiece(ctx, digest, cap.Nb().Blob.Size)
+						if err != nil {
+							log.Errorf("finding piece for blob: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
+						}
+						// get a download url
+						loc = storageService.PDP().PieceFinder().URLForPiece(piece)
+						// submit the piece for aggregation
+						err = storageService.PDP().Aggregator().AggregatePiece(ctx, piece)
+						if err != nil {
+							log.Errorf("submitting piece for aggregation: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
+						}
+						// generate the invocation that will complete when aggregation is complete and the piece is accepted
+						pieceAccept, err := pdp.PDPAccept.Invoke(
+							storageService.ID(),
+							storageService.ID(),
+							storageService.ID().DID().GoString(),
+							pdp.PDPAcceptCaveats{
+								Piece: piece,
+							}, delegation.WithNoExpiration())
+						if err != nil {
+							log.Errorf("creating location commitment: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
+						}
+						forks = append(forks, fx.FromInvocation(pieceAccept))
 					}
-
 					claim, err := assert.Location.Delegate(
 						storageService.ID(),
 						cap.Nb().Space,
 						storageService.ID().DID().String(),
 						assert.LocationCaveats{
 							Space:    cap.Nb().Space,
-							Content:  assert.FromHash(digest),
+							Content:  types.FromHash(digest),
 							Location: []url.URL{loc},
 						},
 						delegation.WithNoExpiration(),
@@ -167,6 +217,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						log.Errorf("creating location commitment: %w", err)
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
+					forks = append(forks, fx.FromInvocation(claim))
 
 					err = storageService.Claims().Store().Put(ctx, claim)
 					if err != nil {
@@ -180,7 +231,57 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					return blob.AcceptOk{Site: claim.Link()}, fx.NewEffects(fx.WithFork(fx.FromInvocation(claim))), nil
+					return blob.AcceptOk{Site: claim.Link()}, fx.NewEffects(fx.WithFork(forks...)), nil
+				},
+			),
+		),
+		server.WithServiceMethod(
+			pdp.PDPInfoAbility,
+			server.Provide(
+				pdp.PDPInfo,
+				func(cap ucan.Capability[pdp.PDPInfoCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (pdp.PDPInfoOk, fx.Effects, error) {
+					ctx := context.TODO()
+					// generate the invocation that would submit when this was first submitted
+					pieceAccept, err := pdp.PDPAccept.Invoke(
+						storageService.ID(),
+						storageService.ID(),
+						storageService.ID().DID().GoString(),
+						pdp.PDPAcceptCaveats{
+							Piece: cap.Nb().Piece,
+						}, delegation.WithNoExpiration())
+					if err != nil {
+						log.Errorf("creating location commitment: %w", err)
+						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+					}
+					// look up the receipt for the accept invocation
+					rcpt, err := storageService.Receipts().GetByRan(ctx, pieceAccept.Link())
+					if err != nil {
+						log.Errorf("looking up receipt: %w", err)
+						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+					}
+					// rebind the receipt to get the specific types for pdp/accept
+					pieceAcceptReceipt, err := receipt.Rebind[pdp.PDPAcceptOk, fdm.FailureModel](rcpt, pdp.PDPAcceptOkType(), fdm.FailureType(), types.Converters...)
+					if err != nil {
+						log.Errorf("reading piece accept receipt: %w", err)
+						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+					}
+					// use the result from the accept receit to generate the receipt for pdp/info
+					return result.MatchResultR3(pieceAcceptReceipt.Out(),
+						func(ok pdp.PDPAcceptOk) (pdp.PDPInfoOk, fx.Effects, error) {
+							return pdp.PDPInfoOk{
+								Piece: cap.Nb().Piece,
+								Aggregates: []pdp.PDPInfoAcceptedAggregate{
+									{
+										Aggregate:      ok.Aggregate,
+										InclusionProof: ok.InclusionProof,
+									},
+								},
+							}, nil, nil
+						},
+						func(err fdm.FailureModel) (pdp.PDPInfoOk, fx.Effects, error) {
+							return pdp.PDPInfoOk{}, nil, failure.FromFailureModel(err)
+						},
+					)
 				},
 			),
 		),

@@ -7,16 +7,16 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/ipld/go-ipld-prime"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-capabilities/pkg/assert"
 	"github.com/storacha/go-capabilities/pkg/blob"
-	bdm "github.com/storacha/go-capabilities/pkg/blob/datamodel"
+	"github.com/storacha/go-capabilities/pkg/types"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
+	fdm "github.com/storacha/go-ucanto/core/result/failure/datamodel"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
@@ -24,39 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var allocateReceiptSchema = []byte(`
-	type Result union {
-		| AllocateOk "ok"
-		| Any "error"
-	} representation keyed
-
-	type AllocateOk struct {
-		size Int
-		address optional Address
-	}
-
-	type Address struct {
-		url String
-		headers {String:String}
-		expires Int
-	}
-`)
-
-var acceptReceiptSchema = []byte(`
-	type Result union {
-		| AcceptOk "ok"
-		| Any "error"
-	} representation keyed
-
-	type AcceptOk struct {
-		site Link
-	}
-`)
-
 func TestServer(t *testing.T) {
+	ctx := context.Background()
 	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
 	require.NoError(t, err)
-	t.Cleanup(func() { svc.Close() })
+	t.Cleanup(func() { svc.Close(ctx) })
 
 	srv, err := NewUCANServer(svc)
 	require.NoError(t, err)
@@ -109,10 +81,10 @@ func TestServer(t *testing.T) {
 		rcptlnk, ok := resp.Get(inv.Link())
 		require.True(t, ok, "missing receipt for invocation: %s", inv.Link())
 
-		reader := testutil.Must(receipt.NewReceiptReader[bdm.AllocateOkModel, ipld.Node](allocateReceiptSchema))(t)
+		reader := testutil.Must(receipt.NewReceiptReaderFromTypes[blob.AllocateOk, fdm.FailureModel](blob.AllocateOkType(), fdm.FailureType(), types.Converters...))(t)
 		rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
 
-		result.MatchResultR0(rcpt.Out(), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(rcpt.Out(), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 
@@ -124,8 +96,7 @@ func TestServer(t *testing.T) {
 			require.Equal(t, size, allocs[0].Blob.Size)
 			require.Equal(t, space, allocs[0].Space)
 			require.Equal(t, inv.Link(), allocs[0].Cause)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
@@ -320,10 +291,10 @@ func TestServer(t *testing.T) {
 		rcptlnk, ok := resp.Get(acceptInv.Link())
 		require.True(t, ok, "missing receipt for invocation: %s", acceptInv.Link())
 
-		reader := testutil.Must(receipt.NewReceiptReader[bdm.AcceptOkModel, ipld.Node](acceptReceiptSchema))(t)
+		reader := testutil.Must(receipt.NewReceiptReaderFromTypes[blob.AcceptOk, fdm.FailureModel](blob.AcceptOkType(), fdm.FailureType(), types.Converters...))(t)
 		rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
 
-		result.MatchResultR0(rcpt.Out(), func(ok bdm.AcceptOkModel) {
+		result.MatchResultR0(rcpt.Out(), func(ok blob.AcceptOk) {
 			fmt.Printf("%+v\n", ok)
 
 			claim, err := svc.Claims().Store().Get(context.Background(), ok.Site)
@@ -342,8 +313,7 @@ func TestServer(t *testing.T) {
 			require.Equal(t, loc.String(), nb.Location[0].String())
 
 			// TODO: assert IPNI advert published
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)

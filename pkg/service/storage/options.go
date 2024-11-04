@@ -13,6 +13,13 @@ import (
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
+type PDPConfig struct {
+	PDPDatastore    datastore.Datastore
+	CurioEndpoint   *url.URL
+	CurioAuthHeader string
+	ProofSet        uint64
+}
+
 type config struct {
 	id                    principal.Signer
 	publicURL             url.URL
@@ -20,6 +27,8 @@ type config struct {
 	allocationDatastore   datastore.Datastore
 	claimDatastore        datastore.Datastore
 	publisherDatastore    datastore.Datastore
+	receiptDatastore      datastore.Datastore
+	pdp                   *PDPConfig
 	announceURLs          []url.URL
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
@@ -68,6 +77,15 @@ func WithAllocationDatastore(dstore datastore.Datastore) Option {
 func WithClaimDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
 		c.claimDatastore = dstore
+		return nil
+	}
+}
+
+// WithReceiptDatastore configures the underlying datastore for use storing receipts
+// made for this node
+func WithReceiptDatastore(dstore datastore.Datastore) Option {
+	return func(c *config) error {
+		c.receiptDatastore = dstore
 		return nil
 	}
 }
@@ -127,6 +145,14 @@ func WithPublisherIndexingServiceProof(proof ...delegation.Proof) Option {
 func WithLogLevel(name string, level string) Option {
 	return func(c *config) error {
 		logging.SetLogLevel(name, level)
+		return nil
+	}
+}
+
+// WithPDPConfig causes the service to run through Curio and do PDP proofs
+func WithPDPConfig(pdpConfig PDPConfig) Option {
+	return func(c *config) error {
+		c.pdp = &pdpConfig
 		return nil
 	}
 }

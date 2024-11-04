@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -72,6 +73,24 @@ func main() {
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
 						EnvVars: []string{"STORAGE_PUBLIC_URL"},
+					},
+					&cli.StringFlag{
+						Name:    "curio-url",
+						Aliases: []string{"c"},
+						Usage:   "URL of a running instance of curio",
+						EnvVars: []string{"STORAGE_CURIO_URL"},
+					},
+					&cli.StringFlag{
+						Name:    "curio-auth",
+						Aliases: []string{"a"},
+						Usage:   "base64 encoded auth header to talk to curio",
+						EnvVars: []string{"STORAGE_CURIO_AUTH"},
+					},
+					&cli.Int64Flag{
+						Name:    "pdp-proofset",
+						Aliases: []string{"pdp"},
+						Usage:   "Proofset to use with PDP",
+						EnvVars: []string{"STORAGE_PDP_PROOFSET"},
 					},
 					&cli.StringFlag{
 						Name:    "indexing-service-proof",
@@ -155,6 +174,45 @@ func main() {
 					if err != nil {
 						return err
 					}
+					receiptDir, err := mkdirp(dataDir, "receipt")
+					if err != nil {
+						return err
+					}
+					receiptDs, err := leveldb.NewDatastore(receiptDir, nil)
+					if err != nil {
+						return err
+					}
+
+					var pdpConfig *storage.PDPConfig
+					curioURLStr := cCtx.String("curio-endpoint")
+					if curioURLStr != "" {
+						curioURL, err := url.Parse(curioURLStr)
+						if err != nil {
+							return fmt.Errorf("parsing curio URL: %w", err)
+						}
+						if cCtx.IsSet("curio-auth") {
+							return errors.New("curio-auth must be set if curio is used")
+						}
+						if cCtx.IsSet("pdp-proofset") {
+							return errors.New("pdp-proofset must be set if curio is used")
+						}
+						curioAuth := cCtx.String("curio-auth")
+						proofSet := cCtx.Int64("pdp-proofset")
+						pdpDir, err := mkdirp(dataDir, "pdp")
+						if err != nil {
+							return err
+						}
+						pdpDs, err := leveldb.NewDatastore(pdpDir, nil)
+						if err != nil {
+							return err
+						}
+						pdpConfig = &storage.PDPConfig{
+							PDPDatastore:    pdpDs,
+							CurioEndpoint:   curioURL,
+							CurioAuthHeader: curioAuth,
+							ProofSet:        uint64(proofSet),
+						}
+					}
 
 					pubURLstr := cCtx.String("public-url")
 					if pubURLstr == "" {
@@ -202,7 +260,7 @@ func main() {
 						indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(dlg))
 					}
 
-					svc, err := storage.New(
+					opts := []storage.Option{
 						storage.WithIdentity(id),
 						storage.WithBlobstore(blobStore),
 						storage.WithAllocationDatastore(allocDs),
@@ -212,11 +270,21 @@ func main() {
 						storage.WithPublisherDirectAnnounce(announceURL),
 						storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 						storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
-					)
+						storage.WithReceiptDatastore(receiptDs),
+					}
+					if pdpConfig != nil {
+						opts = append(opts, storage.WithPDPConfig(*pdpConfig))
+					}
+					svc, err := storage.New(opts...)
 					if err != nil {
 						return fmt.Errorf("creating service instance: %w", err)
 					}
-					defer svc.Close()
+					err = svc.Startup()
+					if err != nil {
+						return fmt.Errorf("starting service: %w", err)
+					}
+
+					defer svc.Close(cCtx.Context)
 
 					presolv, err := principalresolver.New(PrincipalMapping)
 					if err != nil {

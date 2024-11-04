@@ -1,7 +1,8 @@
-package client
+package curio
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -79,7 +80,7 @@ type (
 	}
 
 	UploadRef struct {
-		url string
+		URL string
 	}
 
 	PieceHash struct {
@@ -100,6 +101,10 @@ type (
 		Notify string    `json:"notify,omitempty"`
 	}
 
+	FoundPiece struct {
+		PieceCID string `json:"piece_cid"`
+	}
+
 	Client struct {
 		authHeader string
 		endpoint   *url.URL
@@ -115,15 +120,15 @@ func New(client *http.Client, endpoint *url.URL, authHeader string) *Client {
 	}
 }
 
-func (c *Client) Ping() error {
+func (c *Client) Ping(ctx context.Context) error {
 	url := c.endpoint.JoinPath(pdpRoutePath, pingPath).String()
-	return c.verifySuccess(c.sendRequest(http.MethodGet, url, nil))
+	return c.verifySuccess(c.sendRequest(ctx, http.MethodGet, url, nil))
 }
 
-func (c *Client) CreateProofSet(request CreateProofSet) (StatusRef, error) {
+func (c *Client) CreateProofSet(ctx context.Context, request CreateProofSet) (StatusRef, error) {
 	url := c.endpoint.JoinPath(pdpRoutePath, proofSetsPath).String()
 	// send request
-	res, err := c.postJson(url, request)
+	res, err := c.postJson(ctx, url, request)
 	if err != nil {
 		return StatusRef{}, err
 	}
@@ -135,37 +140,37 @@ func (c *Client) CreateProofSet(request CreateProofSet) (StatusRef, error) {
 	return StatusRef{url: res.Header.Get("Location")}, nil
 }
 
-func (c *Client) ProofSetCreationStatus(ref StatusRef) (ProofSetStatus, error) {
+func (c *Client) ProofSetCreationStatus(ctx context.Context, ref StatusRef) (ProofSetStatus, error) {
 	// we could do this in a number of ways, including having StatusRef actually
 	// just be the TXHash, extracted from the location header. But ultimately
 	// it makes the most sense as an opaque reference from the standpoint of anyone
 	// using the client
 	// generate request
 	var proofSetStatus ProofSetStatus
-	err := c.getJsonResponse(ref.url, &proofSetStatus)
+	err := c.getJsonResponse(ctx, ref.url, &proofSetStatus)
 	return proofSetStatus, err
 }
 
-func (c *Client) GetProofSet(id uint64) (ProofSet, error) {
+func (c *Client) GetProofSet(ctx context.Context, id uint64) (ProofSet, error) {
 	url := c.endpoint.JoinPath(pdpRoutePath, proofSetsPath, "/", strconv.FormatUint(id, 10)).String()
 	var proofSet ProofSet
-	err := c.getJsonResponse(url, &proofSet)
+	err := c.getJsonResponse(ctx, url, &proofSet)
 	return proofSet, err
 }
 
-func (c *Client) DeleteProofSet(id uint64) error {
+func (c *Client) DeleteProofSet(ctx context.Context, id uint64) error {
 	url := c.endpoint.JoinPath(pdpRoutePath, proofSetsPath, strconv.FormatUint(id, 10)).String()
-	return c.verifySuccess(c.sendRequest(http.MethodDelete, url, nil))
+	return c.verifySuccess(c.sendRequest(ctx, http.MethodDelete, url, nil))
 }
 
-func (c *Client) AddRootToProofSet(id uint64, addRoot AddRoot) error {
+func (c *Client) AddRootsToProofSet(ctx context.Context, id uint64, addRoots []AddRoot) error {
 	url := c.endpoint.JoinPath(pdpRoutePath, proofSetsPath, "/", strconv.FormatUint(id, 10), rootsPath).String()
-	return c.verifySuccess(c.postJson(url, addRoot))
+	return c.verifySuccess(c.postJson(ctx, url, addRoots))
 }
 
-func (c *Client) AddPiece(addPiece AddPiece) (*UploadRef, error) {
+func (c *Client) AddPiece(ctx context.Context, addPiece AddPiece) (*UploadRef, error) {
 	url := c.endpoint.JoinPath(pdpRoutePath, piecePath).String()
-	res, err := c.postJson(url, addPiece)
+	res, err := c.postJson(ctx, url, addPiece)
 	if err != nil {
 		return nil, err
 	}
@@ -174,20 +179,32 @@ func (c *Client) AddPiece(addPiece AddPiece) (*UploadRef, error) {
 	}
 	if res.StatusCode == http.StatusCreated {
 		return &UploadRef{
-			url: res.Header.Get("Location"),
+			URL: res.Header.Get("Location"),
 		}, nil
 	}
 	return nil, errFromResponse(res)
 }
 
-func (c *Client) UploadPiece(ref UploadRef, data io.Reader) error {
-	return c.verifySuccess(c.sendRequest(http.MethodPut, ref.url, data))
+func (c *Client) UploadPiece(ctx context.Context, ref UploadRef, data io.Reader) error {
+	return c.verifySuccess(c.sendRequest(ctx, http.MethodPut, ref.URL, data))
 }
 
-func (c *Client) GetPiece(pieceCid string) (io.ReadCloser, error) {
+func (c *Client) FindPiece(ctx context.Context, piece PieceHash) (FoundPiece, error) {
+	url := c.endpoint.JoinPath(pdpRoutePath, piecePath)
+	query := url.Query()
+	query.Add("size", strconv.FormatInt(piece.Size, 10))
+	query.Add("name", piece.Name)
+	query.Add("hash", piece.Hash)
+	url.RawQuery = query.Encode()
+	var foundPiece FoundPiece
+	err := c.getJsonResponse(ctx, url.String(), &foundPiece)
+	return foundPiece, err
+}
+
+func (c *Client) GetPiece(ctx context.Context, pieceCid string) (io.ReadCloser, error) {
 	// piece gets are not at the pdp path but rather the raw /piece path
 	url := c.endpoint.JoinPath(piecePath, "/", pieceCid).String()
-	res, err := c.sendRequest(http.MethodGet, url, nil)
+	res, err := c.sendRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -197,9 +214,13 @@ func (c *Client) GetPiece(pieceCid string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func (c *Client) sendRequest(method string, url string, body io.Reader) (*http.Response, error) {
+func (c *Client) GetPieceURL(pieceCid string) url.URL {
+	return *c.endpoint.JoinPath(piecePath, "/", pieceCid)
+}
 
-	req, err := http.NewRequest(method, url, body)
+func (c *Client) sendRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
+
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("generating http request: %w", err)
 	}
@@ -213,7 +234,7 @@ func (c *Client) sendRequest(method string, url string, body io.Reader) (*http.R
 	return res, nil
 }
 
-func (c *Client) postJson(url string, params interface{}) (*http.Response, error) {
+func (c *Client) postJson(ctx context.Context, url string, params interface{}) (*http.Response, error) {
 	var body io.Reader
 	if params != nil {
 		asBytes, err := json.Marshal(params)
@@ -222,11 +243,11 @@ func (c *Client) postJson(url string, params interface{}) (*http.Response, error
 		}
 		body = bytes.NewReader(asBytes)
 	}
-	return c.sendRequest(http.MethodPost, url, body)
+	return c.sendRequest(ctx, http.MethodPost, url, body)
 }
 
-func (c *Client) getJsonResponse(url string, target interface{}) error {
-	res, err := c.sendRequest(http.MethodGet, url, nil)
+func (c *Client) getJsonResponse(ctx context.Context, url string, target interface{}) error {
+	res, err := c.sendRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}

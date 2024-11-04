@@ -1,0 +1,17 @@
+type Node bytes
+type PieceLink link
+
+type ProofData struct {
+	path  [Node]
+	index Int
+}
+
+type AggregatePiece struct {
+	Link           PieceLink
+	InclusionProof ProofData
+}
+
+type Aggregate struct {
+	Root   PieceLink
+	Pieces [AggregatePiece]
+}
