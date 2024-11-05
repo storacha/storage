@@ -1,6 +1,6 @@
 type PieceLink link
 
 type PiecesSoFar struct {
-	TotalSize           uint64
-	ReverseSortedPieces []PieceLink
+	TotalSize           Int
+	ReverseSortedPieces [PieceLink]
 }

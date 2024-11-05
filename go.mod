@@ -4,7 +4,6 @@ go 1.23.0
 
 toolchain go1.23.2
 
-replace github.com/storacha/go-capabilities => ../go-capabilities
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
@@ -18,9 +17,10 @@ require (
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/storacha/go-capabilities v0.0.0-20241104094143-0444ee0a9d6c
+	github.com/storacha/go-capabilities v0.0.0-20241105032628-bf7f230808aa
+	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
-	github.com/storacha/go-ucanto v0.2.1-0.20241101213013-d4cff4a75f56
+	github.com/storacha/go-ucanto v0.2.1-0.20241105025747-aa8566a3a3fb
 	github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
@@ -31,7 +31,6 @@ require (
 	github.com/filecoin-project/go-fil-commcid v0.2.0 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719 // indirect
 )
 
 require (

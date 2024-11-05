@@ -56,7 +56,7 @@ type Allocation struct {
 }
 
 func (a Allocation) ToIPLD() (datamodel.Node, error) {
-	return ipld.WrapWithRecovery(a, AllocationType(), types.Converters...)
+	return ipld.WrapWithRecovery(&a, AllocationType(), types.Converters...)
 }
 
 func Encode(alloc Allocation, enc codec.Encoder) ([]byte, error) {
