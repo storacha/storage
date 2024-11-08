@@ -536,8 +536,8 @@ github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t6
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
-github.com/storacha/go-capabilities v0.0.0-20241021134022-7144600f5aeb h1:A9/44D9FChNmC0Kp+QIZ9k+a+ng2Qsym3TumTrEZPXM=
-github.com/storacha/go-capabilities v0.0.0-20241021134022-7144600f5aeb/go.mod h1:1x2qMcvOUvF6prSiWXsEeEfV3OcX/L2fk6iNgPMNfZU=
+github.com/storacha/go-capabilities v0.0.0-20241108115011-2ffd682f2397 h1:uLf9EeEdelXtHPTghZda3TcHChq1pmmF8cFgkb8g8r4=
+github.com/storacha/go-capabilities v0.0.0-20241108115011-2ffd682f2397/go.mod h1:vHqUkLGC11Fhio/2qBJkK8MmA4q1t7DaRVdTIo0UHhE=
 github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78 h1:NAti9hMLMo8F0Iyz5ldS41CY6MyukRH0OrTPV4u2340=
 github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78/go.mod h1:DcwwQnyFuTk531cKD9sUkQg/gzpwKaIqH9I7oZYyeRc=
 github.com/storacha/go-ucanto v0.1.1-0.20241028163940-34de8cd912bb h1:lFwFtMjgt162ot9pnu230haLjRQ1rqwJOIAyywOqAX8=

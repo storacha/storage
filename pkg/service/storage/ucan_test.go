@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"testing"
-	"time"
 
 	"github.com/ipld/go-ipld-prime"
 	"github.com/multiformats/go-multihash"
@@ -272,7 +271,6 @@ func TestServer(t *testing.T) {
 		data := testutil.RandomBytes(int(size))
 		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 		cause := testutil.RandomCID()
-		exp := uint64(time.Now().Add(time.Second * 30).Unix())
 
 		allocNb := blob.AllocateCaveats{
 			Space: space,
@@ -303,9 +301,8 @@ func TestServer(t *testing.T) {
 				Digest: digest,
 				Size:   size,
 			},
-			Expires: exp,
 			Put: blob.Promise{
-				UcanAwait: blob.Result{
+				UcanAwait: blob.Await{
 					Selector: ".out.ok",
 					Link:     testutil.RandomCID(),
 				},
