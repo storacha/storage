@@ -41,7 +41,7 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 					if cap.With() != iCtx.ID().DID().String() {
 						return blob.AllocateOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
-					// check if we already have an allcoation for the blob in this space
+					// check if we already have an allocation for the blob in this space
 					allocs, err := storageService.Blobs().Allocations().List(ctx, digest)
 					if err != nil {
 						log.Errorf("getting allocations: %w", err)
