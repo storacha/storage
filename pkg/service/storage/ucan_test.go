@@ -19,6 +19,7 @@ import (
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/core/result/ok"
+	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,7 @@ var acceptReceiptSchema = []byte(`
 `)
 
 func TestServer(t *testing.T) {
-	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "info"))
+	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
 	require.NoError(t, err)
 	t.Cleanup(func() { svc.Close() })
 
@@ -124,6 +125,139 @@ func TestServer(t *testing.T) {
 			require.Equal(t, size, allocs[0].Blob.Size)
 			require.Equal(t, space, allocs[0].Space)
 			require.Equal(t, inv.Link(), allocs[0].Cause)
+		}, func(x ipld.Node) {
+			f := testutil.BindFailure(t, x)
+			fmt.Println(f.Message)
+			fmt.Println(*f.Stack)
+			require.Nil(t, f)
+		})
+	})
+
+	t.Run("repeat blob/allocate for same blob", func(t *testing.T) {
+		space := testutil.RandomDID()
+		size := uint64(rand.IntN(32) + 1)
+		data := testutil.RandomBytes(int(size))
+		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
+		cause := testutil.RandomCID()
+
+		nb := blob.AllocateCaveats{
+			Space: space,
+			Blob: blob.Blob{
+				Digest: digest,
+				Size:   size,
+			},
+			Cause: cause,
+		}
+		cap := blob.Allocate.New(testutil.Alice.DID().String(), nb)
+
+		invokeBlobAllocate := func() result.Result[bdm.AllocateOkModel, ipld.Node] {
+			inv, err := invocation.Invoke(testutil.Service, testutil.Alice, cap, delegation.WithProof(prf))
+			require.NoError(t, err)
+
+			resp, err := client.Execute([]invocation.Invocation{inv}, conn)
+			require.NoError(t, err)
+
+			rcptlnk, ok := resp.Get(inv.Link())
+			require.True(t, ok, "missing receipt for invocation: %s", inv.Link())
+
+			reader := testutil.Must(receipt.NewReceiptReader[bdm.AllocateOkModel, ipld.Node](allocateReceiptSchema))(t)
+			rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
+			return rcpt.Out()
+		}
+
+		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+			fmt.Printf("%+v\n", ok)
+			require.Equal(t, size, uint64(ok.Size))
+			require.NotNil(t, ok.Address)
+		}, func(x ipld.Node) {
+			f := testutil.BindFailure(t, x)
+			fmt.Println(f.Message)
+			fmt.Println(*f.Stack)
+			require.Nil(t, f)
+		})
+
+		// now again without upload
+		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+			fmt.Printf("%+v\n", ok)
+			require.Equal(t, int64(0), ok.Size)
+			require.NotNil(t, ok.Address)
+		}, func(x ipld.Node) {
+			f := testutil.BindFailure(t, x)
+			fmt.Println(f.Message)
+			fmt.Println(*f.Stack)
+			require.Nil(t, f)
+		})
+
+		// simulate a blob upload
+		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
+		require.NoError(t, err)
+
+		// now again after upload
+		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+			fmt.Printf("%+v\n", ok)
+			require.Equal(t, int64(0), ok.Size)
+			require.Nil(t, ok.Address)
+		}, func(x ipld.Node) {
+			f := testutil.BindFailure(t, x)
+			fmt.Println(f.Message)
+			fmt.Println(*f.Stack)
+			require.Nil(t, f)
+		})
+	})
+
+	t.Run("repeat blob/allocate for same blob in different space", func(t *testing.T) {
+		space0 := testutil.RandomDID()
+		space1 := testutil.RandomDID()
+		size := uint64(rand.IntN(32) + 1)
+		data := testutil.RandomBytes(int(size))
+		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
+		cause := testutil.RandomCID()
+
+		invokeBlobAllocate := func(space did.DID) result.Result[bdm.AllocateOkModel, ipld.Node] {
+			nb := blob.AllocateCaveats{
+				Space: space,
+				Blob: blob.Blob{
+					Digest: digest,
+					Size:   size,
+				},
+				Cause: cause,
+			}
+			cap := blob.Allocate.New(testutil.Alice.DID().String(), nb)
+
+			inv, err := invocation.Invoke(testutil.Service, testutil.Alice, cap, delegation.WithProof(prf))
+			require.NoError(t, err)
+
+			resp, err := client.Execute([]invocation.Invocation{inv}, conn)
+			require.NoError(t, err)
+
+			rcptlnk, ok := resp.Get(inv.Link())
+			require.True(t, ok, "missing receipt for invocation: %s", inv.Link())
+
+			reader := testutil.Must(receipt.NewReceiptReader[bdm.AllocateOkModel, ipld.Node](allocateReceiptSchema))(t)
+			rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
+			return rcpt.Out()
+		}
+
+		result.MatchResultR0(invokeBlobAllocate(space0), func(ok bdm.AllocateOkModel) {
+			fmt.Printf("%+v\n", ok)
+			require.Equal(t, size, uint64(ok.Size))
+			require.NotNil(t, ok.Address)
+		}, func(x ipld.Node) {
+			f := testutil.BindFailure(t, x)
+			fmt.Println(f.Message)
+			fmt.Println(*f.Stack)
+			require.Nil(t, f)
+		})
+
+		// simulate a blob upload
+		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
+		require.NoError(t, err)
+
+		// now again after upload, but in different space
+		result.MatchResultR0(invokeBlobAllocate(space1), func(ok bdm.AllocateOkModel) {
+			fmt.Printf("%+v\n", ok)
+			require.Equal(t, size, uint64(ok.Size))
+			require.Nil(t, ok.Address)
 		}, func(x ipld.Node) {
 			f := testutil.BindFailure(t, x)
 			fmt.Println(f.Message)
