@@ -7,11 +7,11 @@ type ProofData struct {
 }
 
 type AggregatePiece struct {
-	Link           PieceLink
-	InclusionProof ProofData
+	link           PieceLink
+	inclusionProof ProofData
 }
 
 type Aggregate struct {
-	Root   PieceLink
-	Pieces [AggregatePiece]
+	root   PieceLink
+	pieces [AggregatePiece]
 }
