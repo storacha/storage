@@ -190,10 +190,10 @@ func main() {
 						if err != nil {
 							return fmt.Errorf("parsing curio URL: %w", err)
 						}
-						if cCtx.IsSet("curio-auth") {
+						if !cCtx.IsSet("curio-auth") {
 							return errors.New("curio-auth must be set if curio is used")
 						}
-						if cCtx.IsSet("pdp-proofset") {
+						if !cCtx.IsSet("pdp-proofset") {
 							return errors.New("pdp-proofset must be set if curio is used")
 						}
 						curioAuth := cCtx.String("curio-auth")
