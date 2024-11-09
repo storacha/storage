@@ -13,8 +13,8 @@ type Server struct {
 	ucanServer server.ServerView
 }
 
-func NewServer(service Service) (*Server, error) {
-	ucanSrv, err := NewUCANServer(service)
+func NewServer(service Service, options ...server.Option) (*Server, error) {
+	ucanSrv, err := NewUCANServer(service, options...)
 	if err != nil {
 		return nil, fmt.Errorf("creating UCAN server: %w", err)
 	}

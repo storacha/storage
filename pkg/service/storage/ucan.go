@@ -24,9 +24,9 @@ var log = logging.Logger("storage")
 
 const maxUploadSize = 127 * (1 << 25)
 
-func NewUCANServer(storageService Service) (server.ServerView, error) {
-	return server.NewServer(
-		storageService.ID(),
+func NewUCANServer(storageService Service, options ...server.Option) (server.ServerView, error) {
+	options = append(
+		options,
 		server.WithServiceMethod(
 			blob.AllocateAbility,
 			server.Provide(
@@ -185,4 +185,6 @@ func NewUCANServer(storageService Service) (server.ServerView, error) {
 			),
 		),
 	)
+
+	return server.NewServer(storageService.ID(), options...)
 }
