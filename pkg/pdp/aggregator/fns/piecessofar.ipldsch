@@ -1,6 +1,0 @@
-type PieceLink link
-
-type PiecesSoFar struct {
-	TotalSize           Int
-	ReverseSortedPieces [PieceLink]
-}

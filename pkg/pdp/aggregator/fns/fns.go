@@ -23,25 +23,25 @@ import (
 	"github.com/storacha/storage/pkg/pdp/curio"
 )
 
-//go:embed piecessofar.ipldsch
-var piecesSoFarSchema []byte
+//go:embed buffer.ipldsch
+var bufferSchema []byte
 
-var piecesSoFarTS *schema.TypeSystem
+var bufferTS *schema.TypeSystem
 
 func init() {
-	ts, err := ipldprime.LoadSchemaBytes(piecesSoFarSchema)
+	ts, err := ipldprime.LoadSchemaBytes(bufferSchema)
 	if err != nil {
 		panic(fmt.Errorf("loading blob schema: %w", err))
 	}
-	piecesSoFarTS = ts
+	bufferTS = ts
 }
 
-func PiecesSoFarType() schema.Type {
-	return piecesSoFarTS.TypeByName("PiecesSoFarType")
+func BufferType() schema.Type {
+	return bufferTS.TypeByName("Buffer")
 }
 
-// PiecesSoFar tracks in progress work building an aggregation
-type PiecesSoFar struct {
+// Buffer tracks in progress work building an aggregation
+type Buffer struct {
 	TotalSize           uint64
 	ReverseSortedPieces []piece.PieceLink
 }
@@ -62,43 +62,43 @@ func InsertReverseSortedBySize(sortedPieces []piece.PieceLink, newPiece piece.Pi
 // If not, we can safely aggregate till >=128MB without going over 256MB
 const MinAggregateSize = 128 << 20
 
-func AggregatePiece(piecesSoFar PiecesSoFar, newPiece piece.PieceLink) (PiecesSoFar, *aggregate.Aggregate, error) {
+func AggregatePiece(buffer Buffer, newPiece piece.PieceLink) (Buffer, *aggregate.Aggregate, error) {
 	// if the piece is aggregatable on its own it should submit immediately
 	if newPiece.PaddedSize() > MinAggregateSize {
 		aggregate, err := aggregate.NewAggregate([]piece.PieceLink{newPiece})
-		return piecesSoFar, &aggregate, err
+		return buffer, &aggregate, err
 	}
 
-	newSize := piecesSoFar.TotalSize + newPiece.PaddedSize()
-	newPieces := InsertReverseSortedBySize(piecesSoFar.ReverseSortedPieces, newPiece)
+	newSize := buffer.TotalSize + newPiece.PaddedSize()
+	newPieces := InsertReverseSortedBySize(buffer.ReverseSortedPieces, newPiece)
 
 	// if we have reached the minimum aggregate size, submit and start over
 	if newSize >= MinAggregateSize {
 		aggregate, err := aggregate.NewAggregate(newPieces)
-		return PiecesSoFar{}, &aggregate, err
+		return Buffer{}, &aggregate, err
 	}
 
 	// otherwise keep aggregating
-	return PiecesSoFar{
+	return Buffer{
 		TotalSize:           newSize,
 		ReverseSortedPieces: newPieces,
 	}, nil, nil
 }
 
-func AggregatePieces(piecesSoFar PiecesSoFar, pieces []piece.PieceLink) (PiecesSoFar, []aggregate.Aggregate, error) {
+func AggregatePieces(buffer Buffer, pieces []piece.PieceLink) (Buffer, []aggregate.Aggregate, error) {
 	var aggregates []aggregate.Aggregate
 	for _, piece := range pieces {
 		var aggregate *aggregate.Aggregate
 		var err error
-		piecesSoFar, aggregate, err = AggregatePiece(piecesSoFar, piece)
+		buffer, aggregate, err = AggregatePiece(buffer, piece)
 		if err != nil {
-			return piecesSoFar, aggregates, err
+			return buffer, aggregates, err
 		}
 		if aggregate != nil {
 			aggregates = append(aggregates, *aggregate)
 		}
 	}
-	return piecesSoFar, aggregates, nil
+	return buffer, aggregates, nil
 }
 
 func SubmitAggregates(ctx context.Context, client *curio.Client, proofSet uint64, aggregates []aggregate.Aggregate) error {

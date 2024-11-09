@@ -21,29 +21,29 @@ type QueuePieceAggregationFn func(context.Context, piece.PieceLink) error
 // Step 1: Generate aggregates from pieces
 
 type InProgressWorkspace interface {
-	GetPiecesSoFar(context.Context) (fns.PiecesSoFar, error)
-	SetPiecesSoFar(context.Context, fns.PiecesSoFar) error
+	GetBuffer(context.Context) (fns.Buffer, error)
+	PutBuffer(context.Context, fns.Buffer) error
 }
 
-type piecesSoFarKey struct{}
+type bufferKey struct{}
 
-func (piecesSoFarKey) String() string { return "piecesSoFar" }
+func (bufferKey) String() string { return "buffer" }
 
 type inProgressWorkSpace struct {
-	store ipldstore.KVStore[piecesSoFarKey, fns.PiecesSoFar]
+	store ipldstore.KVStore[bufferKey, fns.Buffer]
 }
 
-func (i *inProgressWorkSpace) GetPiecesSoFar(ctx context.Context) (fns.PiecesSoFar, error) {
-	return i.store.Get(ctx, piecesSoFarKey{})
+func (i *inProgressWorkSpace) GetBuffer(ctx context.Context) (fns.Buffer, error) {
+	return i.store.Get(ctx, bufferKey{})
 }
 
-func (i *inProgressWorkSpace) SetPiecesSoFar(ctx context.Context, piecesSoFar fns.PiecesSoFar) error {
-	return i.store.Put(ctx, piecesSoFarKey{}, piecesSoFar)
+func (i *inProgressWorkSpace) PutBuffer(ctx context.Context, buffer fns.Buffer) error {
+	return i.store.Put(ctx, bufferKey{}, buffer)
 }
 
 func NewInProgressWorkspace(store store.Store) InProgressWorkspace {
 	return &inProgressWorkSpace{
-		ipldstore.IPLDStore[piecesSoFarKey, fns.PiecesSoFar](store, fns.PiecesSoFarType(), types.Converters...),
+		ipldstore.IPLDStore[bufferKey, fns.Buffer](store, fns.BufferType(), types.Converters...),
 	}
 }
 
@@ -62,15 +62,15 @@ func NewPieceAggregator(workspace InProgressWorkspace, queueAggregate QueueAggre
 }
 
 func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.PieceLink) error {
-	piecesSoFar, err := pa.workspace.GetPiecesSoFar(ctx)
+	buffer, err := pa.workspace.GetBuffer(ctx)
 	if err != nil {
 		return fmt.Errorf("reading in progress pieces from work space: %w", err)
 	}
-	piecesSoFar, aggregates, err := fns.AggregatePieces(piecesSoFar, pieces)
+	buffer, aggregates, err := fns.AggregatePieces(buffer, pieces)
 	if err != nil {
 		return fmt.Errorf("calculating aggegates: %w", err)
 	}
-	if err := pa.workspace.SetPiecesSoFar(ctx, piecesSoFar); err != nil {
+	if err := pa.workspace.PutBuffer(ctx, buffer); err != nil {
 		return fmt.Errorf("updating work space: %w", err)
 	}
 	for _, aggregate := range aggregates {
