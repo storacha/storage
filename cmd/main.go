@@ -13,6 +13,8 @@ import (
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
+	ucanserver "github.com/storacha/go-ucanto/server"
+	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
 	"github.com/storacha/storage/pkg/service/storage"
 	"github.com/storacha/storage/pkg/store/blobstore"
@@ -25,6 +27,10 @@ var (
 	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
 	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
 	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
+	PrincipalMapping      = map[string]string{
+		"did:web:staging.upload.storacha.network": "did:key:z6MkqVThfb3PVdgT5yxumxjFFjoQ2vWd26VUQKByPuSB9N91",
+		"did:web:upload.storacha.network":         "did:key:z6MkmbbLigYdv5EuU9tJMDXXUudbySwVNeHNqhQGJs7ALUsF",
+	}
 )
 
 func main() {
@@ -212,13 +218,23 @@ func main() {
 					}
 					defer svc.Close()
 
+					presolv, err := principalresolver.New(PrincipalMapping)
+					if err != nil {
+						return fmt.Errorf("creating principal resolver: %w", err)
+					}
+
 					go func() {
 						time.Sleep(time.Millisecond * 50)
 						if err == nil {
 							printHero(id.DID())
 						}
 					}()
-					err = server.ListenAndServe(fmt.Sprintf(":%d", cCtx.Int("port")), svc)
+
+					err = server.ListenAndServe(
+						fmt.Sprintf(":%d", cCtx.Int("port")),
+						svc,
+						ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey),
+					)
 					return err
 				},
 			},

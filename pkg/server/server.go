@@ -7,6 +7,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/principal"
+	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/build"
 	"github.com/storacha/storage/pkg/service/blobs"
@@ -18,8 +19,8 @@ import (
 var log = logging.Logger("server")
 
 // ListenAndServe creates a new storage node HTTP server, and starts it up.
-func ListenAndServe(addr string, service storage.Service) error {
-	srvMux, err := NewServer(service)
+func ListenAndServe(addr string, service storage.Service, options ...server.Option) error {
+	srvMux, err := NewServer(service, options...)
 	if err != nil {
 		return err
 	}
@@ -36,11 +37,11 @@ func ListenAndServe(addr string, service storage.Service) error {
 }
 
 // NewServer creates a new storage node server.
-func NewServer(service storage.Service) (*http.ServeMux, error) {
+func NewServer(service storage.Service, options ...server.Option) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", NewHandler(service.ID()))
 
-	httpUcanSrv, err := storage.NewServer(service)
+	httpUcanSrv, err := storage.NewServer(service, options...)
 	if err != nil {
 		return nil, fmt.Errorf("creating UCAN server: %w", err)
 	}
