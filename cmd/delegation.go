@@ -39,6 +39,9 @@ var delegationCmd = &cli.Command{
 					return fmt.Errorf("parsing private key: %w", err)
 				}
 				clientDid, err := did.Parse(cCtx.String("client-did"))
+				if err != nil {
+					return fmt.Errorf("parsing client-did: %w", err)
+				}
 				delegation, err := delegation.Delegate(
 					id,
 					clientDid,

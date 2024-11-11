@@ -46,7 +46,7 @@ func (a *CurioFinder) FindPiece(ctx context.Context, digest multihash.Multihash,
 			if err != nil {
 				return nil, err
 			}
-			return piece.FromV1LinkAndSize(cidlink.Link{pieceCID}, size)
+			return piece.FromV1LinkAndSize(cidlink.Link{Cid: pieceCID}, size)
 		}
 		var errFailedResponse curio.ErrFailedResponse
 		if !errors.As(err, &errFailedResponse) {

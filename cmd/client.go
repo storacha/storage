@@ -150,7 +150,7 @@ var clientCmd = &cli.Command{
 				if err != nil {
 					return fmt.Errorf("marshaling info to json: %w", err)
 				}
-				fmt.Printf(string(asJSON))
+				fmt.Print(string(asJSON))
 				return nil
 			},
 		},

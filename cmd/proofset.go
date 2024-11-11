@@ -98,7 +98,44 @@ var proofSetCmd = &cli.Command{
 				if err != nil {
 					return fmt.Errorf("rendering json: %w", err)
 				}
-				fmt.Printf(string(jsonStatus))
+				fmt.Print(string(jsonStatus))
+				return nil
+			},
+		},
+		{
+			Name:    "get",
+			Aliases: []string{"g"},
+			Usage:   "get a proofs set",
+			Flags: []cli.Flag{
+				PrivateKeyFlag,
+				RequiredStringFlag(CurioURLFlag),
+				RequiredIntFlag(ProofSetFlag),
+			},
+			Action: func(cCtx *cli.Context) error {
+				curioURLStr := cCtx.String("curio-url")
+				curioURL, err := url.Parse(curioURLStr)
+				if err != nil {
+					return fmt.Errorf("parsing curio URL: %w", err)
+				}
+				id, err := ed25519.Parse(cCtx.String("private-key"))
+				if err != nil {
+					return fmt.Errorf("parsing private key: %w", err)
+				}
+				curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
+				if err != nil {
+					return fmt.Errorf("generating curio jwt: %w", err)
+				}
+
+				client := curio.New(http.DefaultClient, curioURL, curioAuth)
+				proofSet, err := client.GetProofSet(cCtx.Context, cCtx.Uint64("pdp-proofset"))
+				if err != nil {
+					return fmt.Errorf("getting proof set status: %w", err)
+				}
+				jsonProofSet, err := json.MarshalIndent(proofSet, "", "  ")
+				if err != nil {
+					return fmt.Errorf("rendering json: %w", err)
+				}
+				fmt.Print(string(jsonProofSet))
 				return nil
 			},
 		},
