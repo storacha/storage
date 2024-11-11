@@ -203,7 +203,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 								Piece: piece,
 							}, delegation.WithNoExpiration())
 						if err != nil {
-							log.Errorf("creating location commitment: %w", err)
+							log.Errorf("creating piece accept invocation: %w", err)
 							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
 						pieceAcceptLink := pieceAccept.Link()
