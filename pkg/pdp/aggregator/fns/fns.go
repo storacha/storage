@@ -75,6 +75,9 @@ func AggregatePiece(buffer Buffer, newPiece piece.PieceLink) (Buffer, *aggregate
 	// if we have reached the minimum aggregate size, submit and start over
 	if newSize >= MinAggregateSize {
 		aggregate, err := aggregate.NewAggregate(newPieces)
+		if err != nil {
+			return buffer, nil, err
+		}
 		return Buffer{}, &aggregate, err
 	}
 
