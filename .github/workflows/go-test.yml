@@ -3,7 +3,7 @@ name: Go Test
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches: ['main']
   workflow_dispatch:
 
 permissions:
@@ -17,4 +17,6 @@ jobs:
   go-test:
     uses: ipdxco/unified-github-workflows/.github/workflows/go-test.yml@v1.0
     with:
-      go-versions: '["this"]' 
+      go-versions: '["this"]'
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
