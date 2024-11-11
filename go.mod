@@ -6,7 +6,13 @@ toolchain go1.23.2
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.4
+	github.com/aws/aws-sdk-go-v2/config v1.28.3
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.15.15
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.50
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.55.5
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
@@ -28,8 +34,17 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.44 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.24.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.10.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.32.4 // indirect
 	github.com/filecoin-project/go-address v1.1.0 // indirect
 	github.com/filecoin-project/go-fil-commcid v0.2.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 )

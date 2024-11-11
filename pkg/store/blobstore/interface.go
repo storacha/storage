@@ -31,6 +31,16 @@ type options struct {
 	byteRange Range
 }
 
+func (o *options) ProcessOptions(opts []GetOption) {
+	for _, opt := range opts {
+		opt(o)
+	}
+}
+
+func (o *options) Range() Range {
+	return o.byteRange
+}
+
 // WithRange configures a byte range to extract.
 func WithRange(byteRange Range) GetOption {
 	return func(opts *options) error {
@@ -60,4 +70,13 @@ type Blobstore interface {
 type FileSystemer interface {
 	// FileSystem returns a filesystem interface for reading blobs.
 	FileSystem() http.FileSystem
+}
+
+type GetConfig interface {
+	ProcessOptions([]GetOption)
+	Range() Range
+}
+
+func NewGetConfig() GetConfig {
+	return &options{}
 }
