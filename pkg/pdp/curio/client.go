@@ -3,12 +3,16 @@ package curio
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/storacha/go-ucanto/principal"
 )
 
 const pdpRoutePath = "/pdp"
@@ -40,7 +44,7 @@ func (e ErrFailedResponse) Error() string {
 
 type (
 	StatusRef struct {
-		url string
+		URL string
 	}
 
 	CreateProofSet struct {
@@ -137,7 +141,7 @@ func (c *Client) CreateProofSet(ctx context.Context, request CreateProofSet) (St
 		return StatusRef{}, errFromResponse(res)
 	}
 
-	return StatusRef{url: res.Header.Get("Location")}, nil
+	return StatusRef{URL: res.Header.Get("Location")}, nil
 }
 
 func (c *Client) ProofSetCreationStatus(ctx context.Context, ref StatusRef) (ProofSetStatus, error) {
@@ -146,8 +150,9 @@ func (c *Client) ProofSetCreationStatus(ctx context.Context, ref StatusRef) (Pro
 	// it makes the most sense as an opaque reference from the standpoint of anyone
 	// using the client
 	// generate request
+	url := c.endpoint.JoinPath(ref.URL).String()
 	var proofSetStatus ProofSetStatus
-	err := c.getJsonResponse(ctx, ref.url, &proofSetStatus)
+	err := c.getJsonResponse(ctx, url, &proofSetStatus)
 	return proofSetStatus, err
 }
 
@@ -179,7 +184,7 @@ func (c *Client) AddPiece(ctx context.Context, addPiece AddPiece) (*UploadRef, e
 	}
 	if res.StatusCode == http.StatusCreated {
 		return &UploadRef{
-			URL: res.Header.Get("Location"),
+			URL: c.endpoint.JoinPath(res.Header.Get("Location")).String(),
 		}, nil
 	}
 	return nil, errFromResponse(res)
@@ -273,4 +278,22 @@ func (c *Client) verifySuccess(res *http.Response, err error) error {
 		return errFromResponse(res)
 	}
 	return nil
+}
+
+func CreateCurioJWTAuthHeader(serviceName string, id principal.Signer) (string, error) {
+	// Create JWT claims
+	claims := jwt.MapClaims{
+		"service_name": serviceName,
+	}
+
+	// Create the token
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+
+	// Sign the token
+	tokenString, err := token.SignedString(ed25519.PrivateKey(id.Raw()))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %v", err)
+	}
+
+	return "Bearer " + tokenString, nil
 }

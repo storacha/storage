@@ -65,7 +65,11 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					received := false
 					// check if we received the blob (only possible if we have an allocation)
 					if len(allocs) > 0 {
-						_, err = storageService.Blobs().Store().Get(ctx, digest)
+							if storageService.PDP() != nil {
+								_, err = storageService.PDP().PieceFinder().FindPiece(ctx, digest, cap.Nb().Blob.Size)
+							} else {
+								_, err = storageService.Blobs().Store().Get(ctx, digest)
+							}
 						if err == nil {
 							received = true
 						}
@@ -110,11 +114,12 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 							}
 						} else {
 							// use pdp service upload
-							url, err = storageService.PDP().PieceAdder().AddPiece(ctx, digest, cap.Nb().Blob.Size)
-							if err != nil {
-								log.Errorf("adding to pdp service: %w", err)
-								return blob.AllocateOk{}, nil, failure.FromError(err)
-							}
+						urlP, err := storageService.PDP().PieceAdder().AddPiece(ctx, digest, cap.Nb().Blob.Size)
+						if err != nil {
+							log.Errorf("adding to pdp service: %w", err)
+							return blob.AllocateOk{}, nil, failure.FromError(err)
+						}
+						url = *urlP
 						}
 						address = &blob.Address{
 							URL:     url,
@@ -158,6 +163,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					var loc url.URL
 
 					var forks []fx.Effect
+					var pdpLink *ucan.Link
 					if storageService.PDP() == nil {
 						_, err := storageService.Blobs().Store().Get(ctx, digest)
 						if err != nil {
@@ -189,17 +195,19 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
 						// generate the invocation that will complete when aggregation is complete and the piece is accepted
-						pieceAccept, err := pdp.PDPAccept.Invoke(
+						pieceAccept, err := pdp.Accept.Invoke(
 							storageService.ID(),
 							storageService.ID(),
 							storageService.ID().DID().GoString(),
-							pdp.PDPAcceptCaveats{
+							pdp.AcceptCaveats{
 								Piece: piece,
 							}, delegation.WithNoExpiration())
 						if err != nil {
 							log.Errorf("creating location commitment: %w", err)
 							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
+						pieceAcceptLink := pieceAccept.Link()
+						pdpLink = &pieceAcceptLink
 						forks = append(forks, fx.FromInvocation(pieceAccept))
 					}
 					claim, err := assert.Location.Delegate(
@@ -231,46 +239,46 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					return blob.AcceptOk{Site: claim.Link()}, fx.NewEffects(fx.WithFork(forks...)), nil
+					return blob.AcceptOk{Site: claim.Link(), PDP: pdpLink}, fx.NewEffects(fx.WithFork(forks...)), nil
 				},
 			),
 		),
 		server.WithServiceMethod(
-			pdp.PDPInfoAbility,
+			pdp.InfoAbility,
 			server.Provide(
-				pdp.PDPInfo,
-				func(cap ucan.Capability[pdp.PDPInfoCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (pdp.PDPInfoOk, fx.Effects, error) {
+				pdp.Info,
+				func(cap ucan.Capability[pdp.InfoCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (pdp.InfoOk, fx.Effects, error) {
 					ctx := context.TODO()
 					// generate the invocation that would submit when this was first submitted
-					pieceAccept, err := pdp.PDPAccept.Invoke(
+					pieceAccept, err := pdp.Accept.Invoke(
 						storageService.ID(),
 						storageService.ID(),
 						storageService.ID().DID().GoString(),
-						pdp.PDPAcceptCaveats{
+						pdp.AcceptCaveats{
 							Piece: cap.Nb().Piece,
 						}, delegation.WithNoExpiration())
 					if err != nil {
 						log.Errorf("creating location commitment: %w", err)
-						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+						return pdp.InfoOk{}, nil, failure.FromError(err)
 					}
 					// look up the receipt for the accept invocation
 					rcpt, err := storageService.Receipts().GetByRan(ctx, pieceAccept.Link())
 					if err != nil {
 						log.Errorf("looking up receipt: %w", err)
-						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+						return pdp.InfoOk{}, nil, failure.FromError(err)
 					}
 					// rebind the receipt to get the specific types for pdp/accept
-					pieceAcceptReceipt, err := receipt.Rebind[pdp.PDPAcceptOk, fdm.FailureModel](rcpt, pdp.PDPAcceptOkType(), fdm.FailureType(), types.Converters...)
+					pieceAcceptReceipt, err := receipt.Rebind[pdp.AcceptOk, fdm.FailureModel](rcpt, pdp.AcceptOkType(), fdm.FailureType(), types.Converters...)
 					if err != nil {
 						log.Errorf("reading piece accept receipt: %w", err)
-						return pdp.PDPInfoOk{}, nil, failure.FromError(err)
+						return pdp.InfoOk{}, nil, failure.FromError(err)
 					}
 					// use the result from the accept receit to generate the receipt for pdp/info
 					return result.MatchResultR3(pieceAcceptReceipt.Out(),
-						func(ok pdp.PDPAcceptOk) (pdp.PDPInfoOk, fx.Effects, error) {
-							return pdp.PDPInfoOk{
+						func(ok pdp.AcceptOk) (pdp.InfoOk, fx.Effects, error) {
+							return pdp.InfoOk{
 								Piece: cap.Nb().Piece,
-								Aggregates: []pdp.PDPInfoAcceptedAggregate{
+								Aggregates: []pdp.InfoAcceptedAggregate{
 									{
 										Aggregate:      ok.Aggregate,
 										InclusionProof: ok.InclusionProof,
@@ -278,8 +286,8 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 								},
 							}, nil, nil
 						},
-						func(err fdm.FailureModel) (pdp.PDPInfoOk, fx.Effects, error) {
-							return pdp.PDPInfoOk{}, nil, failure.FromFailureModel(err)
+						func(err fdm.FailureModel) (pdp.InfoOk, fx.Effects, error) {
+							return pdp.InfoOk{}, nil, failure.FromFailureModel(err)
 						},
 					)
 				},

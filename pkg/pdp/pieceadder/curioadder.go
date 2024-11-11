@@ -15,10 +15,10 @@ type CurioAdder struct {
 }
 
 // SignUploadURL implements presigner.RequestPresigner.
-func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (url.URL, error) {
+func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (*url.URL, error) {
 	decoded, err := multihash.Decode(digest)
 	if err != nil {
-		return url.URL{}, err
+		return nil, err
 	}
 	ref, err := p.client.AddPiece(ctx, curio.AddPiece{
 		Check: curio.PieceHash{
@@ -28,13 +28,16 @@ func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, s
 		},
 	})
 	if err != nil {
-		return url.URL{}, err
+		return nil, err
+	}
+	if ref == nil {
+		return nil, nil
 	}
 	refURL, err := url.Parse(ref.URL)
 	if err != nil {
-		return url.URL{}, err
+		return nil, err
 	}
-	return *refURL, nil
+	return refURL, nil
 }
 
 func NewCurioAdder(client *curio.Client) PieceAdder {

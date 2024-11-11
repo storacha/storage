@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -13,9 +14,8 @@ import (
 	multihash "github.com/multiformats/go-multihash"
 	"github.com/storacha/go-piece/pkg/piece"
 	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/storage/pkg/store"
 )
-
-var ErrNotFound = errors.New("piece not found after maximum retries")
 
 type CurioFinder struct {
 	client *curio.Client
@@ -58,7 +58,7 @@ func (a *CurioFinder) FindPiece(ctx context.Context, digest multihash.Multihash,
 		// piece not found, try again
 		attempts++
 		if attempts >= maxAttempts {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("maximum retries exceeded: %w", store.ErrNotFound)
 		}
 		timer := time.NewTimer(retryDelay)
 		select {

@@ -110,13 +110,13 @@ func SubmitAggregates(ctx context.Context, client *curio.Client, proofSet uint64
 func GenerateReceipts(issuer ucan.Signer, aggregate aggregate.Aggregate) ([]receipt.AnyReceipt, error) {
 	receipts := make([]receipt.AnyReceipt, 0, len(aggregate.Pieces))
 	for _, aggregatePiece := range aggregate.Pieces {
-		inv, err := pdp.PDPAccept.Invoke(issuer, issuer, issuer.DID().String(), pdp.PDPAcceptCaveats{
+		inv, err := pdp.Accept.Invoke(issuer, issuer, issuer.DID().String(), pdp.AcceptCaveats{
 			Piece: aggregatePiece.Link,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("generating invocation: %w", err)
 		}
-		ok := result.Ok[pdp.PDPAcceptOk, ipld.Builder](pdp.PDPAcceptOk{
+		ok := result.Ok[pdp.AcceptOk, ipld.Builder](pdp.AcceptOk{
 			Aggregate:      aggregate.Root,
 			InclusionProof: aggregatePiece.InclusionProof,
 			Piece:          aggregatePiece.Link,

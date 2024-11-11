@@ -53,7 +53,7 @@ func NewServer(service storage.Service, options ...server.Option) (*http.ServeMu
 	}
 	httpClaimsSrv.Serve(mux)
 
-	if service.PDP() != nil {
+	if service.PDP() == nil {
 		httpBlobsSrv, err := blobs.NewServer(service.Blobs().Presigner(), service.Blobs().Allocations(), service.Blobs().Store())
 		if err != nil {
 			return nil, fmt.Errorf("creating blobs server: %w", err)

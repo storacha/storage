@@ -34,7 +34,12 @@ type inProgressWorkSpace struct {
 }
 
 func (i *inProgressWorkSpace) GetBuffer(ctx context.Context) (fns.Buffer, error) {
-	return i.store.Get(ctx, bufferKey{})
+	buf, err := i.store.Get(ctx, bufferKey{})
+	if store.IsNotFound(err) {
+		err := i.store.Put(ctx, bufferKey{}, fns.Buffer{})
+		return fns.Buffer{}, err
+	}
+	return buf, err
 }
 
 func (i *inProgressWorkSpace) PutBuffer(ctx context.Context, buffer fns.Buffer) error {
@@ -47,17 +52,20 @@ func NewInProgressWorkspace(store store.Store) InProgressWorkspace {
 	}
 }
 
-type QueueAggregateFn func(ctx context.Context, aggregate aggregate.Aggregate) error
+type AggregateStore ipldstore.KVStore[datamodel.Link, aggregate.Aggregate]
+type QueueSubmissionFn func(ctx context.Context, aggregateLink datamodel.Link) error
 
 type PieceAggregator struct {
-	workspace      InProgressWorkspace
-	queueAggregate QueueAggregateFn
+	workspace       InProgressWorkspace
+	store           AggregateStore
+	queueSubmission QueueSubmissionFn
 }
 
-func NewPieceAggregator(workspace InProgressWorkspace, queueAggregate QueueAggregateFn) *PieceAggregator {
+func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, queueSubmission QueueSubmissionFn) *PieceAggregator {
 	return &PieceAggregator{
-		workspace:      workspace,
-		queueAggregate: queueAggregate,
+		workspace:       workspace,
+		store:           store,
+		queueSubmission: queueSubmission,
 	}
 }
 
@@ -74,46 +82,18 @@ func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.P
 		return fmt.Errorf("updating work space: %w", err)
 	}
 	for _, aggregate := range aggregates {
-		if err := pa.queueAggregate(ctx, aggregate); err != nil {
+		err := pa.store.Put(ctx, aggregate.Root.Link(), aggregate)
+		if err != nil {
+			return fmt.Errorf("storing aggregate: %w", err)
+		}
+		if err := pa.queueSubmission(ctx, aggregate.Root.Link()); err != nil {
 			return fmt.Errorf("queueing aggregates for submission: %w", err)
 		}
 	}
 	return nil
 }
 
-// Step 2: Record aggregates in store
-
-type AggregateStore ipldstore.KVStore[datamodel.Link, aggregate.Aggregate]
-
-type QueueSubmissionFn func(ctx context.Context, aggregateLink datamodel.Link) error
-
-type AggregateRecorder struct {
-	store           AggregateStore
-	queueSubmission QueueSubmissionFn
-}
-
-func NewAggregateRecorder(store AggregateStore, queueSubmission QueueSubmissionFn) *AggregateRecorder {
-	return &AggregateRecorder{
-		store:           store,
-		queueSubmission: queueSubmission,
-	}
-}
-
-func (ar *AggregateRecorder) RecordAggregates(ctx context.Context, aggregates []aggregate.Aggregate) error {
-	for _, aggregate := range aggregates {
-		err := ar.store.Put(ctx, aggregate.Root.Link(), aggregate)
-		if err != nil {
-			return fmt.Errorf("storing aggregate: %w", err)
-		}
-		err = ar.queueSubmission(ctx, aggregate.Root.Link())
-		if err != nil {
-			return fmt.Errorf("queuing aggregate for submission: %w", err)
-		}
-	}
-	return nil
-}
-
-// Step 3: Submit to curio
+// Step 2: Submit to curio
 
 type QueuePieceAcceptFn func(ctx context.Context, aggregateLink datamodel.Link) error
 
@@ -153,7 +133,7 @@ func (as *AggregateSubmitter) SubmitAggregates(ctx context.Context, aggregateLin
 	return nil
 }
 
-// Step 4: generate receipts for piece accept
+// Step 3: generate receipts for piece accept
 
 type PieceAccepter struct {
 	issuer         ucan.Signer

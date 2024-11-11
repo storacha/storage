@@ -9,13 +9,18 @@ import (
 	"net/url"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/ipni/go-libipni/maurl"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
+	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/service/claims"
 	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/storage/pkg/store/delegationstore"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
@@ -92,27 +97,45 @@ func New(opts ...Option) (*StorageService, error) {
 
 	var closeFuncs []func(context.Context) error
 	var startFuncs []func() error
-	allocDs := c.allocationDatastore
-	if allocDs == nil {
-		allocDs = datastore.NewMapDatastore()
-		log.Warn("Allocation datastore not configured, using in-memory datastore")
-	}
-	closeFuncs = append(closeFuncs, func(context.Context) error { return allocDs.Close() })
 
-	claimDs := c.claimDatastore
-	if claimDs == nil {
-		claimDs = datastore.NewMapDatastore()
-		log.Warn("Claim datastore not configured, using in-memory datastore")
-	}
-	closeFuncs = append(closeFuncs, func(context.Context) error { return claimDs.Close() })
+	blobOpts := []blobs.Option{}
 
-	publisherDs := c.publisherDatastore
-	if publisherDs == nil {
-		publisherDs = datastore.NewMapDatastore()
-		log.Warn("Publisher datastore not configured, using in-memory datastore")
+	if c.allocationStore == nil {
+		allocDs := c.allocationDatastore
+		if allocDs == nil {
+			allocDs = datastore.NewMapDatastore()
+			log.Warn("Allocation datastore not configured, using in-memory datastore")
+		}
+		closeFuncs = append(closeFuncs, func(context.Context) error { return allocDs.Close() })
+		blobOpts = append(blobOpts, blobs.WithDSAllocationStore(allocDs))
+	} else {
+		blobOpts = append(blobOpts, blobs.WithAllocationStore(c.allocationStore))
 	}
-	closeFuncs = append(closeFuncs, func(context.Context) error { return publisherDs.Close() })
 
+	claimStore := c.claimStore
+	if claimStore == nil {
+		claimDs := c.claimDatastore
+		if claimDs == nil {
+			claimDs = datastore.NewMapDatastore()
+			log.Warn("Claim datastore not configured, using in-memory datastore")
+		}
+		closeFuncs = append(closeFuncs, func(context.Context) error { return claimDs.Close() })
+		var err error
+		claimStore, err = delegationstore.NewDsDelegationStore(claimDs)
+		if err != nil {
+			return nil, fmt.Errorf("creating claim store: %w", err)
+		}
+	}
+	publisherStore := c.publisherStore
+	if publisherStore == nil {
+		publisherDs := c.publisherDatastore
+		if publisherDs == nil {
+			publisherDs = datastore.NewMapDatastore()
+			log.Warn("Publisher datastore not configured, using in-memory datastore")
+		}
+		closeFuncs = append(closeFuncs, func(context.Context) error { return publisherDs.Close() })
+		publisherStore = store.FromDatastore(publisherDs, store.WithMetadataContext(metadata.MetadataContext))
+	}
 	pubURL := c.publicURL
 	if pubURL == (url.URL{}) {
 		u, _ := url.Parse("http://localhost:3000")
@@ -120,19 +143,20 @@ func New(opts ...Option) (*StorageService, error) {
 		pubURL = *u
 	}
 
-	receiptDS := c.receiptDatastore
-	if receiptDS == nil {
-		receiptDS = datastore.NewMapDatastore()
-		log.Warn("Receipt datastore not configured, using in-memory datastore")
+	receiptStore := c.receiptStore
+	if receiptStore == nil {
+		receiptDS := c.receiptDatastore
+		if receiptDS == nil {
+			receiptDS = datastore.NewMapDatastore()
+			log.Warn("Receipt datastore not configured, using in-memory datastore")
+		}
+		closeFuncs = append(closeFuncs, func(context.Context) error { return receiptDS.Close() })
+		var err error
+		receiptStore, err = receiptstore.NewDsReceiptStore(receiptDS)
+		if err != nil {
+			return nil, fmt.Errorf("creating receipt store: %w", err)
+		}
 	}
-	closeFuncs = append(closeFuncs, func(context.Context) error { return receiptDS.Close() })
-
-	receiptStore, err := receiptstore.NewDsReceiptStore(receiptDS)
-	if err != nil {
-		return nil, fmt.Errorf("creating receipt store: %w", err)
-	}
-
-	blobOpts := []blobs.Option{blobs.WithDSAllocationStore(allocDs)}
 
 	var pdpImpl pdp.PDP
 	if c.pdp == nil {
@@ -145,22 +169,41 @@ func New(opts ...Option) (*StorageService, error) {
 		blobOpts = append(blobOpts, blobs.WithPublicURLAccess(pubURL))
 		blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
 	} else {
-		client := curio.New(http.DefaultClient, c.pdp.CurioEndpoint, c.pdp.CurioAuthHeader)
-		pdpService := pdp.NewLocal(c.pdp.PDPDatastore, client, c.pdp.ProofSet, id, receiptStore)
-		closeFuncs = append(closeFuncs, pdpService.Shutdown)
-		startFuncs = append(startFuncs, pdpService.Startup)
-		pdpImpl = pdpService
+		curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
+		if err != nil {
+			return nil, fmt.Errorf("generating curio JWT: %w", err)
+		}
+		pdpImpl = c.pdp.PDPService
+		if pdpImpl == nil {
+			client := curio.New(http.DefaultClient, c.pdp.CurioEndpoint, curioAuth)
+			pdpService := pdp.NewLocal(c.pdp.PDPDatastore, client, c.pdp.ProofSet, id, receiptStore)
+			closeFuncs = append(closeFuncs, pdpService.Shutdown)
+			startFuncs = append(startFuncs, pdpService.Startup)
+			pdpImpl = pdpService
+		}
 	}
 	blobs, err := blobs.New(blobOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("creating blob service: %w", err)
 	}
 
+	var ma multiaddr.Multiaddr
+	if c.publisherAnnouceAddr != "" {
+		ma, err = multiaddr.NewMultiaddr(c.publisherAnnouceAddr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing publisher address: %w", err)
+		}
+	} else {
+		ma, err = maurl.FromURL(&pubURL)
+		if err != nil {
+			return nil, fmt.Errorf("parsing publisher url as multiaddr: %w", err)
+		}
+	}
 	claims, err := claims.New(
 		id,
-		claimDs,
-		publisherDs,
-		pubURL,
+		claimStore,
+		publisherStore,
+		ma,
 		claims.WithPublisherDirectAnnounce(c.announceURLs...),
 		claims.WithPublisherIndexingService(c.indexingService),
 		claims.WithPublisherIndexingServiceProof(c.indexingServiceProofs...),

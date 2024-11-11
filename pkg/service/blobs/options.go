@@ -66,6 +66,12 @@ func WithPublicURLPresigner(id principal.Signer, publicURL url.URL) Option {
 		return nil
 	}
 }
+func WithAllocationStore(allocationStore allocationstore.AllocationStore) Option {
+	return func(o *options) error {
+		o.allocStore = allocationStore
+		return nil
+	}
+}
 
 func WithDSAllocationStore(allocsDatastore datastore.Datastore) Option {
 	return func(o *options) error {

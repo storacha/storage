@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -43,18 +42,14 @@ func main() {
 				Name:  "start",
 				Usage: "Start the storage node daemon.",
 				Flags: []cli.Flag{
+					PrivateKeyFlag,
+					CurioURLFlag,
 					&cli.IntFlag{
 						Name:    "port",
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
 						EnvVars: []string{"STORAGE_PORT"},
-					},
-					&cli.StringFlag{
-						Name:    "private-key",
-						Aliases: []string{"s"},
-						Usage:   "Multibase base64 encoded private key identity for the node.",
-						EnvVars: []string{"STORAGE_PRIVATE_KEY"},
 					},
 					&cli.StringFlag{
 						Name:    "data-dir",
@@ -74,24 +69,7 @@ func main() {
 						Usage:   "URL the node is publically accessible at.",
 						EnvVars: []string{"STORAGE_PUBLIC_URL"},
 					},
-					&cli.StringFlag{
-						Name:    "curio-url",
-						Aliases: []string{"c"},
-						Usage:   "URL of a running instance of curio",
-						EnvVars: []string{"STORAGE_CURIO_URL"},
-					},
-					&cli.StringFlag{
-						Name:    "curio-auth",
-						Aliases: []string{"a"},
-						Usage:   "base64 encoded auth header to talk to curio",
-						EnvVars: []string{"STORAGE_CURIO_AUTH"},
-					},
-					&cli.Int64Flag{
-						Name:    "pdp-proofset",
-						Aliases: []string{"pdp"},
-						Usage:   "Proofset to use with PDP",
-						EnvVars: []string{"STORAGE_PDP_PROOFSET"},
-					},
+					ProofSetFlag,
 					&cli.StringFlag{
 						Name:    "indexing-service-proof",
 						Usage:   "A delegation that allows the node to cache claims with the indexing service.",
@@ -184,19 +162,15 @@ func main() {
 					}
 
 					var pdpConfig *storage.PDPConfig
-					curioURLStr := cCtx.String("curio-endpoint")
+					curioURLStr := cCtx.String("curio-url")
 					if curioURLStr != "" {
 						curioURL, err := url.Parse(curioURLStr)
 						if err != nil {
 							return fmt.Errorf("parsing curio URL: %w", err)
 						}
-						if !cCtx.IsSet("curio-auth") {
-							return errors.New("curio-auth must be set if curio is used")
-						}
 						if !cCtx.IsSet("pdp-proofset") {
 							return errors.New("pdp-proofset must be set if curio is used")
 						}
-						curioAuth := cCtx.String("curio-auth")
 						proofSet := cCtx.Int64("pdp-proofset")
 						pdpDir, err := mkdirp(dataDir, "pdp")
 						if err != nil {
@@ -207,10 +181,9 @@ func main() {
 							return err
 						}
 						pdpConfig = &storage.PDPConfig{
-							PDPDatastore:    pdpDs,
-							CurioEndpoint:   curioURL,
-							CurioAuthHeader: curioAuth,
-							ProofSet:        uint64(proofSet),
+							PDPDatastore:  pdpDs,
+							CurioEndpoint: curioURL,
+							ProofSet:      uint64(proofSet),
 						}
 					}
 
@@ -306,49 +279,10 @@ func main() {
 					return err
 				},
 			},
-			{
-				Name:    "identity",
-				Aliases: []string{"id"},
-				Usage:   "Identity tools.",
-				Subcommands: []*cli.Command{
-					{
-						Name:    "generate",
-						Aliases: []string{"gen"},
-						Usage:   "Generate a new decentralized identity.",
-						Flags: []cli.Flag{
-							&cli.BoolFlag{
-								Name:  "json",
-								Usage: "output JSON",
-							},
-						},
-						Action: func(cCtx *cli.Context) error {
-							signer, err := ed25519.Generate()
-							if err != nil {
-								return fmt.Errorf("generating ed25519 key: %w", err)
-							}
-							did := signer.DID().String()
-							key, err := ed25519.Format(signer)
-							if err != nil {
-								return fmt.Errorf("formatting ed25519 key: %w", err)
-							}
-							if cCtx.Bool("json") {
-								out, err := json.Marshal(struct {
-									DID string `json:"did"`
-									Key string `json:"key"`
-								}{did, key})
-								if err != nil {
-									return fmt.Errorf("marshaling JSON: %w", err)
-								}
-								fmt.Println(string(out))
-							} else {
-								fmt.Printf("# %s\n", did)
-								fmt.Println(key)
-							}
-							return nil
-						},
-					},
-				},
-			},
+			identityCmd,
+			delegationCmd,
+			clientCmd,
+			proofSetCmd,
 		},
 	}
 

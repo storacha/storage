@@ -10,23 +10,33 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
+	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/storage/pkg/store/claimstore"
+	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
 type PDPConfig struct {
-	PDPDatastore    datastore.Datastore
-	CurioEndpoint   *url.URL
-	CurioAuthHeader string
-	ProofSet        uint64
+	PDPService    pdp.PDP
+	PDPDatastore  datastore.Datastore
+	CurioEndpoint *url.URL
+	ProofSet      uint64
 }
 
 type config struct {
 	id                    principal.Signer
 	publicURL             url.URL
 	blobStore             blobstore.Blobstore
+	allocationStore       allocationstore.AllocationStore
 	allocationDatastore   datastore.Datastore
+	claimStore            claimstore.ClaimStore
 	claimDatastore        datastore.Datastore
+	publisherStore        store.PublisherStore
 	publisherDatastore    datastore.Datastore
+	publisherAnnouceAddr  string
+	receiptStore          receiptstore.ReceiptStore
 	receiptDatastore      datastore.Datastore
 	pdp                   *PDPConfig
 	announceURLs          []url.URL
@@ -62,12 +72,28 @@ func WithBlobstore(blobStore blobstore.Blobstore) Option {
 	}
 }
 
+// WithAllocationStore configures the allocation store directly
+func WithAllocationStore(allocationStore allocationstore.AllocationStore) Option {
+	return func(c *config) error {
+		c.allocationStore = allocationStore
+		return nil
+	}
+}
+
 // WithAllocationDatastore configures the underlying datastore to use for
 // storing allocation records. Note: the datastore MUST have efficient support
 // for prefix queries.
 func WithAllocationDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
 		c.allocationDatastore = dstore
+		return nil
+	}
+}
+
+// WithClaimStore configures the store for content claims directly
+func WithClaimStore(claimStore claimstore.ClaimStore) Option {
+	return func(c *config) error {
+		c.claimStore = claimStore
 		return nil
 	}
 }
@@ -81,11 +107,37 @@ func WithClaimDatastore(dstore datastore.Datastore) Option {
 	}
 }
 
+// WithReceiptStore configures the store for receipts directly
+func WithReceiptStore(receiptStore receiptstore.ReceiptStore) Option {
+	return func(c *config) error {
+		c.receiptStore = receiptStore
+		return nil
+	}
+}
+
 // WithReceiptDatastore configures the underlying datastore for use storing receipts
 // made for this node
 func WithReceiptDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
 		c.receiptDatastore = dstore
+		return nil
+	}
+}
+
+// WithPublisherStore configures the store for IPNI advertisements and their
+// entries directly.
+func WithPublisherStore(publisherStore store.PublisherStore) Option {
+	return func(c *config) error {
+		c.publisherStore = publisherStore
+		return nil
+	}
+}
+
+// WithPublisherDatastore configures the underlying datastore to use for storing
+// IPNI advertisements and their entries.
+func WithPublisherAnnounceAddr(publisherAnnounceAddr string) Option {
+	return func(c *config) error {
+		c.publisherAnnouceAddr = publisherAnnounceAddr
 		return nil
 	}
 }

@@ -33,7 +33,6 @@ func handleError(err error) {
 // when run w/o cloud infra
 type LocalAggregator struct {
 	pieceAggregatorQueue    *jobqueue.JobQueue[piece.PieceLink]
-	aggregateRecorderQueue  *jobqueue.JobQueue[aggregate.Aggregate]
 	aggregateSubmitterQueue *jobqueue.JobQueue[datamodel.Link]
 	pieceAccepterQueue      *jobqueue.JobQueue[datamodel.Link]
 }
@@ -41,7 +40,6 @@ type LocalAggregator struct {
 // Startup starts up aggregation queues
 func (la *LocalAggregator) Startup() {
 	la.pieceAggregatorQueue.Startup()
-	la.aggregateRecorderQueue.Startup()
 	la.aggregateSubmitterQueue.Startup()
 	la.pieceAccepterQueue.Startup()
 }
@@ -49,7 +47,6 @@ func (la *LocalAggregator) Startup() {
 // Shutdown shuts down aggregation queues
 func (la *LocalAggregator) Shutdown(ctx context.Context) {
 	la.pieceAggregatorQueue.Shutdown(ctx)
-	la.aggregateRecorderQueue.Shutdown(ctx)
 	la.aggregateSubmitterQueue.Shutdown(ctx)
 	la.pieceAccepterQueue.Shutdown(ctx)
 }
@@ -80,13 +77,7 @@ func NewLocal(ds datastore.Datastore, client *curio.Client, proofSet uint64, iss
 		jobqueue.WithErrorHandler(handleError),
 		jobqueue.WithBuffer(queueBuffer))
 
-	aggregateRecorder := NewAggregateRecorder(aggregateStore, aggregationSubmitterQueue.Queue)
-	aggregateRecorderQueue := jobqueue.NewJobQueue[aggregate.Aggregate](
-		jobqueue.MultiJobHandler(aggregateRecorder.RecordAggregates),
-		jobqueue.WithErrorHandler(handleError),
-		jobqueue.WithBuffer(queueBuffer))
-
-	pieceAggregator := NewPieceAggregator(inProgressWorkspace, aggregateRecorderQueue.Queue)
+	pieceAggregator := NewPieceAggregator(inProgressWorkspace, aggregateStore, aggregationSubmitterQueue.Queue)
 	pieceAggregatorQueue := jobqueue.NewJobQueue[piece.PieceLink](
 		jobqueue.MultiJobHandler(pieceAggregator.AggregatePieces),
 		jobqueue.WithErrorHandler(handleError),
@@ -95,7 +86,6 @@ func NewLocal(ds datastore.Datastore, client *curio.Client, proofSet uint64, iss
 
 	return &LocalAggregator{
 		pieceAggregatorQueue:    pieceAggregatorQueue,
-		aggregateRecorderQueue:  aggregateRecorderQueue,
 		aggregateSubmitterQueue: aggregationSubmitterQueue,
 		pieceAccepterQueue:      pieceAccepterQueue,
 	}

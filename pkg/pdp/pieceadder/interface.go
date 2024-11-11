@@ -8,5 +8,5 @@ import (
 )
 
 type PieceAdder interface {
-	AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (url.URL, error)
+	AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (*url.URL, error)
 }
