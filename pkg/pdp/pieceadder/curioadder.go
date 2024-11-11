@@ -14,7 +14,6 @@ type CurioAdder struct {
 	client *curio.Client
 }
 
-// SignUploadURL implements presigner.RequestPresigner.
 func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (*url.URL, error) {
 	decoded, err := multihash.Decode(digest)
 	if err != nil {
