@@ -46,8 +46,8 @@ type Buffer struct {
 	ReverseSortedPieces []piece.PieceLink
 }
 
-// InsertReverseSortedBySize adds a piece to a list of pieces sorted largest to smallest, maintaining sort order
-func InsertReverseSortedBySize(sortedPieces []piece.PieceLink, newPiece piece.PieceLink) []piece.PieceLink {
+// InsertOrderedByDescendingSize adds a piece to a list of pieces sorted largest to smallest, maintaining sort order
+func InsertOrderedByDescendingSize(sortedPieces []piece.PieceLink, newPiece piece.PieceLink) []piece.PieceLink {
 	pos, _ := slices.BinarySearchFunc(sortedPieces, newPiece, func(test, target piece.PieceLink) int {
 		// flip ordering comparing size cause we're going in reverse order
 		return cmp.Compare(target.PaddedSize(), test.PaddedSize())
@@ -70,7 +70,7 @@ func AggregatePiece(buffer Buffer, newPiece piece.PieceLink) (Buffer, *aggregate
 	}
 
 	newSize := buffer.TotalSize + newPiece.PaddedSize()
-	newPieces := InsertReverseSortedBySize(buffer.ReverseSortedPieces, newPiece)
+	newPieces := InsertOrderedByDescendingSize(buffer.ReverseSortedPieces, newPiece)
 
 	// if we have reached the minimum aggregate size, submit and start over
 	if newSize >= MinAggregateSize {
