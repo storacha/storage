@@ -65,11 +65,11 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					received := false
 					// check if we received the blob (only possible if we have an allocation)
 					if len(allocs) > 0 {
-							if storageService.PDP() != nil {
-								_, err = storageService.PDP().PieceFinder().FindPiece(ctx, digest, cap.Nb().Blob.Size)
-							} else {
-								_, err = storageService.Blobs().Store().Get(ctx, digest)
-							}
+						if storageService.PDP() != nil {
+							_, err = storageService.PDP().PieceFinder().FindPiece(ctx, digest, cap.Nb().Blob.Size)
+						} else {
+							_, err = storageService.Blobs().Store().Get(ctx, digest)
+						}
 						if err == nil {
 							received = true
 						}
@@ -114,12 +114,12 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 							}
 						} else {
 							// use pdp service upload
-						urlP, err := storageService.PDP().PieceAdder().AddPiece(ctx, digest, cap.Nb().Blob.Size)
-						if err != nil {
-							log.Errorf("adding to pdp service: %w", err)
-							return blob.AllocateOk{}, nil, failure.FromError(err)
-						}
-						url = *urlP
+							urlP, err := storageService.PDP().PieceAdder().AddPiece(ctx, digest, cap.Nb().Blob.Size)
+							if err != nil {
+								log.Errorf("adding to pdp service: %w", err)
+								return blob.AllocateOk{}, nil, failure.FromError(err)
+							}
+							url = *urlP
 						}
 						address = &blob.Address{
 							URL:     url,
