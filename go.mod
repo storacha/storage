@@ -18,7 +18,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/storacha/go-capabilities v0.0.0-20241110064542-2a4b289e6ea9
+	github.com/storacha/go-capabilities v0.0.0-20241111043458-53ed45e68264
 	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
 	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b

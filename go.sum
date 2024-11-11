@@ -555,8 +555,8 @@ github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t6
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
-github.com/storacha/go-capabilities v0.0.0-20241110064542-2a4b289e6ea9 h1:ULNci/PQk2aaTkPTNzbZjCXeElP57jd3G2/68W07j/k=
-github.com/storacha/go-capabilities v0.0.0-20241110064542-2a4b289e6ea9/go.mod h1:rSUAoqndVU0UJIomdT6M/DlGirP1uG0UxbXIT5Ub9wc=
+github.com/storacha/go-capabilities v0.0.0-20241111043458-53ed45e68264 h1:VH7bSseGXBC7ci9lCQP46YS6B28ElqXdtVRxngG91sk=
+github.com/storacha/go-capabilities v0.0.0-20241111043458-53ed45e68264/go.mod h1:4H6F2KwMP5RbeR7OXwtmFRdftqTzMVFbX3ie/YDRePo=
 github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719 h1:o9Xep6QmBQYUqxuXbnpU90Ir1dptvBdDifJbTbtogR0=
 github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719/go.mod h1:Im3hFcS904Ac0wsgd2H117RdU8PsCAE7k2t1lZZwgzk=
 github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78 h1:NAti9hMLMo8F0Iyz5ldS41CY6MyukRH0OrTPV4u2340=
