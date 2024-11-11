@@ -126,7 +126,7 @@ func GenerateReceipts(issuer ucan.Signer, aggregate aggregate.Aggregate) ([]rece
 		})
 		rcpt, err := receipt.Issue(issuer, ok, ran.FromInvocation(inv))
 		if err != nil {
-			return nil, fmt.Errorf("issueing receipt: %w", err)
+			return nil, fmt.Errorf("issuing receipt: %w", err)
 		}
 		receipts = append(receipts, rcpt)
 	}
