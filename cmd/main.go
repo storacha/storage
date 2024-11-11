@@ -167,8 +167,8 @@ func main() {
 					}
 
 					announceURL := *AnnounceURL
-					if os.Getenv("ANNOUNCE_URL") != "" {
-						u, err := url.Parse(os.Getenv("ANNOUNCE_URL"))
+					if os.Getenv("STORAGE_ANNOUNCE_URL") != "" {
+						u, err := url.Parse(os.Getenv("STORAGE_ANNOUNCE_URL"))
 						if err != nil {
 							return fmt.Errorf("parsing announce URL: %w", err)
 						}
@@ -176,8 +176,8 @@ func main() {
 					}
 
 					indexingServiceDID := IndexingServiceDID
-					if os.Getenv("INDEXING_SERVICE_DID") != "" {
-						d, err := did.Parse(os.Getenv("INDEXING_SERVICE_DID"))
+					if os.Getenv("STORAGE_INDEXING_SERVICE_DID") != "" {
+						d, err := did.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_DID"))
 						if err != nil {
 							return fmt.Errorf("parsing indexing service DID: %w", err)
 						}
@@ -185,8 +185,8 @@ func main() {
 					}
 
 					indexingServiceURL := *IndexingServiceURL
-					if os.Getenv("INDEXING_SERVICE_URL") != "" {
-						u, err := url.Parse(os.Getenv("INDEXING_SERVICE_URL"))
+					if os.Getenv("STORAGE_INDEXING_SERVICE_URL") != "" {
+						u, err := url.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_URL"))
 						if err != nil {
 							return fmt.Errorf("parsing indexing service URL: %w", err)
 						}
