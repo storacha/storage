@@ -5,8 +5,9 @@ go 1.23.0
 toolchain go1.23.2
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.32.2
+	github.com/aws/aws-sdk-go-v2 v1.32.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
@@ -17,11 +18,11 @@ require (
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/storacha/go-capabilities v0.0.0-20241105032628-bf7f230808aa
+	github.com/storacha/go-capabilities v0.0.0-20241110064542-2a4b289e6ea9
 	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
-	github.com/storacha/go-ucanto v0.2.1-0.20241105025747-aa8566a3a3fb
-	github.com/storacha/ipni-publisher v0.0.0-20241018055706-032286a2dc3f
+	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
+	github.com/storacha/ipni-publisher v0.0.0-20241031171227-f59f9fc3b0b8
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )
@@ -35,12 +36,12 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.21 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.2 // indirect
 	github.com/aws/smithy-go v1.22.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
@@ -97,7 +98,7 @@ require (
 	github.com/polydawn/refmt v0.89.1-0.20231129105047-37766d95467a // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/storacha/go-piece v0.0.0-20241102032446-a7c497f05d55
+	github.com/storacha/go-piece v0.0.0-20241110131739-7631aadb97ea
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/ucan-wg/go-ucan v0.0.0-20240916120445-37f52863156c // indirect
 	github.com/whyrusleeping/cbor-gen v0.1.2 // indirect
