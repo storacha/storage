@@ -198,7 +198,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						pieceAccept, err := pdp.Accept.Invoke(
 							storageService.ID(),
 							storageService.ID(),
-							storageService.ID().DID().GoString(),
+							storageService.ID().DID().String(),
 							pdp.AcceptCaveats{
 								Piece: piece,
 							}, delegation.WithNoExpiration())
