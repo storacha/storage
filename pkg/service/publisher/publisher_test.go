@@ -13,6 +13,7 @@ import (
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-capabilities/pkg/assert"
 	"github.com/storacha/go-capabilities/pkg/claim"
+	"github.com/storacha/go-capabilities/pkg/types"
 	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
@@ -52,7 +53,7 @@ func TestPublisherService(t *testing.T) {
 			testutil.Alice.DID().String(),
 			assert.LocationCaveats{
 				Space:    space,
-				Content:  assert.FromHash(shard),
+				Content:  types.FromHash(shard),
 				Location: []url.URL{*location},
 			},
 			delegation.WithNoExpiration(),
@@ -152,7 +153,7 @@ func TestPublisherService(t *testing.T) {
 			testutil.Alice.DID().String(),
 			assert.LocationCaveats{
 				Space:    space,
-				Content:  assert.FromHash(shard),
+				Content:  types.FromHash(shard),
 				Location: []url.URL{*location},
 			},
 			delegation.WithNoExpiration(),

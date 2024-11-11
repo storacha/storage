@@ -2,18 +2,39 @@ package allocation
 
 import (
 	"bytes"
+	// for go:embed
+	_ "embed"
 	"fmt"
 
+	ipldprime "github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/codec"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	"github.com/ipld/go-ipld-prime/node/bindnode"
+	"github.com/ipld/go-ipld-prime/schema"
 	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-capabilities/pkg/types"
 	"github.com/storacha/go-ucanto/core/ipld"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
-	adm "github.com/storacha/storage/pkg/store/allocationstore/datamodel"
 )
+
+//go:embed allocation.ipldsch
+var allocationSchema []byte
+
+var allocationTS *schema.TypeSystem
+
+func init() {
+	ts, err := ipldprime.LoadSchemaBytes(allocationSchema)
+	if err != nil {
+		panic(fmt.Errorf("loading allocation schema: %w", err))
+	}
+	allocationTS = ts
+}
+
+func AllocationType() schema.Type {
+	return allocationTS.TypeByName("Allocation")
+}
 
 type Blob struct {
 	// Digest is the hash of the data.
@@ -35,16 +56,7 @@ type Allocation struct {
 }
 
 func (a Allocation) ToIPLD() (datamodel.Node, error) {
-	md := &adm.AllocationModel{
-		Space: a.Space.Bytes(),
-		Blob: adm.BlobModel{
-			Digest: a.Blob.Digest,
-			Size:   int64(a.Blob.Size),
-		},
-		Expires: int64(a.Expires),
-		Cause:   a.Cause,
-	}
-	return ipld.WrapWithRecovery(md, adm.AllocationType())
+	return ipld.WrapWithRecovery(&a, AllocationType(), types.Converters...)
 }
 
 func Encode(alloc Allocation, enc codec.Encoder) ([]byte, error) {
@@ -71,7 +83,7 @@ func Decode(data []byte, dec codec.Decoder) (Allocation, error) {
 		dec = dagcbor.Decode
 	}
 
-	nb := bindnode.Prototype((*adm.AllocationModel)(nil), adm.AllocationType()).NewBuilder()
+	nb := bindnode.Prototype((*Allocation)(nil), AllocationType(), types.Converters...).NewBuilder()
 
 	err := dec(nb, bytes.NewBuffer(data))
 	if err != nil {
@@ -79,25 +91,6 @@ func Decode(data []byte, dec codec.Decoder) (Allocation, error) {
 	}
 
 	nd := nb.Build()
-	model := bindnode.Unwrap(nd).(*adm.AllocationModel)
-
-	space, err := did.Decode(model.Space)
-	if err != nil {
-		return Allocation{}, fmt.Errorf("decoding space DID: %w", err)
-	}
-
-	digest, err := multihash.Cast(model.Blob.Digest)
-	if err != nil {
-		return Allocation{}, fmt.Errorf("decoding digest: %w", err)
-	}
-
-	return Allocation{
-		Space: space,
-		Blob: Blob{
-			Digest: digest,
-			Size:   uint64(model.Blob.Size),
-		},
-		Expires: uint64(model.Expires),
-		Cause:   model.Cause,
-	}, nil
+	al := bindnode.Unwrap(nd).(*Allocation)
+	return *al, nil
 }

@@ -1,7 +1,8 @@
 type DID bytes
+type Multihash bytes
 
 type Blob struct {
-  digest Bytes
+  digest Multihash
   size Int
 }
 

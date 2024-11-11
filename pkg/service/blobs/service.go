@@ -1,24 +1,14 @@
 package blobs
 
 import (
-	"fmt"
-	"net/url"
-
-	"github.com/ipfs/go-datastore"
-	"github.com/multiformats/go-multihash"
-	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/storage/pkg/access"
-	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/presigner"
 	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
 type BlobService struct {
-	access     access.Access
-	allocStore allocationstore.AllocationStore
-	blobStore  blobstore.Blobstore
-	presigner  presigner.RequestPresigner
+	*options
 }
 
 func (b *BlobService) Access() access.Access {
@@ -39,7 +29,7 @@ func (b *BlobService) Store() blobstore.Blobstore {
 
 var _ Blobs = (*BlobService)(nil)
 
-func New(id principal.Signer, blobStore blobstore.Blobstore, allocsDatastore datastore.Datastore, publicURL url.URL, opts ...Option) (*BlobService, error) {
+func New(opts ...Option) (*BlobService, error) {
 	o := &options{}
 	for _, opt := range opts {
 		err := opt(o)
@@ -48,25 +38,5 @@ func New(id principal.Signer, blobStore blobstore.Blobstore, allocsDatastore dat
 		}
 	}
 
-	allocStore, err := allocationstore.NewDsAllocationStore(allocsDatastore)
-	if err != nil {
-		return nil, err
-	}
-
-	accessURL := publicURL
-	accessURL.Path = "/blob"
-	access, err := access.NewPatternAccess(fmt.Sprintf("%s/{blob}", accessURL.String()))
-	if err != nil {
-		return nil, err
-	}
-
-	accessKeyID := id.DID().String()
-	idDigest, _ := multihash.Sum(id.Encode(), multihash.SHA2_256, -1)
-	secretAccessKey := digestutil.Format(idDigest)
-	presigner, err := presigner.NewS3RequestPresigner(accessKeyID, secretAccessKey, publicURL, "blob")
-	if err != nil {
-		return nil, err
-	}
-
-	return &BlobService{access, allocStore, blobStore, presigner}, nil
+	return &BlobService{o}, nil
 }
