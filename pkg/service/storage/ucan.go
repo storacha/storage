@@ -273,7 +273,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						log.Errorf("reading piece accept receipt: %w", err)
 						return pdp.InfoOk{}, nil, failure.FromError(err)
 					}
-					// use the result from the accept receit to generate the receipt for pdp/info
+					// use the result from the accept receipt to generate the receipt for pdp/info
 					return result.MatchResultR3(pieceAcceptReceipt.Out(),
 						func(ok pdp.AcceptOk) (pdp.InfoOk, fx.Effects, error) {
 							return pdp.InfoOk{
