@@ -31,7 +31,7 @@ var bufferTS *schema.TypeSystem
 func init() {
 	ts, err := ipldprime.LoadSchemaBytes(bufferSchema)
 	if err != nil {
-		panic(fmt.Errorf("loading blob schema: %w", err))
+		panic(fmt.Errorf("loading buffer schema: %w", err))
 	}
 	bufferTS = ts
 }
