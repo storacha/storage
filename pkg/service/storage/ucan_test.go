@@ -120,7 +120,7 @@ func TestServer(t *testing.T) {
 		}
 		cap := blob.Allocate.New(testutil.Alice.DID().String(), nb)
 
-		invokeBlobAllocate := func() result.Result[bdm.AllocateOkModel, ipld.Node] {
+		invokeBlobAllocate := func() result.Result[blob.AllocateOk, fdm.FailureModel] {
 			inv, err := invocation.Invoke(testutil.Service, testutil.Alice, cap, delegation.WithProof(prf))
 			require.NoError(t, err)
 
@@ -130,29 +130,27 @@ func TestServer(t *testing.T) {
 			rcptlnk, ok := resp.Get(inv.Link())
 			require.True(t, ok, "missing receipt for invocation: %s", inv.Link())
 
-			reader := testutil.Must(receipt.NewReceiptReader[bdm.AllocateOkModel, ipld.Node](allocateReceiptSchema))(t)
+			reader := testutil.Must(receipt.NewReceiptReaderFromTypes[blob.AllocateOk, fdm.FailureModel](blob.AllocateOkType(), fdm.FailureType(), types.Converters...))(t)
 			rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
 			return rcpt.Out()
 		}
 
-		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(invokeBlobAllocate(), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 			require.NotNil(t, ok.Address)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
 		})
 
 		// now again without upload
-		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(invokeBlobAllocate(), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
-			require.Equal(t, int64(0), ok.Size)
+			require.Equal(t, uint64(0), ok.Size)
 			require.NotNil(t, ok.Address)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
@@ -163,12 +161,11 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 
 		// now again after upload
-		result.MatchResultR0(invokeBlobAllocate(), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(invokeBlobAllocate(), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
-			require.Equal(t, int64(0), ok.Size)
+			require.Equal(t, uint64(0), ok.Size)
 			require.Nil(t, ok.Address)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
@@ -183,7 +180,7 @@ func TestServer(t *testing.T) {
 		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 		cause := testutil.RandomCID()
 
-		invokeBlobAllocate := func(space did.DID) result.Result[bdm.AllocateOkModel, ipld.Node] {
+		invokeBlobAllocate := func(space did.DID) result.Result[blob.AllocateOk, fdm.FailureModel] {
 			nb := blob.AllocateCaveats{
 				Space: space,
 				Blob: blob.Blob{
@@ -203,17 +200,16 @@ func TestServer(t *testing.T) {
 			rcptlnk, ok := resp.Get(inv.Link())
 			require.True(t, ok, "missing receipt for invocation: %s", inv.Link())
 
-			reader := testutil.Must(receipt.NewReceiptReader[bdm.AllocateOkModel, ipld.Node](allocateReceiptSchema))(t)
+			reader := testutil.Must(receipt.NewReceiptReaderFromTypes[blob.AllocateOk, fdm.FailureModel](blob.AllocateOkType(), fdm.FailureType(), types.Converters...))(t)
 			rcpt := testutil.Must(reader.Read(rcptlnk, resp.Blocks()))(t)
 			return rcpt.Out()
 		}
 
-		result.MatchResultR0(invokeBlobAllocate(space0), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(invokeBlobAllocate(space0), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 			require.NotNil(t, ok.Address)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
@@ -224,12 +220,11 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 
 		// now again after upload, but in different space
-		result.MatchResultR0(invokeBlobAllocate(space1), func(ok bdm.AllocateOkModel) {
+		result.MatchResultR0(invokeBlobAllocate(space1), func(ok blob.AllocateOk) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 			require.Nil(t, ok.Address)
-		}, func(x ipld.Node) {
-			f := testutil.BindFailure(t, x)
+		}, func(f fdm.FailureModel) {
 			fmt.Println(f.Message)
 			fmt.Println(*f.Stack)
 			require.Nil(t, f)
