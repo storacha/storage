@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -99,6 +100,10 @@ type Config struct {
 	AllocationsTableName         string
 	BlobStoreBucket              string
 	BlobStorePrefix              string
+	AggregatesBucket             string
+	AggregatesPrefix             string
+	BufferBucket                 string
+	BufferPrefix                 string
 	ChunkLinksTableName          string
 	MetadataTableName            string
 	IPNIStoreBucket              string
@@ -116,6 +121,9 @@ type Config struct {
 	ReceiptStoreBucket           string
 	ReceiptStorePrefix           string
 	SQSPDPPieceAggregatorURL     string
+	SQSPDPAggregateSubmitterURL  string
+	SQSPDPPieceAccepterURL       string
+	PDPProofSet                  uint64
 	CurioURL                     string
 	principal.Signer
 }
@@ -157,6 +165,16 @@ func FromEnv(ctx context.Context) Config {
 	}
 
 	ipniPublisherAnnounceAddress := fmt.Sprintf("/dns4/%s/tcp/443/https/p2p/%s", mustGetEnv("IPNI_STORE_BUCKET_REGIONAL_DOMAIN"), peer.String())
+
+	proofSetString := os.Getenv("PDP-PROOFSET")
+	var proofSet uint64
+	if len(proofSetString) > 0 {
+		proofSet, err = strconv.ParseUint(proofSetString, 10, 64)
+		if err != nil {
+			panic(fmt.Errorf("parsing pdp proofset: %w", err))
+		}
+	}
+
 	return Config{
 		Config:                       awsConfig,
 		Signer:                       id,
@@ -170,17 +188,25 @@ func FromEnv(ctx context.Context) Config {
 		AllocationsTableName:         mustGetEnv("ALLOCATIONS_TABLE_NAME"),
 		BlobStoreBucket:              mustGetEnv("BLOB_STORE_BUCKET_NAME"),
 		BlobStorePrefix:              mustGetEnv("BLOB_STORE_KEY_PREFIX"),
-		AnnounceURL:                  mustGetEnv("IPNI_ENDPOINT"),
-		PublicURL:                    mustGetEnv("PUBLIC_URL"),
-		IndexingServiceDID:           mustGetEnv("INDEXING_SERVICE_DID"),
-		IndexingServiceURL:           mustGetEnv("INDEXING_SERVICE_URL"),
-		IndexingServiceProofsBucket:  mustGetEnv("INDEXING_SERVICE_PROOFS_BUCKET_NAME"),
-		IndexingServiceProofsPrefix:  mustGetEnv("INDEXING_SERVICE_PROOFS_KEY_PREFIX"),
-		RanLinkIndexTableName:        mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
-		ReceiptStoreBucket:           mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
-		ReceiptStorePrefix:           mustGetEnv("RECEIPT_STORE_KEY_PREFIX"),
-		SQSPDPPieceAggregatorURL:     os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
-		CurioURL:                     os.Getenv("CURIO_URL"),
+		BufferBucket:                 mustGetEnv("BUFFER_BUCKET_NAME"),
+		BufferPrefix:                 mustGetEnv("BUFFER_KEY_PREFIX"),
+		AggregatesBucket:             mustGetEnv("AGGREGATES_BUCKET_NAME"),
+		AggregatesPrefix:             mustGetEnv("AGGREGATES_KEY_PREFIX"),
+
+		AnnounceURL:                 mustGetEnv("IPNI_ENDPOINT"),
+		PublicURL:                   mustGetEnv("PUBLIC_URL"),
+		IndexingServiceDID:          mustGetEnv("INDEXING_SERVICE_DID"),
+		IndexingServiceURL:          mustGetEnv("INDEXING_SERVICE_URL"),
+		IndexingServiceProofsBucket: mustGetEnv("INDEXING_SERVICE_PROOFS_BUCKET_NAME"),
+		IndexingServiceProofsPrefix: mustGetEnv("INDEXING_SERVICE_PROOFS_KEY_PREFIX"),
+		RanLinkIndexTableName:       mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
+		ReceiptStoreBucket:          mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
+		ReceiptStorePrefix:          mustGetEnv("RECEIPT_STORE_KEY_PREFIX"),
+		SQSPDPPieceAggregatorURL:    os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
+		SQSPDPAggregateSubmitterURL: os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
+		SQSPDPPieceAccepterURL:      os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),
+		PDPProofSet:                 proofSet,
+		CurioURL:                    os.Getenv("CURIO_URL"),
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
+	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
 	"github.com/storacha/storage/pkg/service/storage"
@@ -22,16 +23,6 @@ import (
 )
 
 var log = logging.Logger("cmd")
-
-var (
-	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
-	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
-	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
-	PrincipalMapping      = map[string]string{
-		"did:web:staging.upload.storacha.network": "did:key:z6MkqVThfb3PVdgT5yxumxjFFjoQ2vWd26VUQKByPuSB9N91",
-		"did:web:upload.storacha.network":         "did:key:z6MkmbbLigYdv5EuU9tJMDXXUudbySwVNeHNqhQGJs7ALUsF",
-	}
-)
 
 func main() {
 	app := &cli.App{
@@ -197,7 +188,7 @@ func main() {
 						return fmt.Errorf("parsing public URL: %w", err)
 					}
 
-					announceURL := *AnnounceURL
+					announceURL := *presets.AnnounceURL
 					if os.Getenv("STORAGE_ANNOUNCE_URL") != "" {
 						u, err := url.Parse(os.Getenv("STORAGE_ANNOUNCE_URL"))
 						if err != nil {
@@ -206,7 +197,7 @@ func main() {
 						announceURL = *u
 					}
 
-					indexingServiceDID := IndexingServiceDID
+					indexingServiceDID := presets.IndexingServiceDID
 					if os.Getenv("STORAGE_INDEXING_SERVICE_DID") != "" {
 						d, err := did.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_DID"))
 						if err != nil {
@@ -215,7 +206,7 @@ func main() {
 						indexingServiceDID = d
 					}
 
-					indexingServiceURL := *IndexingServiceURL
+					indexingServiceURL := *presets.IndexingServiceURL
 					if os.Getenv("STORAGE_INDEXING_SERVICE_URL") != "" {
 						u, err := url.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_URL"))
 						if err != nil {
@@ -259,7 +250,7 @@ func main() {
 
 					defer svc.Close(cCtx.Context)
 
-					presolv, err := principalresolver.New(PrincipalMapping)
+					presolv, err := principalresolver.New(presets.PrincipalMapping)
 					if err != nil {
 						return fmt.Errorf("creating principal resolver: %w", err)
 					}

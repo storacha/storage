@@ -3,6 +3,7 @@ module github.com/storacha/storage
 go 1.23.3
 
 require (
+	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/aws/aws-sdk-go-v2 v1.34.0
 	github.com/aws/aws-sdk-go-v2/config v1.28.3
@@ -12,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.74.1
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.55.5
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-datastore v0.6.0
