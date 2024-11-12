@@ -48,7 +48,7 @@ func (d *DynamoProviderContextTable) Get(ctx context.Context, p peer.ID, context
 	response, err := d.dynamoDbClient.GetItem(ctx, &dynamodb.GetItemInput{
 		Key:                  providerContextItem.GetKey(),
 		TableName:            aws.String(d.tableName),
-		ProjectionExpression: aws.String("Data"),
+		ProjectionExpression: aws.String("contents"),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("retrieving item: %w", err)
@@ -60,7 +60,7 @@ func (d *DynamoProviderContextTable) Get(ctx context.Context, p peer.ID, context
 	if err != nil {
 		return nil, fmt.Errorf("deserializing item: %w", err)
 	}
-	return providerContextItem.Data, nil
+	return providerContextItem.Contents, nil
 }
 
 // Put implements store.ProviderContextTable.
@@ -68,7 +68,7 @@ func (d *DynamoProviderContextTable) Put(ctx context.Context, p peer.ID, context
 	item, err := attributevalue.MarshalMap(providerContextItem{
 		Provider:  p.String(),
 		ContextID: contextID,
-		Data:      data,
+		Contents:  data,
 	})
 	if err != nil {
 		return fmt.Errorf("serializing item: %w", err)
@@ -82,7 +82,7 @@ func (d *DynamoProviderContextTable) Put(ctx context.Context, p peer.ID, context
 type providerContextItem struct {
 	Provider  string `dynamodbav:"provider"`
 	ContextID []byte `dynamodbav:"contextID"`
-	Data      []byte `dynamodbav:"data"`
+	Contents  []byte `dynamodbav:"contents"`
 }
 
 // GetKey returns the composite primary key of the provider & contextID in a format that can be

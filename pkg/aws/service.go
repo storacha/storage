@@ -166,7 +166,7 @@ func FromEnv(ctx context.Context) Config {
 
 	ipniPublisherAnnounceAddress := fmt.Sprintf("/dns4/%s/tcp/443/https/p2p/%s", mustGetEnv("IPNI_STORE_BUCKET_REGIONAL_DOMAIN"), peer.String())
 
-	proofSetString := os.Getenv("PDP-PROOFSET")
+	proofSetString := os.Getenv("PDP_PROOFSET")
 	var proofSet uint64
 	if len(proofSetString) > 0 {
 		proofSet, err = strconv.ParseUint(proofSetString, 10, 64)
@@ -187,21 +187,21 @@ func FromEnv(ctx context.Context) Config {
 		ClaimStorePrefix:             os.Getenv("CLAIM_STORE_KEY_REFIX"),
 		AllocationsTableName:         mustGetEnv("ALLOCATIONS_TABLE_NAME"),
 		BlobStoreBucket:              mustGetEnv("BLOB_STORE_BUCKET_NAME"),
-		BlobStorePrefix:              mustGetEnv("BLOB_STORE_KEY_PREFIX"),
-		BufferBucket:                 mustGetEnv("BUFFER_BUCKET_NAME"),
-		BufferPrefix:                 mustGetEnv("BUFFER_KEY_PREFIX"),
-		AggregatesBucket:             mustGetEnv("AGGREGATES_BUCKET_NAME"),
-		AggregatesPrefix:             mustGetEnv("AGGREGATES_KEY_PREFIX"),
+		BlobStorePrefix:              os.Getenv("BLOB_STORE_KEY_PREFIX"),
+		BufferBucket:                 os.Getenv("BUFFER_BUCKET_NAME"),
+		BufferPrefix:                 os.Getenv("BUFFER_KEY_PREFIX"),
+		AggregatesBucket:             os.Getenv("AGGREGATES_BUCKET_NAME"),
+		AggregatesPrefix:             os.Getenv("AGGREGATES_KEY_PREFIX"),
 
 		AnnounceURL:                 mustGetEnv("IPNI_ENDPOINT"),
 		PublicURL:                   mustGetEnv("PUBLIC_URL"),
 		IndexingServiceDID:          mustGetEnv("INDEXING_SERVICE_DID"),
 		IndexingServiceURL:          mustGetEnv("INDEXING_SERVICE_URL"),
 		IndexingServiceProofsBucket: mustGetEnv("INDEXING_SERVICE_PROOFS_BUCKET_NAME"),
-		IndexingServiceProofsPrefix: mustGetEnv("INDEXING_SERVICE_PROOFS_KEY_PREFIX"),
+		IndexingServiceProofsPrefix: os.Getenv("INDEXING_SERVICE_PROOFS_KEY_PREFIX"),
 		RanLinkIndexTableName:       mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
 		ReceiptStoreBucket:          mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
-		ReceiptStorePrefix:          mustGetEnv("RECEIPT_STORE_KEY_PREFIX"),
+		ReceiptStorePrefix:          os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
 		SQSPDPPieceAggregatorURL:    os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
 		SQSPDPAggregateSubmitterURL: os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
 		SQSPDPPieceAccepterURL:      os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),

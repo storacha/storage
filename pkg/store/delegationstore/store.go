@@ -1,6 +1,7 @@
 package delegationstore
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,7 +16,12 @@ type delegationStore struct {
 }
 
 func (d *delegationStore) Put(ctx context.Context, dlg delegation.Delegation) error {
-	err := d.data.Put(ctx, dlg.Link().String(), dlg.Archive())
+	r := dlg.Archive()
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("reading delegation archive: %w", err)
+	}
+	err = d.data.Put(ctx, dlg.Link().String(), uint64(len(data)), bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("writing to datastore: %w", err)
 	}

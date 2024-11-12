@@ -47,7 +47,7 @@ func (i *ipldStore[K, V]) Put(ctx context.Context, key K, value V) error {
 	if err != nil {
 		return err
 	}
-	return i.ds.Put(ctx, key.String(), bytes.NewReader(data))
+	return i.ds.Put(ctx, key.String(), uint64(len(data)), bytes.NewReader(data))
 }
 
 func IPLDStore[K fmt.Stringer, V any](ds store.Store, typ schema.Type, opts ...bindnode.Option) KVStore[K, V] {

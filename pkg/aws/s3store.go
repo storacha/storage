@@ -38,11 +38,12 @@ func (s *S3Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 }
 
 // Put implements store.Store.
-func (s *S3Store) Put(ctx context.Context, key string, data io.Reader) error {
+func (s *S3Store) Put(ctx context.Context, key string, length uint64, data io.Reader) error {
 	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(s.keyPrefix + key),
-		Body:   data,
+		Bucket:        aws.String(s.bucket),
+		Key:           aws.String(s.keyPrefix + key),
+		Body:          data,
+		ContentLength: aws.Int64(int64(length)),
 	})
 	return err
 }
