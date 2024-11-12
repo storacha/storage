@@ -148,6 +148,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					if len(a) < 1 {
 						return blob.AllocateOk{}, nil, failure.FromError(errors.New("failed to read allocation after write"))
 					}
+					log.Info("successfully read allocation after write")
 
 					return blob.AllocateOk{Size: size, Address: address}, nil, nil
 				},
