@@ -17,7 +17,7 @@ type DsAllocationStore struct {
 }
 
 func (d *DsAllocationStore) List(ctx context.Context, digest multihash.Multihash) ([]allocation.Allocation, error) {
-	pfx := digestutil.Format(digest)
+	pfx := digestutil.Format(digest) + "/"
 	results, err := d.data.Query(ctx, query.Query{Prefix: pfx})
 	if err != nil {
 		return nil, fmt.Errorf("querying datastore: %w", err)
