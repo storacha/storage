@@ -53,6 +53,7 @@ type Config struct {
 	Bucket              string
 	Region              string
 	RegionEndpoint      string
+	ForcePathStyle      bool
 	RootDirectory       string
 	Workers             int
 	CredentialsEndpoint string
@@ -85,8 +86,11 @@ func NewS3Datastore(conf Config) (*S3Bucket, error) {
 	})
 
 	if conf.RegionEndpoint != "" {
-		awsConfig.WithS3ForcePathStyle(true)
 		awsConfig.WithEndpoint(conf.RegionEndpoint)
+	}
+
+	if conf.ForcePathStyle {
+		awsConfig.WithS3ForcePathStyle(true)
 	}
 
 	awsConfig.WithCredentials(creds)
