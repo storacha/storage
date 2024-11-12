@@ -91,6 +91,12 @@ func main() {
 						EnvVars:  []string{"STORAGE_S3_SECRET_KEY"},
 						Required: true,
 					},
+					&cli.StringFlag{
+						Name:     "s3-bucket",
+						Usage:    "Bucket name.",
+						EnvVars:  []string{"STORAGE_S3_BUCKET"},
+						Required: true,
+					},
 				},
 				Action: func(cCtx *cli.Context) error {
 					var err error
@@ -119,6 +125,7 @@ func main() {
 						RegionEndpoint: cCtx.String("s3-endpoint"),
 						AccessKey:      cCtx.String("s3-access-key"),
 						SecretKey:      cCtx.String("s3-secret-key"),
+						Bucket:         cCtx.String("s3-bucket"),
 					})
 					if err != nil {
 						return fmt.Errorf("creating S3 bucket: %w", err)
