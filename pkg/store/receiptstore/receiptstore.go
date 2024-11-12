@@ -1,6 +1,7 @@
 package receiptstore
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -27,7 +28,12 @@ type receiptStore struct {
 func (rs *receiptStore) Put(ctx context.Context, rcpt receipt.AnyReceipt) error {
 	r := car.Encode([]datamodel.Link{rcpt.Root().Link()}, rcpt.Blocks())
 
-	err := rs.store.Put(ctx, rcpt.Root().Link().String(), r)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("archiving delegation: %w", err)
+	}
+
+	err = rs.store.Put(ctx, rcpt.Root().Link().String(), uint64(len(b)), bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("writing to store: %w", err)
 	}

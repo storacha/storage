@@ -5,6 +5,7 @@ go 1.23.0
 toolchain go1.23.2
 
 require (
+	github.com/aws/aws-sdk-go v1.45.24
 	github.com/aws/aws-sdk-go-v2 v1.32.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
 	github.com/golang-jwt/jwt/v4 v4.5.1
@@ -22,16 +23,15 @@ require (
 	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
 	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
-	github.com/storacha/ipni-publisher v0.0.0-20241112113514-13e9ce371678
+	github.com/storacha/ipni-publisher v0.0.0-20241112152400-07a540928427
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.45.24 // indirect
 	github.com/filecoin-project/go-address v1.1.0 // indirect
 	github.com/filecoin-project/go-fil-commcid v0.2.0 // indirect
-	github.com/ipfs/go-ds-s3 v0.11.0 // indirect
+	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
