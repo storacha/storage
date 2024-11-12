@@ -114,6 +114,6 @@ func NewBlobPutHandler(presigner presigner.RequestPresigner, allocs allocationst
 			return
 		}
 
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 	}
 }

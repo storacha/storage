@@ -76,7 +76,7 @@ func TestServer(t *testing.T) {
 			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
 			require.NoError(t, err)
 
-			putBlob(t, presigner, digest, data, http.StatusCreated)
+			putBlob(t, presigner, digest, data, http.StatusOK)
 			requireRetrievableBlob(t, *srvurl, digest, data)
 		})
 
@@ -89,8 +89,8 @@ func TestServer(t *testing.T) {
 			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
 			require.NoError(t, err)
 
-			putBlob(t, presigner, digest, data, http.StatusCreated)
-			putBlob(t, presigner, digest, data, http.StatusCreated)
+			putBlob(t, presigner, digest, data, http.StatusOK)
+			putBlob(t, presigner, digest, data, http.StatusOK)
 			requireRetrievableBlob(t, *srvurl, digest, data)
 		})
 
@@ -103,7 +103,7 @@ func TestServer(t *testing.T) {
 			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
 			require.NoError(t, err)
 
-			putBlob(t, presigner, digest, data, http.StatusCreated)
+			putBlob(t, presigner, digest, data, http.StatusOK)
 			requireRetrievableBlob(t, *srvurl, digest, data)
 
 			putBlob(t, presigner, digest, []byte{1}, http.StatusConflict)
