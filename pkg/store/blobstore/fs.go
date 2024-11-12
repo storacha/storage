@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
@@ -160,12 +161,53 @@ func (b *FsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	_ = f.Close()
 	closed = true
 
-	err = os.Rename(tmpname, name)
+	err = move(tmpname, name)
 	if err != nil {
 		return fmt.Errorf("moving file: %w", err)
 	}
 	moved = true
 
+	return nil
+}
+
+func move(source, destination string) error {
+	err := os.Rename(source, destination)
+	if err != nil && strings.Contains(err.Error(), "invalid cross-device link") {
+		return moveCrossDevice(source, destination)
+	}
+	return err
+}
+
+func moveCrossDevice(source, destination string) error {
+	src, err := os.Open(source)
+	if err != nil {
+		return fmt.Errorf("opening source: %w", err)
+	}
+	dst, err := os.Create(destination)
+	if err != nil {
+		src.Close()
+		return fmt.Errorf("creating destination: %w", err)
+	}
+	_, err = io.Copy(dst, src)
+	src.Close()
+	dst.Close()
+	if err != nil {
+		return fmt.Errorf("copying file: %w", err)
+	}
+	fi, err := os.Stat(source)
+	if err != nil {
+		os.Remove(destination)
+		return fmt.Errorf("getting file stats: %w", err)
+	}
+	err = os.Chmod(destination, fi.Mode())
+	if err != nil {
+		os.Remove(destination)
+		return fmt.Errorf("changing file mode: %w", err)
+	}
+	err = os.Remove(source)
+	if err != nil {
+		return fmt.Errorf("removing source: %w", err)
+	}
 	return nil
 }
 
