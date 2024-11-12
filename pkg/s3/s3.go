@@ -110,7 +110,6 @@ func NewS3Datastore(conf Config) (*S3Bucket, error) {
 }
 
 func (s *S3Bucket) Put(ctx context.Context, k ds.Key, value []byte) error {
-	fmt.Println("Putting", s.s3Path(k.String()))
 	_, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(s.s3Path(k.String())),
@@ -189,7 +188,6 @@ func (s *S3Bucket) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) 
 		limit = listMax
 	}
 
-	fmt.Println("Listing with prefix:", s.s3Path(q.Prefix)+"/")
 	resp, err := s.S3.ListObjectsV2WithContext(ctx, &s3.ListObjectsV2Input{
 		Bucket:  aws.String(s.Bucket),
 		Prefix:  aws.String(s.s3Path(q.Prefix) + "/"),
