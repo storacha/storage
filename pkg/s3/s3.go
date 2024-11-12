@@ -184,10 +184,16 @@ func (s *S3Bucket) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) 
 		limit = listMax
 	}
 
-	fmt.Println("Listing with prefix:", s.s3Path(q.Prefix))
+	pfx := s.s3Path(q.Prefix)
+	// retain slash suffix if set
+	if strings.HasSuffix(q.Prefix, "/") {
+		pfx = pfx + "/"
+	}
+
+	fmt.Println("Listing with prefix:", pfx)
 	resp, err := s.S3.ListObjectsV2WithContext(ctx, &s3.ListObjectsV2Input{
 		Bucket:  aws.String(s.Bucket),
-		Prefix:  aws.String(s.s3Path(q.Prefix)),
+		Prefix:  aws.String(pfx),
 		MaxKeys: aws.Int64(int64(limit)),
 	})
 	if err != nil {
