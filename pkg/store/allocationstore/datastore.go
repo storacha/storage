@@ -25,6 +25,9 @@ func (d *DsAllocationStore) List(ctx context.Context, digest multihash.Multihash
 
 	var allocs []allocation.Allocation
 	for entry := range results.Next() {
+		if entry.Error != nil {
+			return nil, fmt.Errorf("iterating query results: %w", err)
+		}
 		a, err := allocation.Decode(entry.Value, dagcbor.Decode)
 		if err != nil {
 			return nil, fmt.Errorf("decoding data: %w", err)
