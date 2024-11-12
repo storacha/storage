@@ -9,7 +9,7 @@ import (
 	"github.com/storacha/go-piece/pkg/piece"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/ipni-publisher/pkg/store"
-	"github.com/storacha/storage/pkg/internal/ipldstore"
+	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
 	"github.com/storacha/storage/pkg/pdp/curio"
