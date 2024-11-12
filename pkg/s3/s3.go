@@ -106,6 +106,7 @@ func NewS3Datastore(conf Config) (*S3Bucket, error) {
 }
 
 func (s *S3Bucket) Put(ctx context.Context, k ds.Key, value []byte) error {
+	fmt.Println("Putting", s.s3Path(k.String()))
 	_, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(s.s3Path(k.String())),
