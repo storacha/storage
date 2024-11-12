@@ -574,6 +574,8 @@ github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b h1:VrHLcBUCVA
 github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
 github.com/storacha/ipni-publisher v0.0.0-20241031171227-f59f9fc3b0b8 h1:X+xD2xdNq2kQQdkcoTUTUMcG1zVGAYn5VXsQtb6vClU=
 github.com/storacha/ipni-publisher v0.0.0-20241031171227-f59f9fc3b0b8/go.mod h1:oeRwCqtWAhWodWYYVklunZbetcp/CuEn4Q+KL0zOIR0=
+github.com/storacha/ipni-publisher v0.0.0-20241112113514-13e9ce371678 h1:4MDJLcETSnNd5Y8k5Ddh0QGpxKBsoTvZaW8WguYel1M=
+github.com/storacha/ipni-publisher v0.0.0-20241112113514-13e9ce371678/go.mod h1:oeRwCqtWAhWodWYYVklunZbetcp/CuEn4Q+KL0zOIR0=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=

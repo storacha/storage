@@ -22,7 +22,7 @@ require (
 	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241021141939-f94d93dcda78
 	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
-	github.com/storacha/ipni-publisher v0.0.0-20241031171227-f59f9fc3b0b8
+	github.com/storacha/ipni-publisher v0.0.0-20241112113514-13e9ce371678
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 )
