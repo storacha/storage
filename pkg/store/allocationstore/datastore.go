@@ -3,7 +3,6 @@ package allocationstore
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -21,9 +20,6 @@ func (d *DsAllocationStore) List(ctx context.Context, digest multihash.Multihash
 	pfx := digestutil.Format(digest)
 	results, err := d.data.Query(ctx, query.Query{Prefix: pfx})
 	if err != nil {
-		if strings.Contains(err.Error(), "NoSuchKey") {
-			return []allocation.Allocation{}, nil
-		}
 		return nil, fmt.Errorf("querying datastore: %w", err)
 	}
 
