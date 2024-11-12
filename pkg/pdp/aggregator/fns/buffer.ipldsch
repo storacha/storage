@@ -1,0 +1,6 @@
+type PieceLink link
+
+type Buffer struct {
+	totalSize           Int
+	reverseSortedPieces [PieceLink]
+}

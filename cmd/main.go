@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -42,18 +42,14 @@ func main() {
 				Name:  "start",
 				Usage: "Start the storage node daemon.",
 				Flags: []cli.Flag{
+					PrivateKeyFlag,
+					CurioURLFlag,
 					&cli.IntFlag{
 						Name:    "port",
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
 						EnvVars: []string{"STORAGE_PORT"},
-					},
-					&cli.StringFlag{
-						Name:    "private-key",
-						Aliases: []string{"s"},
-						Usage:   "Multibase base64 encoded private key identity for the node.",
-						EnvVars: []string{"STORAGE_PRIVATE_KEY"},
 					},
 					&cli.StringFlag{
 						Name:    "data-dir",
@@ -73,6 +69,7 @@ func main() {
 						Usage:   "URL the node is publically accessible at.",
 						EnvVars: []string{"STORAGE_PUBLIC_URL"},
 					},
+					ProofSetFlag,
 					&cli.StringFlag{
 						Name:    "indexing-service-proof",
 						Usage:   "A delegation that allows the node to cache claims with the indexing service.",
@@ -155,6 +152,40 @@ func main() {
 					if err != nil {
 						return err
 					}
+					receiptDir, err := mkdirp(dataDir, "receipt")
+					if err != nil {
+						return err
+					}
+					receiptDs, err := leveldb.NewDatastore(receiptDir, nil)
+					if err != nil {
+						return err
+					}
+
+					var pdpConfig *storage.PDPConfig
+					curioURLStr := cCtx.String("curio-url")
+					if curioURLStr != "" {
+						curioURL, err := url.Parse(curioURLStr)
+						if err != nil {
+							return fmt.Errorf("parsing curio URL: %w", err)
+						}
+						if !cCtx.IsSet("pdp-proofset") {
+							return errors.New("pdp-proofset must be set if curio is used")
+						}
+						proofSet := cCtx.Int64("pdp-proofset")
+						pdpDir, err := mkdirp(dataDir, "pdp")
+						if err != nil {
+							return err
+						}
+						pdpDs, err := leveldb.NewDatastore(pdpDir, nil)
+						if err != nil {
+							return err
+						}
+						pdpConfig = &storage.PDPConfig{
+							PDPDatastore:  pdpDs,
+							CurioEndpoint: curioURL,
+							ProofSet:      uint64(proofSet),
+						}
+					}
 
 					pubURLstr := cCtx.String("public-url")
 					if pubURLstr == "" {
@@ -202,7 +233,7 @@ func main() {
 						indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(dlg))
 					}
 
-					svc, err := storage.New(
+					opts := []storage.Option{
 						storage.WithIdentity(id),
 						storage.WithBlobstore(blobStore),
 						storage.WithAllocationDatastore(allocDs),
@@ -212,11 +243,21 @@ func main() {
 						storage.WithPublisherDirectAnnounce(announceURL),
 						storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 						storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
-					)
+						storage.WithReceiptDatastore(receiptDs),
+					}
+					if pdpConfig != nil {
+						opts = append(opts, storage.WithPDPConfig(*pdpConfig))
+					}
+					svc, err := storage.New(opts...)
 					if err != nil {
 						return fmt.Errorf("creating service instance: %w", err)
 					}
-					defer svc.Close()
+					err = svc.Startup()
+					if err != nil {
+						return fmt.Errorf("starting service: %w", err)
+					}
+
+					defer svc.Close(cCtx.Context)
 
 					presolv, err := principalresolver.New(PrincipalMapping)
 					if err != nil {
@@ -238,49 +279,10 @@ func main() {
 					return err
 				},
 			},
-			{
-				Name:    "identity",
-				Aliases: []string{"id"},
-				Usage:   "Identity tools.",
-				Subcommands: []*cli.Command{
-					{
-						Name:    "generate",
-						Aliases: []string{"gen"},
-						Usage:   "Generate a new decentralized identity.",
-						Flags: []cli.Flag{
-							&cli.BoolFlag{
-								Name:  "json",
-								Usage: "output JSON",
-							},
-						},
-						Action: func(cCtx *cli.Context) error {
-							signer, err := ed25519.Generate()
-							if err != nil {
-								return fmt.Errorf("generating ed25519 key: %w", err)
-							}
-							did := signer.DID().String()
-							key, err := ed25519.Format(signer)
-							if err != nil {
-								return fmt.Errorf("formatting ed25519 key: %w", err)
-							}
-							if cCtx.Bool("json") {
-								out, err := json.Marshal(struct {
-									DID string `json:"did"`
-									Key string `json:"key"`
-								}{did, key})
-								if err != nil {
-									return fmt.Errorf("marshaling JSON: %w", err)
-								}
-								fmt.Println(string(out))
-							} else {
-								fmt.Printf("# %s\n", did)
-								fmt.Println(key)
-							}
-							return nil
-						},
-					},
-				},
-			},
+			identityCmd,
+			delegationCmd,
+			clientCmd,
+			proofSetCmd,
 		},
 	}
 
