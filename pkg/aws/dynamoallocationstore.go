@@ -83,7 +83,10 @@ func (d *DynamoAllocationStore) Put(ctx context.Context, alloc allocation.Alloca
 	_, err = d.dynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.tableName), Item: item,
 	})
-	return fmt.Errorf("storing item: %w", err)
+	if err != nil {
+		fmt.Errorf("storing item: %w", err)
+	}
+	return nil
 }
 
 type allocationItem struct {

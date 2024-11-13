@@ -12,6 +12,7 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/presigner"
 	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/claimstore"
@@ -28,6 +29,8 @@ type PDPConfig struct {
 type config struct {
 	id                    principal.Signer
 	publicURL             url.URL
+	blobsPublicURL        url.URL
+	blobsPresigner        presigner.RequestPresigner
 	blobStore             blobstore.Blobstore
 	allocationStore       allocationstore.AllocationStore
 	allocationDatastore   datastore.Datastore
@@ -68,6 +71,22 @@ func WithPublicURL(url url.URL) Option {
 func WithBlobstore(blobStore blobstore.Blobstore) Option {
 	return func(c *config) error {
 		c.blobStore = blobStore
+		return nil
+	}
+}
+
+// WithBlobsPublicURL configures the blob storage to use a public URL
+func WithBlobsPublicURL(blobStorePublicURL url.URL) Option {
+	return func(c *config) error {
+		c.blobsPublicURL = blobStorePublicURL
+		return nil
+	}
+}
+
+// WithBlobsPresigner configures the blob storage to use a set presigner
+func WithBlobsPresigner(blobStorePresigner presigner.RequestPresigner) Option {
+	return func(c *config) error {
+		c.blobsPresigner = blobStorePresigner
 		return nil
 	}
 }

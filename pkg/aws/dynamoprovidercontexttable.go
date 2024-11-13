@@ -76,7 +76,10 @@ func (d *DynamoProviderContextTable) Put(ctx context.Context, p peer.ID, context
 	_, err = d.dynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.tableName), Item: item,
 	})
-	return fmt.Errorf("storing item: %w", err)
+	if err != nil {
+		fmt.Errorf("storing item: %w", err)
+	}
+	return nil
 }
 
 type providerContextItem struct {

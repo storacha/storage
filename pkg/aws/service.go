@@ -16,9 +16,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
+	"github.com/storacha/go-ucanto/principal/signer"
 
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/pdp"
@@ -114,9 +116,9 @@ type Config struct {
 	AnnounceURL                  string
 	IndexingServiceDID           string
 	IndexingServiceURL           string
-	IndexingServiceProofsBucket  string
-	IndexingServiceProofsPrefix  string
+	IndexingServiceProof         string
 	IPNIPublisherAnnounceAddress string
+	BlobsPublicURL               string
 	RanLinkIndexTableName        string
 	ReceiptStoreBucket           string
 	ReceiptStorePrefix           string
@@ -149,6 +151,18 @@ func FromEnv(ctx context.Context) Config {
 	if err != nil {
 		panic(fmt.Errorf("parsing private key: %s", err))
 	}
+
+	if len(os.Getenv("DID")) != 0 {
+		d, err := did.Parse(os.Getenv("DID"))
+		if err != nil {
+			panic(fmt.Errorf("parsing DID: %w", err))
+		}
+		id, err = signer.Wrap(id, d)
+		if err != nil {
+			panic(fmt.Errorf("wrapping server DID: %w", err))
+		}
+	}
+
 	cryptoPrivKey, err := crypto.UnmarshalEd25519PrivateKey(id.Raw())
 	if err != nil {
 		panic(fmt.Errorf("unmarshaling private key: %w", err))
@@ -165,7 +179,7 @@ func FromEnv(ctx context.Context) Config {
 	}
 
 	ipniPublisherAnnounceAddress := fmt.Sprintf("/dns4/%s/tcp/443/https/p2p/%s", mustGetEnv("IPNI_STORE_BUCKET_REGIONAL_DOMAIN"), peer.String())
-
+	blobsPublicURL := "https://" + mustGetEnv("BLOB_STORE_BUCKET_REGIONAL_DOMAIN")
 	proofSetString := os.Getenv("PDP_PROOFSET")
 	var proofSet uint64
 	if len(proofSetString) > 0 {
@@ -183,6 +197,7 @@ func FromEnv(ctx context.Context) Config {
 		IPNIStoreBucket:              mustGetEnv("IPNI_STORE_BUCKET_NAME"),
 		IPNIStorePrefix:              ipniStoreKeyPrefix,
 		IPNIPublisherAnnounceAddress: ipniPublisherAnnounceAddress,
+		BlobsPublicURL:               blobsPublicURL,
 		ClaimStoreBucket:             mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
 		ClaimStorePrefix:             os.Getenv("CLAIM_STORE_KEY_REFIX"),
 		AllocationsTableName:         mustGetEnv("ALLOCATIONS_TABLE_NAME"),
@@ -197,8 +212,7 @@ func FromEnv(ctx context.Context) Config {
 		PublicURL:                   mustGetEnv("PUBLIC_URL"),
 		IndexingServiceDID:          mustGetEnv("INDEXING_SERVICE_DID"),
 		IndexingServiceURL:          mustGetEnv("INDEXING_SERVICE_URL"),
-		IndexingServiceProofsBucket: mustGetEnv("INDEXING_SERVICE_PROOFS_BUCKET_NAME"),
-		IndexingServiceProofsPrefix: os.Getenv("INDEXING_SERVICE_PROOFS_KEY_PREFIX"),
+		IndexingServiceProof:        mustGetEnv("INDEXING_SERVICE_PROOF"),
 		RanLinkIndexTableName:       mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
 		ReceiptStoreBucket:          mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
 		ReceiptStorePrefix:          os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
@@ -226,6 +240,10 @@ func Construct(cfg Config) (storage.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing public url: %w", err)
 	}
+	blobsPublicURL, err := url.Parse(cfg.BlobsPublicURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing public url: %w", err)
+	}
 	announceURL, err := url.Parse(cfg.AnnounceURL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing announce url: %w", err)
@@ -238,10 +256,12 @@ func Construct(cfg Config) (storage.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing indexing service url: %w", err)
 	}
-	indexingServiceProofs, err := NewS3IndexerProofs(cfg.Config, cfg.IndexingServiceProofsBucket, cfg.IndexingServiceProofsPrefix).Get(context.Background())
+	var indexingServiceProofs delegation.Proofs
+	proof, err := delegation.Parse(cfg.IndexingServiceProof)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving indexing service proofs: %w", err)
+		return nil, fmt.Errorf("parsing indexing service proof")
 	}
+	indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(proof))
 	if len(indexingServiceProofs) == 0 {
 		return nil, ErrIndexingServiceProofsMissing
 	}
@@ -263,6 +283,8 @@ func Construct(cfg Config) (storage.Service, error) {
 		storage.WithPublisherIndexingServiceConfig(indexingServiceDID, *indexingServiceURL),
 		storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 		storage.WithReceiptStore(receiptStore),
+		storage.WithBlobsPublicURL(*blobsPublicURL),
+		storage.WithBlobsPresigner(blobStore.PresignClient()),
 	}
 
 	if cfg.SQSPDPPieceAggregatorURL != "" && cfg.CurioURL != "" {
