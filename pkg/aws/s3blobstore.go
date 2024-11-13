@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	multihash "github.com/multiformats/go-multihash"
 	"github.com/storacha/storage/pkg/internal/digestutil"
+	"github.com/storacha/storage/pkg/presigner"
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
@@ -31,6 +35,44 @@ func NewS3BlobStore(cfg aws.Config, bucket string, keyPrefix string) *S3BlobStor
 }
 
 var _ blobstore.Object = (*s3BlobObject)(nil)
+
+type S3BlobPresigner struct {
+	bs            *S3BlobStore
+	presignClient *s3.PresignClient
+}
+
+// SignUploadURL implements presigner.RequestPresigner.
+func (s *S3BlobPresigner) SignUploadURL(ctx context.Context, digest multihash.Multihash, size uint64, ttl uint64) (url.URL, http.Header, error) {
+	signedReq, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(s.bs.bucket),
+		Key:           aws.String(s.bs.keyPrefix + digestutil.Format(digest)),
+		ContentLength: aws.Int64(int64(size)),
+	}, func(opts *s3.PresignOptions) {
+		opts.Expires = time.Duration(int64(ttl) * int64(time.Second))
+	})
+	if err != nil {
+		return url.URL{}, nil, fmt.Errorf("signing request: %w", err)
+	}
+
+	reqURL, err := url.Parse(signedReq.URL)
+	if err != nil {
+		return url.URL{}, nil, fmt.Errorf("parsing signed URL: %w", err)
+	}
+
+	return *reqURL, signedReq.SignedHeader, nil
+}
+
+// VerifyUploadURL implements presigner.RequestPresigner.
+func (s *S3BlobPresigner) VerifyUploadURL(ctx context.Context, url url.URL, headers http.Header) (url.URL, http.Header, error) {
+	panic("unimplemented")
+}
+
+var _ presigner.RequestPresigner = (*S3BlobPresigner)(nil)
+
+func (s *S3BlobStore) PresignClient() presigner.RequestPresigner {
+	presignClient := s3.NewPresignClient(s.s3Client)
+	return &S3BlobPresigner{s, presignClient}
+}
 
 // Put implements blobstore.Blobstore.
 func (s *S3BlobStore) Put(ctx context.Context, digest multihash.Multihash, size uint64, body io.Reader) error {

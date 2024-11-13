@@ -68,7 +68,10 @@ func (d *DynamoRanLinkIndex) Put(ctx context.Context, ran datamodel.Link, link d
 	_, err = d.dynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.tableName), Item: item,
 	})
-	return fmt.Errorf("storing item: %w", err)
+	if err != nil {
+		fmt.Errorf("storing item: %w", err)
+	}
+	return nil
 }
 
 type ranLinkItem struct {

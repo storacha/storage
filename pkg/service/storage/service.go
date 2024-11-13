@@ -165,9 +165,19 @@ func New(opts ...Option) (*StorageService, error) {
 			blobStore = blobstore.NewMapBlobstore()
 			log.Warn("Blob store not configured, using in-memory store")
 		}
+
 		blobOpts = append(blobOpts, blobs.WithBlobstore(blobStore))
-		blobOpts = append(blobOpts, blobs.WithPublicURLAccess(pubURL))
-		blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
+		if c.blobsPublicURL != (url.URL{}) {
+			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(c.blobsPublicURL))
+		} else {
+			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(c.publicURL))
+		}
+
+		if c.blobsPresigner != nil {
+			blobOpts = append(blobOpts, blobs.WithPresigner(c.blobsPresigner))
+		} else {
+			blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, c.publicURL))
+		}
 	} else {
 		curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 		if err != nil {
@@ -187,23 +197,23 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating blob service: %w", err)
 	}
 
-	var ma multiaddr.Multiaddr
+	peerAddr, err := maurl.FromURL(&pubURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing publisher url as multiaddr: %w", err)
+	}
+	announceAddr := peerAddr
 	if c.publisherAnnouceAddr != "" {
-		ma, err = multiaddr.NewMultiaddr(c.publisherAnnouceAddr)
+		announceAddr, err = multiaddr.NewMultiaddr(c.publisherAnnouceAddr)
 		if err != nil {
 			return nil, fmt.Errorf("parsing publisher address: %w", err)
-		}
-	} else {
-		ma, err = maurl.FromURL(&pubURL)
-		if err != nil {
-			return nil, fmt.Errorf("parsing publisher url as multiaddr: %w", err)
 		}
 	}
 	claims, err := claims.New(
 		id,
 		claimStore,
 		publisherStore,
-		ma,
+		announceAddr,
+		peerAddr,
 		claims.WithPublisherDirectAnnounce(c.announceURLs...),
 		claims.WithPublisherIndexingService(c.indexingService),
 		claims.WithPublisherIndexingServiceProof(c.indexingServiceProofs...),

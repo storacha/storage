@@ -82,16 +82,18 @@ resource "aws_lambda_function" "lambda" {
         METADATA_TABLE_NAME = aws_dynamodb_table.metadata.id
         IPNI_STORE_BUCKET_NAME = aws_s3_bucket.ipni_store_bucket.bucket
         PRIVATE_KEY = aws_ssm_parameter.private_key.name
-        PUBLIC_URL = aws_apigatewayv2_domain_name.custom_domain.domain_name
+        PUBLIC_URL = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
         IPNI_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
+        BLOB_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
         CLAIM_STORE_BUCKET_NAME = aws_s3_bucket.claim_store_bucket.bucket
 		    ALLOCATIONS_TABLE_NAME = aws_dynamodb_table.allocation_store.id
 		    BLOB_STORE_BUCKET_NAME = aws_s3_bucket.blob_store_bucket.bucket
+        BLOB_STORE_KEY_PREFIX = "blob/"
 		    BUFFER_BUCKET_NAME = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : "" 
 		    AGGREGATES_BUCKET_NAME = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
         INDEXING_SERVICE_DID = var.indexing_service_did
 		    INDEXING_SERVICE_URL = var.indexing_service_url
-		    INDEXING_SERVICE_PROOFS_BUCKET_NAME = aws_s3_bucket.indexing_service_proofs_bucket.bucket
+        INDEXING_SERVICE_PROOF = var.indexing_service_proof
 		    RAN_LINK_INDEX_TABLE_NAME =  aws_dynamodb_table.ran_link_index.id
 		    RECEIPT_STORE_BUCKET_NAME = aws_s3_bucket.receipt_store_bucket.id
 		    PIECE_AGGREGATOR_QUEUE_URL = var.use_pdp ? aws_sqs_queue.piece_aggregator[0].id : ""
@@ -150,6 +152,7 @@ data "aws_iam_policy_document" "lambda_dynamodb_put_get_document" {
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
+      "dynamodb:Query"
     ]
     resources = [
       aws_dynamodb_table.chunk_links.arn,
@@ -177,13 +180,13 @@ data "aws_iam_policy_document" "lambda_s3_put_get_document" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      "s3:HeadObject",
     ]
     resources = [
       "${aws_s3_bucket.blob_store_bucket.arn}/*",
       "${aws_s3_bucket.ipni_store_bucket.arn}/*",
       "${aws_s3_bucket.receipt_store_bucket.arn}/*",
       "${aws_s3_bucket.claim_store_bucket.arn}/*",
-      "${aws_s3_bucket.indexing_service_proofs_bucket.arn}/*"
     ]
   }
   statement {
@@ -195,16 +198,6 @@ data "aws_iam_policy_document" "lambda_s3_put_get_document" {
       aws_s3_bucket.ipni_store_bucket.arn,
       aws_s3_bucket.receipt_store_bucket.arn,
       aws_s3_bucket.claim_store_bucket.arn,
-      aws_s3_bucket.indexing_service_proofs_bucket.arn
-    ]
-  }
-  statement {
-    actions = [
-      "s3:ListObjects",
-    ]
-    resources = [
-      aws_s3_bucket.indexing_service_proofs_bucket.arn,
-      "${aws_s3_bucket.indexing_service_proofs_bucket.arn}/*"
     ]
   }
 }

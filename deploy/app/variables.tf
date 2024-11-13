@@ -39,6 +39,11 @@ variable "indexing_service_url" {
   default = "https://indexer.storacha.network"
 }
 
+variable "indexing_service_proof" {
+  description = "delegatin proof for the indexer"
+  type = string
+}
+
 variable "pdp_proofset" {
   description = "proofset used with pdp"
   type = number
@@ -49,4 +54,16 @@ variable "curio_url" {
   description = "url for the curio SP to communicate with"
   type = string
   default = ""
+}
+
+variable "did" {
+  description = "DID for this deployment (did:web:... for example)"
+  type = string
+  default = "did:web:storage.storacha.network"
+}
+
+variable "access_logging_log_format" {
+  type = string
+  description = "The log format to use for access logging."
+  default = "{\"apiId\": \"$context.apiId\", \"requestId\": \"$context.requestId\", \"extendedRequestId\": \"$context.extendedRequestId\", \"httpMethod\": \"$context.httpMethod\", \"path\": \"$context.path\", \"protocol\": \"$context.protocol\", \"requestTime\": \"$context.requestTime\", \"requestTimeEpoch\": \"$context.requestTimeEpoch\", \"status\": $context.status, \"responseLatency\": $context.responseLatency, \"responseLength\": $context.responseLength}"
 }
