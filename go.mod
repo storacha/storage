@@ -33,7 +33,6 @@ require (
 	github.com/filecoin-project/go-fil-commcid v0.2.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 )
@@ -60,7 +59,6 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
