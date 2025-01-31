@@ -41,9 +41,9 @@ variable "region" {
 }
 
 variable "allowed_account_ids" {
-  description = "account ids used for AWS"
+  description = "account IDs used for AWS"
   type        = list(string)
-  default     = ["505595374361"]
+  default     = ["0"]
 }
 
 variable "private_key" {
@@ -64,7 +64,7 @@ variable "indexing_service_url" {
 }
 
 variable "indexing_service_proof" {
-  description = "delegatin proof for the indexer"
+  description = "UCAN delegation to prove this storage node can access the indexer"
   type        = string
 }
 
@@ -83,7 +83,7 @@ variable "curio_url" {
 variable "did" {
   description = "DID for this deployment (did:web:... for example)"
   type        = string
-  default     = "did:web:storage.storacha.network"
+  default     = "did:web:dev.storage.storacha.network"
 }
 
 variable "access_logging_log_format" {

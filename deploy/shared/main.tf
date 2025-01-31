@@ -6,8 +6,8 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "storacha-terraform-state"
-    key    = "storacha/storage/shared.tfstate"
+    bucket = "${var.owner}-terraform-state"
+    key    = "${var.owner}/${var.app}/shared.tfstate"
     region = "us-west-2"
   }
 }
@@ -16,20 +16,20 @@ provider "aws" {
   region              = var.region
   allowed_account_ids = var.allowed_account_ids
   default_tags {
-    
+
     tags = {
       "Environment" = terraform.workspace
       "ManagedBy"   = "OpenTofu"
-      Owner         = "storacha"
-      Team          = "Storacha Engineer"
-      Organization  = "Storacha"
+      Owner         = "${var.owner}"
+      Team          = "${var.team}"
+      Organization  = "${var.org}"
       Project       = "${var.app}"
     }
   }
 }
 
 resource "aws_route53_zone" "primary" {
-  name = "${var.app}.storacha.network"
+  name = "${var.app}.${var.domain}"
 }
 
 output "primary_zone" {

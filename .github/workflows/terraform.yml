@@ -1,0 +1,83 @@
+name: Terraform
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+      workspace:
+        required: true
+        type: string
+      did:
+        required: true
+        type: string
+      apply:
+        required: true
+        type: boolean
+    secrets:
+      aws-account-id:
+        required: true
+      allowed-account-ids:
+        required: true
+      aws-region:
+        required: true
+      private-key:
+        required: true
+      indexing-service-proof:
+        required: true
+      honeycomb-api-key:
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.workspace }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_ACCOUNT_ID: ${{ secrets.aws-account-id }}
+  AWS_REGION: ${{ secrets.aws-region }}
+  ENV: ${{ inputs.env }}
+  TF_WORKSPACE: ${{ inputs.workspace }}
+  TF_VAR_allowed_account_ids: ${{ secrets.allowed-account-ids }}
+  TF_VAR_private_key: ${{ secrets.private-key }}
+  TF_VAR_did: ${{ secrets.did }}
+  TF_VAR_indexing_service_proof: ${{ secrets.indexing-service-proof }}
+  TF_VAR_honeycomb_api_key: ${{ secrets.honeycomb-api-key }}
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/terraform-ci
+
+      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/setup-go@v5
+
+      - name: Tofu Init
+        run: |
+          tofu -chdir="deploy/app" init
+
+      - name: Build Go Apps
+        run: |
+          touch .env
+          make lambdas
+
+      - name: Terraform Plan
+        if: ${{ !inputs.apply }}
+        run: |
+          tofu -chdir="deploy/app" plan
+
+      - name: Terraform Apply
+        if: ${{ inputs.apply }}
+        run: |
+          tofu -chdir="deploy/app" apply -input=false --auto-approve

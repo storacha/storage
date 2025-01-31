@@ -9,8 +9,8 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "storacha-terraform-state"
-    key    = "storacha/storage/terraform.tfstate"
+    bucket = "${var.owner}-terraform-state"
+    key    = "${var.owner}/${var.app}/terraform.tfstate"
     region = "us-west-2"
   }
 }

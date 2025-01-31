@@ -44,7 +44,7 @@ resource "aws_apigatewayv2_deployment" "deployment" {
 data "terraform_remote_state" "shared" {
   backend = "s3"
   config = {
-    bucket = "${var.app}-terraform-state"
+    bucket = "${var.owner}-terraform-state"
     key    = "${var.owner}/${var.app}/shared.tfstate"
     region = "us-west-2"
   }

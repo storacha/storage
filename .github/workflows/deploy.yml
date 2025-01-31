@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+    paths:
+      - ".github/workflows/deploy.yml"
+      - "cmd/**"
+      - "deploy/**"
+      - "pkg/**"
+  pull_request:
+    branches: [main]
+  workflow_run:
+    workflows: [Releaser]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  # always deploy to staging
+  staging:
+    uses: ./.github/workflows/terraform.yml
+    with:
+      env: staging
+      workspace: staging
+      apply: ${{ github.event_name != 'pull_request' }}
+    secrets:
+      did: ${{ secrets.STAGING_DID }}
+      aws-account-id: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
+      aws-region: ${{ secrets.STAGING_AWS_REGION }}
+      allowed-account-ids: ${{ secrets.STAGING_ALLOWED_ACCOUNT_IDS }}
+      private-key: ${{ secrets.STAGING_PRIVATE_KEY }}
+      indexing-service-proof: ${{ secrets.STAGING_INDEXING_SERVICE_PROOF }}
+
+  # deploy to prod on new releases
+  production:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/terraform.yml
+    with:
+      env: production
+      workspace: prod
+      apply: true
+    secrets:
+      did: ${{ secrets.PROD_DID }}
+      aws-account-id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
+      aws-region: ${{ secrets.PROD_AWS_REGION }}
+      allowed-account-ids: ${{ secrets.PROD_ALLOWED_ACCOUNT_IDS }}
+      private-key: ${{ secrets.PROD_PRIVATE_KEY }}
+      indexing-service-proof: ${{ secrets.PROD_INDEXING_SERVICE_PROOF }}
