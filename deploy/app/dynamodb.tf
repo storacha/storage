@@ -46,8 +46,10 @@ resource "aws_dynamodb_table" "chunk_links" {
   }
 
   point_in_time_recovery {
-    enabled = true
+    enabled = terraform.workspace == "prod"
   }
+
+  deletion_protection_enabled = terraform.workspace == "prod"
 }
 
 resource "aws_dynamodb_table" "ran_link_index" {
@@ -72,8 +74,10 @@ resource "aws_dynamodb_table" "ran_link_index" {
   }
 
   point_in_time_recovery {
-    enabled = true
+    enabled = terraform.workspace == "prod"
   }
+
+  deletion_protection_enabled = terraform.workspace == "prod"
 }
 
 
@@ -99,7 +103,9 @@ resource "aws_dynamodb_table" "allocation_store" {
   }
 
   point_in_time_recovery {
-    enabled = true
+    enabled = terraform.workspace == "prod"
   }
+
+  deletion_protection_enabled = terraform.workspace == "prod"
 }
 
