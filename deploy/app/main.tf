@@ -23,9 +23,9 @@ provider "aws" {
     tags = {
       "Environment" = terraform.workspace
       "ManagedBy"   = "OpenTofu"
-      Owner         = "storacha"
-      Team          = "Storacha Engineer"
-      Organization  = "Storacha"
+      Owner         = "${var.owner}"
+      Team          = "${var.team}"
+      Organization  = "${var.org}"
       Project       = "${var.app}"
     }
   }
