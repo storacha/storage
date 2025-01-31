@@ -24,8 +24,8 @@ resource "aws_s3_bucket_cors_configuration" "ipni_store_cors" {
 }
 
 resource "aws_s3_bucket_policy" "ipni_store_policy" {
-  depends_on = [ aws_s3_bucket_public_access_block.ipni_store_bucket ]
-  bucket = aws_s3_bucket.ipni_store_bucket.id
+  depends_on = [aws_s3_bucket_public_access_block.ipni_store_bucket]
+  bucket     = aws_s3_bucket.ipni_store_bucket.id
 
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -67,8 +67,8 @@ resource "aws_s3_bucket_cors_configuration" "blob_store_cors" {
 }
 
 resource "aws_s3_bucket_policy" "blob_store_policy" {
-  depends_on = [ aws_s3_bucket_public_access_block.blob_store_bucket ]
-  bucket = aws_s3_bucket.blob_store_bucket.id
+  depends_on = [aws_s3_bucket_public_access_block.blob_store_bucket]
+  bucket     = aws_s3_bucket.blob_store_bucket.id
 
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -93,11 +93,11 @@ resource "aws_s3_bucket" "claim_store_bucket" {
 }
 
 resource "aws_s3_bucket" "buffer_bucket" {
-  count = var.use_pdp ? 1 : 0
+  count  = var.use_pdp ? 1 : 0
   bucket = "${terraform.workspace}-${var.app}-buffer-bucket"
 }
 
 resource "aws_s3_bucket" "aggregates_bucket" {
-  count = var.use_pdp ? 1 : 0
+  count  = var.use_pdp ? 1 : 0
   bucket = "${terraform.workspace}-${var.app}-aggregates-bucket"
 }

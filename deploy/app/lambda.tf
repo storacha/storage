@@ -1,52 +1,52 @@
 locals {
   all_functions = {
     aggregatesubmitter = {
-      name = "aggregatesubmitter"
-      pdponly = true
+      name      = "aggregatesubmitter"
+      pdponly   = true
       nopdponly = false
     }
     getblob = {
-      name = "GETblob"
-      pdponly = false
+      name      = "GETblob"
+      pdponly   = false
       nopdponly = true
-      route = "GET /blob/{blob}"
+      route     = "GET /blob/{blob}"
     }
     getclaim = {
-      name = "GETclaim"
-      pdponly = false
+      name      = "GETclaim"
+      pdponly   = false
       nopdponly = false
-      route = "GET /claim/{cid}"
+      route     = "GET /claim/{cid}"
     }
     getroot = {
-      name = "GETroot"
-      pdponly = false
+      name      = "GETroot"
+      pdponly   = false
       nopdponly = false
-      route = "GET /"
+      route     = "GET /"
     }
     pieceaccepter = {
-      name = "pieceaccepter"
-      pdponly = true
+      name      = "pieceaccepter"
+      pdponly   = true
       nopdponly = false
     }
     pieceaggregator = {
-      name = "pieceaggregator"
-      pdponly = true
+      name      = "pieceaggregator"
+      pdponly   = true
       nopdponly = false
     }
     postroot = {
-      name = "POSTroot"
-      pdponly = false
+      name      = "POSTroot"
+      pdponly   = false
       nopdponly = false
-      route = "POST /"
+      route     = "POST /"
     }
     putblob = {
-      name = "PUTblob"
-      pdponly = false
+      name      = "PUTblob"
+      pdponly   = false
       nopdponly = true
-      route = "PUT /blob/{blob}"
+      route     = "PUT /blob/{blob}"
     }
   }
-  functions = { for k, v in local.all_functions : k => v if (var.use_pdp && !v.nopdponly) || (!var.use_pdp && !v.pdponly) }
+  functions = { for k, v in local.all_functions : k => v if(var.use_pdp && !v.nopdponly) || (!var.use_pdp && !v.pdponly) }
 }
 
 // zip the binary, as we can use only zip files to AWS lambda
@@ -61,46 +61,46 @@ data "archive_file" "function_archive" {
 # Define functions
 
 resource "aws_lambda_function" "lambda" {
-  depends_on = [ aws_cloudwatch_log_group.lambda_log_group ]
-  for_each = local.functions
+  depends_on = [aws_cloudwatch_log_group.lambda_log_group]
+  for_each   = local.functions
 
-  function_name = "${terraform.workspace}-${var.app}-lambda-${each.value.name}"
-  handler       = "bootstrap"
-  runtime       = "provided.al2023"
-  architectures = [ "arm64" ]
-  role          = aws_iam_role.lambda_exec.arn
-  timeout          = try(each.value.timeout, 60)
-  memory_size      = try(each.value.memory_size, 128)
+  function_name                  = "${terraform.workspace}-${var.app}-lambda-${each.value.name}"
+  handler                        = "bootstrap"
+  runtime                        = "provided.al2023"
+  architectures                  = ["arm64"]
+  role                           = aws_iam_role.lambda_exec.arn
+  timeout                        = try(each.value.timeout, 60)
+  memory_size                    = try(each.value.memory_size, 128)
   reserved_concurrent_executions = try(each.value.concurrency, -1)
-  source_code_hash = data.archive_file.function_archive[each.key].output_base64sha256
-  filename      = data.archive_file.function_archive[each.key].output_path # Path to your Lambda zip files
+  source_code_hash               = data.archive_file.function_archive[each.key].output_base64sha256
+  filename                       = data.archive_file.function_archive[each.key].output_path # Path to your Lambda zip files
 
   environment {
     variables = {
-      	IPNI_ENDPOINT = "https://cid.contact"
-        CHUNK_LINKS_TABLE_NAME = aws_dynamodb_table.chunk_links.id
-        METADATA_TABLE_NAME = aws_dynamodb_table.metadata.id
-        IPNI_STORE_BUCKET_NAME = aws_s3_bucket.ipni_store_bucket.bucket
-        PRIVATE_KEY = aws_ssm_parameter.private_key.name
-        PUBLIC_URL = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
-        IPNI_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
-        BLOB_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
-        CLAIM_STORE_BUCKET_NAME = aws_s3_bucket.claim_store_bucket.bucket
-		    ALLOCATIONS_TABLE_NAME = aws_dynamodb_table.allocation_store.id
-		    BLOB_STORE_BUCKET_NAME = aws_s3_bucket.blob_store_bucket.bucket
-        BLOB_STORE_KEY_PREFIX = "blob/"
-		    BUFFER_BUCKET_NAME = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : "" 
-		    AGGREGATES_BUCKET_NAME = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
-        INDEXING_SERVICE_DID = var.indexing_service_did
-		    INDEXING_SERVICE_URL = var.indexing_service_url
-        INDEXING_SERVICE_PROOF = var.indexing_service_proof
-		    RAN_LINK_INDEX_TABLE_NAME =  aws_dynamodb_table.ran_link_index.id
-		    RECEIPT_STORE_BUCKET_NAME = aws_s3_bucket.receipt_store_bucket.id
-		    PIECE_AGGREGATOR_QUEUE_URL = var.use_pdp ? aws_sqs_queue.piece_aggregator[0].id : ""
-		    AGGREGATE_SUBMITTER_QUEUE_URL = var.use_pdp ? aws_sqs_queue.aggregate_submitter[0].id : ""
-		    PIECE_ACCEPTER_QUEUE_URL = var.use_pdp ? aws_sqs_queue.piece_accepter[0].id : ""
-		    PDP_PROOFSET =                 var.pdp_proofset,
-		    CURIO_URL =                    var.curio_url,
+      IPNI_ENDPOINT                     = "https://cid.contact"
+      CHUNK_LINKS_TABLE_NAME            = aws_dynamodb_table.chunk_links.id
+      METADATA_TABLE_NAME               = aws_dynamodb_table.metadata.id
+      IPNI_STORE_BUCKET_NAME            = aws_s3_bucket.ipni_store_bucket.bucket
+      PRIVATE_KEY                       = aws_ssm_parameter.private_key.name
+      PUBLIC_URL                        = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
+      IPNI_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
+      BLOB_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
+      CLAIM_STORE_BUCKET_NAME           = aws_s3_bucket.claim_store_bucket.bucket
+      ALLOCATIONS_TABLE_NAME            = aws_dynamodb_table.allocation_store.id
+      BLOB_STORE_BUCKET_NAME            = aws_s3_bucket.blob_store_bucket.bucket
+      BLOB_STORE_KEY_PREFIX             = "blob/"
+      BUFFER_BUCKET_NAME                = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : ""
+      AGGREGATES_BUCKET_NAME            = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
+      INDEXING_SERVICE_DID              = var.indexing_service_did
+      INDEXING_SERVICE_URL              = var.indexing_service_url
+      INDEXING_SERVICE_PROOF            = var.indexing_service_proof
+      RAN_LINK_INDEX_TABLE_NAME         = aws_dynamodb_table.ran_link_index.id
+      RECEIPT_STORE_BUCKET_NAME         = aws_s3_bucket.receipt_store_bucket.id
+      PIECE_AGGREGATOR_QUEUE_URL        = var.use_pdp ? aws_sqs_queue.piece_aggregator[0].id : ""
+      AGGREGATE_SUBMITTER_QUEUE_URL     = var.use_pdp ? aws_sqs_queue.aggregate_submitter[0].id : ""
+      PIECE_ACCEPTER_QUEUE_URL          = var.use_pdp ? aws_sqs_queue.piece_accepter[0].id : ""
+      PDP_PROOFSET                      = var.pdp_proofset,
+      CURIO_URL                         = var.curio_url,
     }
   }
 }
@@ -120,7 +120,7 @@ resource "aws_lambda_permission" "api_gateway" {
 # Logging
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  for_each = local.functions
+  for_each          = local.functions
   name              = "/aws/lambda/${terraform.workspace}-${var.app}-lambda-${each.value.name}"
   retention_in_days = 7
   lifecycle {
@@ -191,7 +191,7 @@ data "aws_iam_policy_document" "lambda_s3_put_get_document" {
   }
   statement {
     actions = [
-      "s3:ListBucket","s3:GetBucketLocation"
+      "s3:ListBucket", "s3:GetBucketLocation"
     ]
     resources = [
       aws_s3_bucket.blob_store_bucket.arn,
@@ -219,7 +219,7 @@ data "aws_iam_policy_document" "lambda_logs_document" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = [for k, group in aws_cloudwatch_log_group.lambda_log_group : group.arn ]
+    resources = [for k, group in aws_cloudwatch_log_group.lambda_log_group : group.arn]
   }
 }
 
@@ -236,9 +236,9 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 
 data "aws_iam_policy_document" "lambda_ssm_document" {
   statement {
-  
+
     effect = "Allow"
-  
+
     actions = [
       "ssm:GetParameter",
     ]
@@ -263,9 +263,9 @@ resource "aws_iam_role_policy_attachment" "lambda_ssm" {
 data "aws_iam_policy_document" "lambda_sqs_document" {
   count = var.use_pdp ? 1 : 0
   statement {
-  
+
     effect = "Allow"
-  
+
     actions = [
       "sqs:SendMessage*",
       "sqs:ReceiveMessage",
@@ -282,14 +282,14 @@ data "aws_iam_policy_document" "lambda_sqs_document" {
 }
 
 resource "aws_iam_policy" "lambda_sqs" {
-  count = var.use_pdp ? 1 : 0
+  count       = var.use_pdp ? 1 : 0
   name        = "${terraform.workspace}-${var.app}-lambda-sqs"
   description = "This policy will be used by the lambda to send messages to an SQS queue"
   policy      = data.aws_iam_policy_document.lambda_sqs_document[0].json
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_sqs" {
-  count = var.use_pdp ? 1 : 0
+  count      = var.use_pdp ? 1 : 0
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.lambda_sqs[0].arn
 }
@@ -297,7 +297,7 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs" {
 # event source mappings
 
 resource "aws_lambda_event_source_mapping" "piece_aggregator_source_mapping" {
-  count = var.use_pdp ? 1 : 0
+  count            = var.use_pdp ? 1 : 0
   event_source_arn = aws_sqs_queue.piece_aggregator[0].arn
   enabled          = true
   function_name    = aws_lambda_function.lambda["pieceaggregator"].arn
@@ -305,7 +305,7 @@ resource "aws_lambda_event_source_mapping" "piece_aggregator_source_mapping" {
 }
 
 resource "aws_lambda_event_source_mapping" "pieceaccepter_source_mapping" {
-  count = var.use_pdp ? 1 : 0
+  count            = var.use_pdp ? 1 : 0
   event_source_arn = aws_sqs_queue.piece_accepter
   enabled          = true
   function_name    = aws_lambda_function.lambda["pieceaccepter"].arn
@@ -313,7 +313,7 @@ resource "aws_lambda_event_source_mapping" "pieceaccepter_source_mapping" {
 }
 
 resource "aws_lambda_event_source_mapping" "aggregate_submitter_source_mapping" {
-  count = var.use_pdp ? 1 : 0
+  count            = var.use_pdp ? 1 : 0
   event_source_arn = aws_sqs_queue.aggregate_submitter[0].arn
   enabled          = true
   function_name    = aws_lambda_function.lambda["aggregatesubmitter"].arn
