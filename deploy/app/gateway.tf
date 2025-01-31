@@ -44,8 +44,8 @@ resource "aws_apigatewayv2_deployment" "deployment" {
 data "terraform_remote_state" "shared" {
   backend = "s3"
   config = {
-    bucket = "storacha-terraform-state"
-    key    = "storacha/storage/shared.tfstate"
+    bucket = "${var.app}-terraform-state"
+    key    = "${var.owner}/${var.app}/shared.tfstate"
     region = "us-west-2"
   }
 }
@@ -73,7 +73,7 @@ resource "aws_acm_certificate_validation" "cert" {
   validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }
 resource "aws_apigatewayv2_domain_name" "custom_domain" {
-  domain_name = "${terraform.workspace}.${var.app}.storacha.network"
+  domain_name = "${terraform.workspace}.${var.app}.${var.domain}"
 
   domain_name_configuration {
     certificate_arn = aws_acm_certificate_validation.cert.certificate_arn
@@ -103,7 +103,7 @@ resource "aws_apigatewayv2_api_mapping" "api_mapping" {
 
 resource "aws_route53_record" "api_gateway" {
   zone_id = data.terraform_remote_state.shared.outputs.primary_zone.zone_id
-  name    = "${terraform.workspace}.${var.app}.storacha.network"
+  name    = "${terraform.workspace}.${var.app}.${var.domain}"
   type    = "A"
 
   alias {
