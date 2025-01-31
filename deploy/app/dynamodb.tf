@@ -18,6 +18,10 @@ resource "aws_dynamodb_table" "metadata" {
   tags = {
     Name = "${terraform.workspace}-${var.app}-metadata"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
 }
 
 resource "aws_dynamodb_table" "chunk_links" {
@@ -39,6 +43,10 @@ resource "aws_dynamodb_table" "chunk_links" {
 
   tags = {
     Name = "${terraform.workspace}-${var.app}-chunk-links"
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 }
 
@@ -62,6 +70,10 @@ resource "aws_dynamodb_table" "ran_link_index" {
   tags = {
     Name = "${terraform.workspace}-${var.app}-ran-link-index"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
 }
 
 
@@ -84,6 +96,10 @@ resource "aws_dynamodb_table" "allocation_store" {
 
   tags = {
     Name = "${terraform.workspace}-${var.app}-allocation-store"
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 }
 
