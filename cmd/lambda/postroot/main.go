@@ -8,7 +8,6 @@ import (
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	ucanserver "github.com/storacha/go-ucanto/server"
 	"github.com/storacha/storage/pkg/aws"
-	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/service/storage"
 )
@@ -19,7 +18,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	presolv, err := principalresolver.New(presets.PrincipalMapping)
+	presolv, err := principalresolver.New(config.PrincipalMapping)
 	if err != nil {
 		panic(err)
 	}

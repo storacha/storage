@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/pdp/pieceadder"
 	"github.com/storacha/storage/pkg/pdp/piecefinder"
+	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/service/storage"
 	"github.com/storacha/storage/pkg/store/delegationstore"
 	"github.com/storacha/storage/pkg/store/receiptstore"
@@ -127,6 +129,7 @@ type Config struct {
 	SQSPDPPieceAccepterURL       string
 	PDPProofSet                  uint64
 	CurioURL                     string
+	PrincipalMapping             map[string]string
 	principal.Signer
 }
 
@@ -189,6 +192,16 @@ func FromEnv(ctx context.Context) Config {
 		}
 	}
 
+	principalMapping := presets.PrincipalMapping
+	if os.Getenv("PRINCIPAL_MAPPING") != "" {
+		var pm map[string]string
+		err := json.Unmarshal([]byte(os.Getenv("PRINCIPAL_MAPPING")), &pm)
+		if err != nil {
+			panic(fmt.Errorf("parsing principal mapping: %w", err))
+		}
+		principalMapping = pm
+	}
+
 	return Config{
 		Config:                       awsConfig,
 		Signer:                       id,
@@ -207,25 +220,24 @@ func FromEnv(ctx context.Context) Config {
 		BufferPrefix:                 os.Getenv("BUFFER_KEY_PREFIX"),
 		AggregatesBucket:             os.Getenv("AGGREGATES_BUCKET_NAME"),
 		AggregatesPrefix:             os.Getenv("AGGREGATES_KEY_PREFIX"),
-
-		AnnounceURL:                 mustGetEnv("IPNI_ENDPOINT"),
-		PublicURL:                   mustGetEnv("PUBLIC_URL"),
-		IndexingServiceDID:          mustGetEnv("INDEXING_SERVICE_DID"),
-		IndexingServiceURL:          mustGetEnv("INDEXING_SERVICE_URL"),
-		IndexingServiceProof:        mustGetEnv("INDEXING_SERVICE_PROOF"),
-		RanLinkIndexTableName:       mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
-		ReceiptStoreBucket:          mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
-		ReceiptStorePrefix:          os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
-		SQSPDPPieceAggregatorURL:    os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
-		SQSPDPAggregateSubmitterURL: os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
-		SQSPDPPieceAccepterURL:      os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),
-		PDPProofSet:                 proofSet,
-		CurioURL:                    os.Getenv("CURIO_URL"),
+		AnnounceURL:                  mustGetEnv("IPNI_ENDPOINT"),
+		PublicURL:                    mustGetEnv("PUBLIC_URL"),
+		IndexingServiceDID:           mustGetEnv("INDEXING_SERVICE_DID"),
+		IndexingServiceURL:           mustGetEnv("INDEXING_SERVICE_URL"),
+		IndexingServiceProof:         mustGetEnv("INDEXING_SERVICE_PROOF"),
+		RanLinkIndexTableName:        mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
+		ReceiptStoreBucket:           mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
+		ReceiptStorePrefix:           os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
+		SQSPDPPieceAggregatorURL:     os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
+		SQSPDPAggregateSubmitterURL:  os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
+		SQSPDPPieceAccepterURL:       os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),
+		PDPProofSet:                  proofSet,
+		CurioURL:                     os.Getenv("CURIO_URL"),
+		PrincipalMapping:             principalMapping,
 	}
 }
 
 func Construct(cfg Config) (storage.Service, error) {
-
 	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix)
 	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName)
 	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix))

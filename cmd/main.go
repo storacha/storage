@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -250,7 +251,16 @@ func main() {
 
 					defer svc.Close(cCtx.Context)
 
-					presolv, err := principalresolver.New(presets.PrincipalMapping)
+					principalMapping := presets.PrincipalMapping
+					if os.Getenv("STORAGE_PRINCIPAL_MAPPING") != "" {
+						var pm map[string]string
+						err := json.Unmarshal([]byte(os.Getenv("STORAGE_PRINCIPAL_MAPPING")), &pm)
+						if err != nil {
+							return fmt.Errorf("parsing principal mapping: %w", err)
+						}
+						principalMapping = pm
+					}
+					presolv, err := principalresolver.New(principalMapping)
 					if err != nil {
 						return fmt.Errorf("creating principal resolver: %w", err)
 					}

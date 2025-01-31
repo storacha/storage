@@ -69,7 +69,7 @@ func (d *DynamoRanLinkIndex) Put(ctx context.Context, ran datamodel.Link, link d
 		TableName: aws.String(d.tableName), Item: item,
 	})
 	if err != nil {
-		fmt.Errorf("storing item: %w", err)
+		return fmt.Errorf("storing item: %w", err)
 	}
 	return nil
 }

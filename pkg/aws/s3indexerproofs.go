@@ -24,7 +24,7 @@ func (s *S3IndexerProofs) Get(ctx context.Context) ([]delegation.Proof, error) {
 		Prefix: aws.String(s.keyPrefix),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Listing objects: %w", err)
+		return nil, fmt.Errorf("listing objects: %w", err)
 	}
 	proofs := make([]delegation.Proof, 0, len(list.Contents))
 	for _, obj := range list.Contents {

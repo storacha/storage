@@ -101,6 +101,7 @@ resource "aws_lambda_function" "lambda" {
       PIECE_ACCEPTER_QUEUE_URL          = var.use_pdp ? aws_sqs_queue.piece_accepter[0].id : ""
       PDP_PROOFSET                      = var.pdp_proofset,
       CURIO_URL                         = var.curio_url,
+      PRINCIPAL_MAPPING                 = var.principal_mapping,
     }
   }
 }

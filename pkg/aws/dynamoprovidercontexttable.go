@@ -77,7 +77,7 @@ func (d *DynamoProviderContextTable) Put(ctx context.Context, p peer.ID, context
 		TableName: aws.String(d.tableName), Item: item,
 	})
 	if err != nil {
-		fmt.Errorf("storing item: %w", err)
+		return fmt.Errorf("storing item: %w", err)
 	}
 	return nil
 }

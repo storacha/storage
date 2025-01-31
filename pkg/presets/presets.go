@@ -11,7 +11,7 @@ var (
 	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
 	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
 	PrincipalMapping      = map[string]string{
-		"did:web:staging.upload.storacha.network": "did:key:z6MkqVThfb3PVdgT5yxumxjFFjoQ2vWd26VUQKByPuSB9N91",
-		"did:web:upload.storacha.network":         "did:key:z6MkmbbLigYdv5EuU9tJMDXXUudbySwVNeHNqhQGJs7ALUsF",
+		"did:web:staging.up.storacha.network": "did:key:z6MkqVThfb3PVdgT5yxumxjFFjoQ2vWd26VUQKByPuSB9N91",
+		"did:web:up.storacha.network":         "did:key:z6MkmbbLigYdv5EuU9tJMDXXUudbySwVNeHNqhQGJs7ALUsF",
 	}
 )

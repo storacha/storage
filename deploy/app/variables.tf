@@ -91,3 +91,9 @@ variable "access_logging_log_format" {
   description = "The log format to use for access logging."
   default     = "{\"apiId\": \"$context.apiId\", \"requestId\": \"$context.requestId\", \"extendedRequestId\": \"$context.extendedRequestId\", \"httpMethod\": \"$context.httpMethod\", \"path\": \"$context.path\", \"protocol\": \"$context.protocol\", \"requestTime\": \"$context.requestTime\", \"requestTimeEpoch\": \"$context.requestTimeEpoch\", \"status\": $context.status, \"responseLatency\": $context.responseLatency, \"responseLength\": $context.responseLength}"
 }
+
+variable "principal_mapping" {
+  type        = string
+  description = "JSON encoded mapping of did:web to did:key"
+  default     = ""
+}
