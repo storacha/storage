@@ -51,7 +51,7 @@ data "terraform_remote_state" "shared" {
 }
 
 resource "aws_acm_certificate" "cert" {
-  domain_name       = terraform.workspace == "prod" ? "${var.app}.storacha.network" : "${terraform.workspace}.${var.app}.storacha.network"
+  domain_name       = terraform.workspace == "prod" ? "${var.app}.${var.domain}" : "${terraform.workspace}.${var.app}.${var.domain}"
   validation_method = "DNS"
   
   lifecycle {

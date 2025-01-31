@@ -1,6 +1,6 @@
 variable "app" {
   description = "name of the application"
-  type        = string
+  type = string
   default = "storage"
 }
 
@@ -22,9 +22,15 @@ variable "org" {
   default = "Storacha"
 }
 
+variable "domain" {
+  description = "domain name to use for the deployment (will be prefixed with app name)"
+  type = string
+  default = "storacha.network"
+}
+
 variable "use_pdp" {
   description = "is this a deployment that uses pdp"
-  type        = bool
+  type = bool
   default = false
 }
 
