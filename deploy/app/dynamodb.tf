@@ -20,8 +20,10 @@ resource "aws_dynamodb_table" "metadata" {
   }
 
   point_in_time_recovery {
-    enabled = true
+    enabled = terraform.workspace == "prod"
   }
+
+  deletion_protection_enabled = terraform.workspace == "prod"
 }
 
 resource "aws_dynamodb_table" "chunk_links" {
