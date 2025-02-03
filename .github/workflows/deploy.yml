@@ -37,7 +37,6 @@ jobs:
       external-blob-bucket-name: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
-      did: ${{ secrets.STAGING_DID }}
       aws-account-id: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.STAGING_AWS_REGION }}
       allowed-account-ids: ${{ secrets.STAGING_ALLOWED_ACCOUNT_IDS }}
@@ -60,7 +59,6 @@ jobs:
       external-blob-bucket-name: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
-      did: ${{ secrets.PROD_DID }}
       aws-account-id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.PROD_AWS_REGION }}
       allowed-account-ids: ${{ secrets.PROD_ALLOWED_ACCOUNT_IDS }}

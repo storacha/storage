@@ -9,9 +9,6 @@ on:
       workspace:
         required: true
         type: string
-      did:
-        required: true
-        type: string
       apply:
         required: true
         type: boolean
@@ -59,7 +56,6 @@ env:
   TF_WORKSPACE: ${{ inputs.workspace }}
   TF_VAR_allowed_account_ids: ${{ secrets.allowed-account-ids }}
   TF_VAR_private_key: ${{ secrets.private-key }}
-  TF_VAR_did: ${{ secrets.did }}
   TF_VAR_indexing_service_proof: ${{ secrets.indexing-service-proof }}
   TF_VAR_use_external_blob_bucket: ${{ inputs.use-external-blob-bucket }}
   TF_VAR_external_blob_bucket_endpoint: ${{ inputs.external-blob-bucket-endpoint }}
