@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/transport/http"
@@ -11,12 +12,22 @@ import (
 )
 
 type options struct {
+	announceAddr          multiaddr.Multiaddr
 	announceURLs          []url.URL
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
 }
 
 type Option func(*options) error
+
+// WithPublisherAnnounceAddress sets the address put into announce messages to
+// tell indexers where to fetch advertisements from.
+func WithPublisherAnnounceAddress(addr multiaddr.Multiaddr) Option {
+	return func(o *options) error {
+		o.announceAddr = addr
+		return nil
+	}
+}
 
 // WithPublisherDirectAnnounce sets indexer URLs to send direct HTTP
 // announcements to.

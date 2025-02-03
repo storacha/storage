@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-piece/pkg/piece"
 	"github.com/storacha/go-ucanto/core/delegation"
@@ -342,6 +343,10 @@ func Construct(cfg Config) (storage.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("setting up receipt store: %w", err)
 	}
+	announceAddr, err := multiaddr.NewMultiaddr(cfg.IPNIPublisherAnnounceAddress)
+	if err != nil {
+		return nil, fmt.Errorf("parsing announce multiaddr: %w", err)
+	}
 	opts := []storage.Option{
 		storage.WithIdentity(cfg.Signer),
 		storage.WithBlobstore(blobStore),
@@ -350,7 +355,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		storage.WithPublisherStore(publisherStore),
 		storage.WithPublicURL(*pubURL),
 		storage.WithPublisherDirectAnnounce(*announceURL),
-		storage.WithPublisherAnnounceAddr(cfg.IPNIPublisherAnnounceAddress),
+		storage.WithPublisherAnnounceAddress(announceAddr),
 		storage.WithPublisherIndexingServiceConfig(indexingServiceDID, *indexingServiceURL),
 		storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 		storage.WithReceiptStore(receiptStore),

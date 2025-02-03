@@ -203,8 +203,7 @@ var _ Publisher = (*PublisherService)(nil)
 func New(
 	id principal.Signer,
 	publisherStore store.PublisherStore,
-	publicAnnounceAddr multiaddr.Multiaddr,
-	publicPeerAddr multiaddr.Multiaddr,
+	publicAddr multiaddr.Multiaddr,
 	opts ...Option,
 ) (*PublisherService, error) {
 	o := &options{}
@@ -220,7 +219,11 @@ func New(
 		return nil, fmt.Errorf("unmarshaling private key: %w", err)
 	}
 
-	ipnipubOpts := []ipnipub.Option{ipnipub.WithAnnounceAddrs(publicAnnounceAddr.String())}
+	if o.announceAddr == nil {
+		o.announceAddr = publicAddr
+	}
+
+	ipnipubOpts := []ipnipub.Option{ipnipub.WithAnnounceAddrs(o.announceAddr.String())}
 	for _, u := range o.announceURLs {
 		log.Infof("Announcing new IPNI adverts to: %s", u.String())
 		ipnipubOpts = append(ipnipubOpts, ipnipub.WithDirectAnnounce(u.String()))
@@ -231,21 +234,21 @@ func New(
 	}
 
 	found := false
-	for _, p := range publicPeerAddr.Protocols() {
+	for _, p := range publicAddr.Protocols() {
 		if p.Code == multiaddr.P_HTTPS || p.Code == multiaddr.P_HTTP {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return nil, fmt.Errorf("IPNI publisher address is not HTTP(S): %s", publicPeerAddr)
+		return nil, fmt.Errorf("IPNI publisher address is not HTTP(S): %s", publicAddr)
 	}
 
 	peerid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		return nil, fmt.Errorf("creating libp2p peer ID from private key: %w", err)
 	}
-	provInfo := providerInfo(peerid, publicPeerAddr)
+	provInfo := providerInfo(peerid, publicAddr)
 
 	if o.indexingService == nil {
 		log.Errorf("Indexing service is not configured - claims will not be cached")
