@@ -219,11 +219,12 @@ func New(
 		return nil, fmt.Errorf("unmarshaling private key: %w", err)
 	}
 
-	if o.announceAddr == nil {
-		o.announceAddr = publicAddr
+	announceAddr := o.announceAddr
+	if announceAddr == nil {
+		announceAddr = publicAddr
 	}
 
-	ipnipubOpts := []ipnipub.Option{ipnipub.WithAnnounceAddrs(o.announceAddr.String())}
+	ipnipubOpts := []ipnipub.Option{ipnipub.WithAnnounceAddrs(announceAddr.String())}
 	for _, u := range o.announceURLs {
 		log.Infof("Announcing new IPNI adverts to: %s", u.String())
 		ipnipubOpts = append(ipnipubOpts, ipnipub.WithDirectAnnounce(u.String()))
