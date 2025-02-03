@@ -80,12 +80,6 @@ variable "curio_url" {
   default     = ""
 }
 
-variable "did" {
-  description = "DID for this deployment (did:web:... for example)"
-  type        = string
-  default     = "did:web:dev.storage.storacha.network"
-}
-
 variable "access_logging_log_format" {
   type        = string
   description = "The log format to use for access logging."

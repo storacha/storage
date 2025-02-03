@@ -58,7 +58,6 @@ plan: deploy/app/.terraform .tfworkspace $(LAMBDAS)
 apply: deploy/app/.terraform .tfworkspace $(LAMBDAS)
 	tofu -chdir=deploy/app apply
 
-
 deploy/app/.terraform:
 	tofu -chdir=deploy/app init
 

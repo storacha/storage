@@ -21,7 +21,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 reqiures a size to be present")
+var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 requires a size to be present")
 var clientCmd = &cli.Command{
 	Name:    "client",
 	Aliases: []string{"c"},
