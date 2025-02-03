@@ -1,6 +1,6 @@
 # Deployment
 
-Deployment of a Storage Node to AWS is managed by Terraform which you can invoke from the project root with `make`.
+Deployment of a Storage Node to AWS is managed by Terraform which you can invoke with `make`.
 
 First, install OpenTofu e.g.
 
@@ -8,7 +8,7 @@ First, install OpenTofu e.g.
 brew install opentofu
 ```
 
-or for Linux distributions that support Snap:
+...or for Linux distributions that support Snap:
 
 ```sh
 snap install --classic opentofu
@@ -26,7 +26,7 @@ Make sure you are using the correct AWS profile and region before invoking `make
 
 ### `.env`
 
-You need to first create a `.env` with relevant vars. Copy `.env.tpl` to `.env`. Set required variables, and any optional variables you want to set. Explanations for all variables can be found in the template.
+You need to first create a `.env` with relevant vars. Copy `.env.tpl` to `.env`. Set required variables and any optional variables you want to set. Explanations for all variables can be found in the template.
 
 ### Deployment commands
 

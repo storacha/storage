@@ -2,7 +2,7 @@
 /cmd/storage
 /storage
 *.car
-/build
+build
 .terraform
 .env
 .tfworkspace

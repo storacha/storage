@@ -54,8 +54,8 @@ data "archive_file" "function_archive" {
   for_each = local.functions
 
   type        = "zip"
-  source_file = "${path.root}/../../build/${each.key}/bootstrap"
-  output_path = "${path.root}/../../build/${each.key}/${each.key}.zip"
+  source_file = "${path.root}/../build/${each.key}/bootstrap"
+  output_path = "${path.root}/../build/${each.key}/${each.key}.zip"
 }
 
 # Define functions
