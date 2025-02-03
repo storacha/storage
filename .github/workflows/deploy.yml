@@ -32,6 +32,7 @@ jobs:
       workspace: staging
       apply: ${{ github.event_name != 'pull_request' }}
       use-external-blob-bucket: ${{ env.STAGING_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-endpoint: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
       external-blob-bucket-region: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_REGION }}
       external-blob-bucket-name: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
@@ -54,6 +55,7 @@ jobs:
       workspace: prod
       apply: true
       use-external-blob-bucket: ${{ env.PROD_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-endpoint: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
       external-blob-bucket-region: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_REGION }}
       external-blob-bucket-name: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}

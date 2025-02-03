@@ -12,6 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -102,6 +104,7 @@ var _ pdp.PDP = (*PDP)(nil)
 type Config struct {
 	aws.Config
 	AllocationsTableName           string
+	BlobStoreBucketEndpoint        string
 	BlobStoreBucketRegion          string
 	BlobStoreBucketAccessKeyID     string
 	BlobStoreBucketSecretAccessKey string
@@ -244,6 +247,7 @@ func FromEnv(ctx context.Context) Config {
 		ClaimStoreBucket:               mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
 		ClaimStorePrefix:               os.Getenv("CLAIM_STORE_KEY_REFIX"),
 		AllocationsTableName:           mustGetEnv("ALLOCATIONS_TABLE_NAME"),
+		BlobStoreBucketEndpoint:        os.Getenv("BLOB_STORE_BUCKET_ENDPOINT"),
 		BlobStoreBucketRegion:          os.Getenv("BLOB_STORE_BUCKET_REGION"),
 		BlobStoreBucketAccessKeyID:     secrets[os.Getenv("BLOB_STORE_BUCKET_ACCESS_KEY_ID")],
 		BlobStoreBucketSecretAccessKey: secrets[os.Getenv("BLOB_STORE_BUCKET_SECRET_ACCESS_KEY")],
@@ -271,7 +275,29 @@ func FromEnv(ctx context.Context) Config {
 }
 
 func Construct(cfg Config) (storage.Service, error) {
-	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix)
+	var blobStore *S3BlobStore
+	if cfg.BlobStoreBucketAccessKeyID != "" && cfg.BlobStoreBucketSecretAccessKey != "" {
+		blobStore = NewS3BlobStore(
+			aws.Config{
+				Region: cfg.BlobStoreBucketRegion,
+				Credentials: credentials.NewStaticCredentialsProvider(
+					cfg.BlobStoreBucketAccessKeyID,
+					cfg.BlobStoreBucketSecretAccessKey,
+					"",
+				),
+			},
+			cfg.BlobStoreBucket,
+			cfg.BlobStorePrefix,
+			func(opts *s3.Options) {
+				if cfg.BlobStoreBucketEndpoint != "" {
+					opts.BaseEndpoint = &cfg.BlobStoreBucketEndpoint
+					opts.UsePathStyle = true
+				}
+			},
+		)
+	} else {
+		blobStore = NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix)
+	}
 	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName)
 	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix))
 	if err != nil {

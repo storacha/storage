@@ -26,9 +26,9 @@ type S3BlobStore struct {
 
 var _ blobstore.Blobstore = (*S3BlobStore)(nil)
 
-func NewS3BlobStore(cfg aws.Config, bucket string, keyPrefix string) *S3BlobStore {
+func NewS3BlobStore(cfg aws.Config, bucket string, keyPrefix string, opts ...func(*s3.Options)) *S3BlobStore {
 	return &S3BlobStore{
-		s3Client:  s3.NewFromConfig(cfg),
+		s3Client:  s3.NewFromConfig(cfg, opts...),
 		bucket:    bucket,
 		keyPrefix: keyPrefix,
 	}

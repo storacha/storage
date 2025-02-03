@@ -107,6 +107,12 @@ variable "use_external_blob_bucket" {
   default     = false
 }
 
+variable "external_blob_bucket_endpoint" {
+  type        = string
+  description = "Optional endpoint of an external blob bucket"
+  default     = ""
+}
+
 variable "external_blob_bucket_region" {
   type        = string
   description = "Optional region of an external blob bucket"
