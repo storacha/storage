@@ -31,6 +31,10 @@ jobs:
       env: staging
       workspace: staging
       apply: ${{ github.event_name != 'pull_request' }}
+      use-external-blob-bucket: ${{ env.STAGING_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-region: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_REGION }}
+      external-blob-bucket-name: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
+      external-blob-bucket-domain: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
       did: ${{ secrets.STAGING_DID }}
       aws-account-id: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
@@ -38,6 +42,8 @@ jobs:
       allowed-account-ids: ${{ secrets.STAGING_ALLOWED_ACCOUNT_IDS }}
       private-key: ${{ secrets.STAGING_PRIVATE_KEY }}
       indexing-service-proof: ${{ secrets.STAGING_INDEXING_SERVICE_PROOF }}
+      external-blob-bucket-access-key-id: ${{ secrets.STAGING_EXTERNAL_BLOB_BUCKET_ACCESS_KEY_ID }}
+      external-blob-bucket-secret-access-key: ${{ secrets.STAGING_EXTERNAL_BLOB_BUCKET_SECRET_ACCESS_KEY }}
 
   # deploy to prod on new releases
   production:
@@ -47,6 +53,10 @@ jobs:
       env: production
       workspace: prod
       apply: true
+      use-external-blob-bucket: ${{ env.PROD_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-region: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_REGION }}
+      external-blob-bucket-name: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
+      external-blob-bucket-domain: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
       did: ${{ secrets.PROD_DID }}
       aws-account-id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
@@ -54,3 +64,5 @@ jobs:
       allowed-account-ids: ${{ secrets.PROD_ALLOWED_ACCOUNT_IDS }}
       private-key: ${{ secrets.PROD_PRIVATE_KEY }}
       indexing-service-proof: ${{ secrets.PROD_INDEXING_SERVICE_PROOF }}
+      external-blob-bucket-access-key-id: ${{ secrets.PROD_EXTERNAL_BLOB_BUCKET_ACCESS_KEY_ID }}
+      external-blob-bucket-secret-access-key: ${{ secrets.PROD_EXTERNAL_BLOB_BUCKET_SECRET_ACCESS_KEY }}

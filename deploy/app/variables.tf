@@ -97,3 +97,42 @@ variable "principal_mapping" {
   description = "JSON encoded mapping of did:web to did:key"
   default     = ""
 }
+
+// Externally hosted, S3 compatible blob bucket? These variables are for you.
+// Note: credentials MUST have s3:GetObject, s3:PutObject s3:ListBucket perms.
+
+variable "use_external_blob_bucket" {
+  type        = bool
+  description = "Is the blob bucket externally hosted (but S3 compatible)?"
+  default     = false
+}
+
+variable "external_blob_bucket_region" {
+  type        = string
+  description = "Optional region of an external blob bucket"
+  default     = ""
+}
+
+variable "external_blob_bucket_name" {
+  type        = string
+  description = "Optional name of an external blob bucket"
+  default     = ""
+}
+
+variable "external_blob_bucket_domain" {
+  type        = string
+  description = "Optional domain name for the external blob bucket."
+  default     = ""
+}
+
+variable "external_blob_bucket_access_key_id" {
+  type        = string
+  description = "Optional access key ID for external blob bucket"
+  default     = ""
+}
+
+variable "external_blob_bucket_secret_access_key" {
+  type        = string
+  description = "Optional secret access key for external blob bucket"
+  default     = ""
+}

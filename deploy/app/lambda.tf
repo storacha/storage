@@ -77,31 +77,34 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
-      IPNI_ENDPOINT                     = "https://cid.contact"
-      CHUNK_LINKS_TABLE_NAME            = aws_dynamodb_table.chunk_links.id
-      METADATA_TABLE_NAME               = aws_dynamodb_table.metadata.id
-      IPNI_STORE_BUCKET_NAME            = aws_s3_bucket.ipni_store_bucket.bucket
-      PRIVATE_KEY                       = aws_ssm_parameter.private_key.name
-      PUBLIC_URL                        = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
-      IPNI_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
-      BLOB_STORE_BUCKET_REGIONAL_DOMAIN = aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
-      CLAIM_STORE_BUCKET_NAME           = aws_s3_bucket.claim_store_bucket.bucket
-      ALLOCATIONS_TABLE_NAME            = aws_dynamodb_table.allocation_store.id
-      BLOB_STORE_BUCKET_NAME            = aws_s3_bucket.blob_store_bucket.bucket
-      BLOB_STORE_KEY_PREFIX             = "blob/"
-      BUFFER_BUCKET_NAME                = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : ""
-      AGGREGATES_BUCKET_NAME            = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
-      INDEXING_SERVICE_DID              = var.indexing_service_did
-      INDEXING_SERVICE_URL              = var.indexing_service_url
-      INDEXING_SERVICE_PROOF            = var.indexing_service_proof
-      RAN_LINK_INDEX_TABLE_NAME         = aws_dynamodb_table.ran_link_index.id
-      RECEIPT_STORE_BUCKET_NAME         = aws_s3_bucket.receipt_store_bucket.id
-      PIECE_AGGREGATOR_QUEUE_URL        = var.use_pdp ? aws_sqs_queue.piece_aggregator[0].id : ""
-      AGGREGATE_SUBMITTER_QUEUE_URL     = var.use_pdp ? aws_sqs_queue.aggregate_submitter[0].id : ""
-      PIECE_ACCEPTER_QUEUE_URL          = var.use_pdp ? aws_sqs_queue.piece_accepter[0].id : ""
-      PDP_PROOFSET                      = var.pdp_proofset,
-      CURIO_URL                         = var.curio_url,
-      PRINCIPAL_MAPPING                 = var.principal_mapping,
+      IPNI_ENDPOINT                       = "https://cid.contact"
+      CHUNK_LINKS_TABLE_NAME              = aws_dynamodb_table.chunk_links.id
+      METADATA_TABLE_NAME                 = aws_dynamodb_table.metadata.id
+      IPNI_STORE_BUCKET_NAME              = aws_s3_bucket.ipni_store_bucket.bucket
+      PRIVATE_KEY                         = aws_ssm_parameter.private_key.name
+      PUBLIC_URL                          = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
+      IPNI_STORE_BUCKET_REGIONAL_DOMAIN   = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
+      CLAIM_STORE_BUCKET_NAME             = aws_s3_bucket.claim_store_bucket.bucket
+      ALLOCATIONS_TABLE_NAME              = aws_dynamodb_table.allocation_store.id
+      BLOB_STORE_BUCKET_REGION            = var.use_external_blob_bucket ? var.external_blob_bucket_region : aws_s3_bucket.blob_store_bucket.region
+      BLOB_STORE_BUCKET_ACCESS_KEY_ID     = var.use_external_blob_bucket ? var.external_blob_bucket_access_key_id : ""
+      BLOB_STORE_BUCKET_SECRET_ACCESS_KEY = var.use_external_blob_bucket ? var.external_blob_bucket_secret_access_key : ""
+      BLOB_STORE_BUCKET_REGIONAL_DOMAIN   = var.use_external_blob_bucket ? var.external_blob_bucket_domain : aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
+      BLOB_STORE_BUCKET_NAME              = var.use_external_blob_bucket ? var.external_blob_bucket_name : aws_s3_bucket.blob_store_bucket.bucket
+      BLOB_STORE_KEY_PREFIX               = "blob/"
+      BUFFER_BUCKET_NAME                  = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : ""
+      AGGREGATES_BUCKET_NAME              = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
+      INDEXING_SERVICE_DID                = var.indexing_service_did
+      INDEXING_SERVICE_URL                = var.indexing_service_url
+      INDEXING_SERVICE_PROOF              = var.indexing_service_proof
+      RAN_LINK_INDEX_TABLE_NAME           = aws_dynamodb_table.ran_link_index.id
+      RECEIPT_STORE_BUCKET_NAME           = aws_s3_bucket.receipt_store_bucket.id
+      PIECE_AGGREGATOR_QUEUE_URL          = var.use_pdp ? aws_sqs_queue.piece_aggregator[0].id : ""
+      AGGREGATE_SUBMITTER_QUEUE_URL       = var.use_pdp ? aws_sqs_queue.aggregate_submitter[0].id : ""
+      PIECE_ACCEPTER_QUEUE_URL            = var.use_pdp ? aws_sqs_queue.piece_accepter[0].id : ""
+      PDP_PROOFSET                        = var.pdp_proofset,
+      CURIO_URL                           = var.curio_url,
+      PRINCIPAL_MAPPING                   = var.principal_mapping,
     }
   }
 }

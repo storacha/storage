@@ -15,6 +15,18 @@ on:
       apply:
         required: true
         type: boolean
+      use-external-blob-bucket:
+        required: false
+        type: boolean
+      external-blob-bucket-region:
+        required: false
+        type: string
+      external-blob-bucket-name:
+        required: false
+        type: string
+      external-blob-bucket-domain:
+        required: false
+        type: string
     secrets:
       aws-account-id:
         required: true
@@ -26,6 +38,10 @@ on:
         required: true
       indexing-service-proof:
         required: true
+      external-blob-bucket-access-key-id:
+        required: false
+      external-blob-bucket-secret-access-key:
+        required: false
       honeycomb-api-key:
         required: false
 
@@ -42,6 +58,12 @@ env:
   TF_VAR_private_key: ${{ secrets.private-key }}
   TF_VAR_did: ${{ secrets.did }}
   TF_VAR_indexing_service_proof: ${{ secrets.indexing-service-proof }}
+  TF_VAR_use_external_blob_bucket: ${{ inputs.use-external-blob-bucket }}
+  TF_VAR_external_blob_bucket_region: ${{ inputs.external-blob-bucket-region }}
+  TF_VAR_external_blob_bucket_name: ${{ inputs.external-blob-bucket-name }}
+  TF_VAR_external_blob_bucket_domain: ${{ inputs.external-blob-bucket-domain }}
+  TF_VAR_external_blob_bucket_access_key_id: ${{ secrets.external-blob-bucket-access-key-id }}
+  TF_VAR_external_blob_bucket_secret_access_key: ${{ secrets.external-blob-bucket-secret-access-key }}
   TF_VAR_honeycomb_api_key: ${{ secrets.honeycomb-api-key }}
 
 permissions:

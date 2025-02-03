@@ -35,8 +35,8 @@ import (
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
-// ErrNoPrivateKey means that the value returned from Secrets was empty
-var ErrNoPrivateKey = errors.New("no value for private key")
+// ErrMissingSecret means that the value returned from Secrets was empty
+var ErrMissingSecret = errors.New("missing value for secret")
 
 func mustGetEnv(envVar string) string {
 	value := os.Getenv(envVar)
@@ -101,36 +101,64 @@ var _ pdp.PDP = (*PDP)(nil)
 
 type Config struct {
 	aws.Config
-	AllocationsTableName         string
-	BlobStoreBucket              string
-	BlobStorePrefix              string
-	AggregatesBucket             string
-	AggregatesPrefix             string
-	BufferBucket                 string
-	BufferPrefix                 string
-	ChunkLinksTableName          string
-	MetadataTableName            string
-	IPNIStoreBucket              string
-	IPNIStorePrefix              string
-	ClaimStoreBucket             string
-	ClaimStorePrefix             string
-	PublicURL                    string
-	AnnounceURL                  string
-	IndexingServiceDID           string
-	IndexingServiceURL           string
-	IndexingServiceProof         string
-	IPNIPublisherAnnounceAddress string
-	BlobsPublicURL               string
-	RanLinkIndexTableName        string
-	ReceiptStoreBucket           string
-	ReceiptStorePrefix           string
-	SQSPDPPieceAggregatorURL     string
-	SQSPDPAggregateSubmitterURL  string
-	SQSPDPPieceAccepterURL       string
-	PDPProofSet                  uint64
-	CurioURL                     string
-	PrincipalMapping             map[string]string
+	AllocationsTableName           string
+	BlobStoreBucketRegion          string
+	BlobStoreBucketAccessKeyID     string
+	BlobStoreBucketSecretAccessKey string
+	BlobStoreBucket                string
+	BlobStorePrefix                string
+	AggregatesBucket               string
+	AggregatesPrefix               string
+	BufferBucket                   string
+	BufferPrefix                   string
+	ChunkLinksTableName            string
+	MetadataTableName              string
+	IPNIStoreBucket                string
+	IPNIStorePrefix                string
+	ClaimStoreBucket               string
+	ClaimStorePrefix               string
+	PublicURL                      string
+	AnnounceURL                    string
+	IndexingServiceDID             string
+	IndexingServiceURL             string
+	IndexingServiceProof           string
+	IPNIPublisherAnnounceAddress   string
+	BlobsPublicURL                 string
+	RanLinkIndexTableName          string
+	ReceiptStoreBucket             string
+	ReceiptStorePrefix             string
+	SQSPDPPieceAggregatorURL       string
+	SQSPDPAggregateSubmitterURL    string
+	SQSPDPPieceAccepterURL         string
+	PDPProofSet                    uint64
+	CurioURL                       string
+	PrincipalMapping               map[string]string
 	principal.Signer
+}
+
+func mustGetSSMParams(ctx context.Context, client *ssm.Client, names ...string) map[string]string {
+	response, err := client.GetParameters(ctx, &ssm.GetParametersInput{
+		Names:          names,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		panic(fmt.Errorf("retrieving SSM parameters: %w", err))
+	}
+	params := map[string]string{}
+	for _, name := range names {
+		value := ""
+		for _, p := range response.Parameters {
+			if *p.Name == name {
+				value = *p.Value
+				break
+			}
+		}
+		if value == "" {
+			panic(ErrMissingSecret)
+		}
+		params[name] = value
+	}
+	return params
 }
 
 // FromEnv constructs the AWS Configuration from the environment
@@ -139,18 +167,20 @@ func FromEnv(ctx context.Context) Config {
 	if err != nil {
 		panic(fmt.Errorf("loading aws default config: %w", err))
 	}
+
 	ssmClient := ssm.NewFromConfig(awsConfig)
-	response, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           aws.String(mustGetEnv("PRIVATE_KEY")),
-		WithDecryption: aws.Bool(true),
-	})
-	if err != nil {
-		panic(fmt.Errorf("retrieving private key: %w", err))
+	secretNames := []string{mustGetEnv("PRIVATE_KEY")}
+	for _, n := range []string{
+		"BLOB_STORE_BUCKET_ACCESS_KEY_ID",
+		"BLOB_STORE_BUCKET_SECRET_ACCESS_KEY",
+	} {
+		if os.Getenv(n) != "" {
+			secretNames = append(secretNames, os.Getenv(n))
+		}
 	}
-	if response.Parameter == nil || response.Parameter.Value == nil {
-		panic(ErrNoPrivateKey)
-	}
-	id, err := ed25519.Parse(*response.Parameter.Value)
+	secrets := mustGetSSMParams(ctx, ssmClient, secretNames...)
+
+	id, err := ed25519.Parse(secrets[mustGetEnv("PRIVATE_KEY")])
 	if err != nil {
 		panic(fmt.Errorf("parsing private key: %s", err))
 	}
@@ -203,37 +233,40 @@ func FromEnv(ctx context.Context) Config {
 	}
 
 	return Config{
-		Config:                       awsConfig,
-		Signer:                       id,
-		ChunkLinksTableName:          mustGetEnv("CHUNK_LINKS_TABLE_NAME"),
-		MetadataTableName:            mustGetEnv("METADATA_TABLE_NAME"),
-		IPNIStoreBucket:              mustGetEnv("IPNI_STORE_BUCKET_NAME"),
-		IPNIStorePrefix:              ipniStoreKeyPrefix,
-		IPNIPublisherAnnounceAddress: ipniPublisherAnnounceAddress,
-		BlobsPublicURL:               blobsPublicURL,
-		ClaimStoreBucket:             mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
-		ClaimStorePrefix:             os.Getenv("CLAIM_STORE_KEY_REFIX"),
-		AllocationsTableName:         mustGetEnv("ALLOCATIONS_TABLE_NAME"),
-		BlobStoreBucket:              mustGetEnv("BLOB_STORE_BUCKET_NAME"),
-		BlobStorePrefix:              os.Getenv("BLOB_STORE_KEY_PREFIX"),
-		BufferBucket:                 os.Getenv("BUFFER_BUCKET_NAME"),
-		BufferPrefix:                 os.Getenv("BUFFER_KEY_PREFIX"),
-		AggregatesBucket:             os.Getenv("AGGREGATES_BUCKET_NAME"),
-		AggregatesPrefix:             os.Getenv("AGGREGATES_KEY_PREFIX"),
-		AnnounceURL:                  mustGetEnv("IPNI_ENDPOINT"),
-		PublicURL:                    mustGetEnv("PUBLIC_URL"),
-		IndexingServiceDID:           mustGetEnv("INDEXING_SERVICE_DID"),
-		IndexingServiceURL:           mustGetEnv("INDEXING_SERVICE_URL"),
-		IndexingServiceProof:         mustGetEnv("INDEXING_SERVICE_PROOF"),
-		RanLinkIndexTableName:        mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
-		ReceiptStoreBucket:           mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
-		ReceiptStorePrefix:           os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
-		SQSPDPPieceAggregatorURL:     os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
-		SQSPDPAggregateSubmitterURL:  os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
-		SQSPDPPieceAccepterURL:       os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),
-		PDPProofSet:                  proofSet,
-		CurioURL:                     os.Getenv("CURIO_URL"),
-		PrincipalMapping:             principalMapping,
+		Config:                         awsConfig,
+		Signer:                         id,
+		ChunkLinksTableName:            mustGetEnv("CHUNK_LINKS_TABLE_NAME"),
+		MetadataTableName:              mustGetEnv("METADATA_TABLE_NAME"),
+		IPNIStoreBucket:                mustGetEnv("IPNI_STORE_BUCKET_NAME"),
+		IPNIStorePrefix:                ipniStoreKeyPrefix,
+		IPNIPublisherAnnounceAddress:   ipniPublisherAnnounceAddress,
+		BlobsPublicURL:                 blobsPublicURL,
+		ClaimStoreBucket:               mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
+		ClaimStorePrefix:               os.Getenv("CLAIM_STORE_KEY_REFIX"),
+		AllocationsTableName:           mustGetEnv("ALLOCATIONS_TABLE_NAME"),
+		BlobStoreBucketRegion:          os.Getenv("BLOB_STORE_BUCKET_REGION"),
+		BlobStoreBucketAccessKeyID:     secrets[os.Getenv("BLOB_STORE_BUCKET_ACCESS_KEY_ID")],
+		BlobStoreBucketSecretAccessKey: secrets[os.Getenv("BLOB_STORE_BUCKET_SECRET_ACCESS_KEY")],
+		BlobStoreBucket:                mustGetEnv("BLOB_STORE_BUCKET_NAME"),
+		BlobStorePrefix:                os.Getenv("BLOB_STORE_KEY_PREFIX"),
+		BufferBucket:                   os.Getenv("BUFFER_BUCKET_NAME"),
+		BufferPrefix:                   os.Getenv("BUFFER_KEY_PREFIX"),
+		AggregatesBucket:               os.Getenv("AGGREGATES_BUCKET_NAME"),
+		AggregatesPrefix:               os.Getenv("AGGREGATES_KEY_PREFIX"),
+		AnnounceURL:                    mustGetEnv("IPNI_ENDPOINT"),
+		PublicURL:                      mustGetEnv("PUBLIC_URL"),
+		IndexingServiceDID:             mustGetEnv("INDEXING_SERVICE_DID"),
+		IndexingServiceURL:             mustGetEnv("INDEXING_SERVICE_URL"),
+		IndexingServiceProof:           mustGetEnv("INDEXING_SERVICE_PROOF"),
+		RanLinkIndexTableName:          mustGetEnv("RAN_LINK_INDEX_TABLE_NAME"),
+		ReceiptStoreBucket:             mustGetEnv("RECEIPT_STORE_BUCKET_NAME"),
+		ReceiptStorePrefix:             os.Getenv("RECEIPT_STORE_KEY_PREFIX"),
+		SQSPDPPieceAggregatorURL:       os.Getenv("PIECE_AGGREGATOR_QUEUE_URL"),
+		SQSPDPAggregateSubmitterURL:    os.Getenv("AGGREGATE_SUBMITTER_QUEUE_URL"),
+		SQSPDPPieceAccepterURL:         os.Getenv("PIECE_ACCEPTER_QUEUE_URL"),
+		PDPProofSet:                    proofSet,
+		CurioURL:                       os.Getenv("CURIO_URL"),
+		PrincipalMapping:               principalMapping,
 	}
 }
 
