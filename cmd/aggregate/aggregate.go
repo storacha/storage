@@ -37,5 +37,5 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(-1)
 	}
-	fmt.Printf(string(asJson))
+	fmt.Print(string(asJson))
 }

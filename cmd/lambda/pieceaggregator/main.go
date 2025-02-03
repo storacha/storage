@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-capabilities/pkg/types"
@@ -18,8 +17,6 @@ import (
 	"github.com/storacha/storage/pkg/pdp/aggregator"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 )
-
-var log = logging.Logger("lambda/providercache")
 
 func makeHandler(pieceAggregator *aggregator.PieceAggregator) func(ctx context.Context, sqsEvent events.SQSEvent) error {
 	return func(ctx context.Context, sqsEvent events.SQSEvent) error {
