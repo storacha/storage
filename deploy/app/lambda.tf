@@ -88,8 +88,8 @@ resource "aws_lambda_function" "lambda" {
       ALLOCATIONS_TABLE_NAME              = aws_dynamodb_table.allocation_store.id
       BLOB_STORE_BUCKET_ENDPOINT          = var.use_external_blob_bucket ? var.external_blob_bucket_endpoint : ""
       BLOB_STORE_BUCKET_REGION            = var.use_external_blob_bucket ? var.external_blob_bucket_region : aws_s3_bucket.blob_store_bucket.region
-      BLOB_STORE_BUCKET_ACCESS_KEY_ID     = var.use_external_blob_bucket ? var.external_blob_bucket_access_key_id : ""
-      BLOB_STORE_BUCKET_SECRET_ACCESS_KEY = var.use_external_blob_bucket ? var.external_blob_bucket_secret_access_key : ""
+      BLOB_STORE_BUCKET_ACCESS_KEY_ID     = var.use_external_blob_bucket ? aws_ssm_parameter.external_blob_bucket_access_key_id[0].name : ""
+      BLOB_STORE_BUCKET_SECRET_ACCESS_KEY = var.use_external_blob_bucket ? aws_ssm_parameter.external_blob_bucket_secret_access_key[0].name : ""
       BLOB_STORE_BUCKET_REGIONAL_DOMAIN   = var.use_external_blob_bucket ? var.external_blob_bucket_domain : aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
       BLOB_STORE_BUCKET_NAME              = var.use_external_blob_bucket ? var.external_blob_bucket_name : aws_s3_bucket.blob_store_bucket.bucket
       BLOB_STORE_KEY_PREFIX               = "blob/"
@@ -245,12 +245,14 @@ data "aws_iam_policy_document" "lambda_ssm_document" {
     effect = "Allow"
 
     actions = [
-      "ssm:GetParameter",
+      "ssm:GetParameters",
     ]
 
-    resources = [
-      aws_ssm_parameter.private_key.arn
-    ]
+    resources = var.use_external_blob_bucket ? [
+      aws_ssm_parameter.private_key.arn,
+      aws_ssm_parameter.external_blob_bucket_access_key_id[0].arn,
+      aws_ssm_parameter.external_blob_bucket_secret_access_key[0].arn,
+    ] : [aws_ssm_parameter.private_key.arn]
   }
 }
 
