@@ -57,10 +57,10 @@ func TestServer(t *testing.T) {
 	)
 
 	t.Run("blob/allocate", func(t *testing.T) {
-		space := testutil.RandomDID()
-		digest := testutil.RandomMultihash()
+		space := testutil.RandomDID(t)
+		digest := testutil.RandomMultihash(t)
 		size := uint64(rand.IntN(32) + 1)
-		cause := testutil.RandomCID()
+		cause := testutil.RandomCID(t)
 
 		nb := blob.AllocateCaveats{
 			Space: space,
@@ -104,11 +104,11 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("repeat blob/allocate for same blob", func(t *testing.T) {
-		space := testutil.RandomDID()
+		space := testutil.RandomDID(t)
 		size := uint64(rand.IntN(32) + 1)
-		data := testutil.RandomBytes(int(size))
+		data := testutil.RandomBytes(t, int(size))
 		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
-		cause := testutil.RandomCID()
+		cause := testutil.RandomCID(t)
 
 		nb := blob.AllocateCaveats{
 			Space: space,
@@ -173,12 +173,12 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("repeat blob/allocate for same blob in different space", func(t *testing.T) {
-		space0 := testutil.RandomDID()
-		space1 := testutil.RandomDID()
+		space0 := testutil.RandomDID(t)
+		space1 := testutil.RandomDID(t)
 		size := uint64(rand.IntN(32) + 1)
-		data := testutil.RandomBytes(int(size))
+		data := testutil.RandomBytes(t, int(size))
 		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
-		cause := testutil.RandomCID()
+		cause := testutil.RandomCID(t)
 
 		invokeBlobAllocate := func(space did.DID) result.Result[blob.AllocateOk, fdm.FailureModel] {
 			nb := blob.AllocateCaveats{
@@ -232,11 +232,11 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("blob/accept", func(t *testing.T) {
-		space := testutil.RandomDID()
+		space := testutil.RandomDID(t)
 		size := uint64(rand.IntN(32) + 1)
-		data := testutil.RandomBytes(int(size))
+		data := testutil.RandomBytes(t, int(size))
 		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
-		cause := testutil.RandomCID()
+		cause := testutil.RandomCID(t)
 
 		allocNb := blob.AllocateCaveats{
 			Space: space,
@@ -270,7 +270,7 @@ func TestServer(t *testing.T) {
 			Put: blob.Promise{
 				UcanAwait: blob.Await{
 					Selector: ".out.ok",
-					Link:     testutil.RandomCID(),
+					Link:     testutil.RandomCID(t),
 				},
 			},
 		}

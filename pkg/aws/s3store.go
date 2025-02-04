@@ -48,9 +48,9 @@ func (s *S3Store) Put(ctx context.Context, key string, length uint64, data io.Re
 	return err
 }
 
-func NewS3Store(cfg aws.Config, bucket string, keyPrefix string) *S3Store {
+func NewS3Store(cfg aws.Config, bucket string, keyPrefix string, opts ...func(*s3.Options)) *S3Store {
 	return &S3Store{
-		s3Client:  s3.NewFromConfig(cfg),
+		s3Client:  s3.NewFromConfig(cfg, opts...),
 		bucket:    bucket,
 		keyPrefix: keyPrefix,
 	}

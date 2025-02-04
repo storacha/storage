@@ -49,9 +49,9 @@ func (s *S3IndexerProofs) Get(ctx context.Context) ([]delegation.Proof, error) {
 	return proofs, nil
 }
 
-func NewS3IndexerProofs(cfg aws.Config, bucket string, keyPrefix string) *S3IndexerProofs {
+func NewS3IndexerProofs(cfg aws.Config, bucket string, keyPrefix string, opts ...func(*s3.Options)) *S3IndexerProofs {
 	return &S3IndexerProofs{
-		s3Client:  s3.NewFromConfig(cfg),
+		s3Client:  s3.NewFromConfig(cfg, opts...),
 		bucket:    bucket,
 		keyPrefix: keyPrefix,
 	}

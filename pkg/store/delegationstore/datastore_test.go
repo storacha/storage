@@ -18,10 +18,10 @@ func TestDsDelegationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		dlg, err := delegation.Delegate(
-			testutil.RandomSigner(),
-			testutil.RandomDID(),
+			testutil.RandomSigner(t),
+			testutil.RandomDID(t),
 			[]ucan.Capability[ok.Unit]{
-				ucan.NewCapability("test/test", testutil.RandomDID().String(), ok.Unit{}),
+				ucan.NewCapability("test/test", testutil.RandomDID(t).String(), ok.Unit{}),
 			},
 		)
 		require.NoError(t, err)

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -103,7 +104,9 @@ func NewPDP(cfg Config) (*PDP, error) {
 var _ pdp.PDP = (*PDP)(nil)
 
 type Config struct {
-	aws.Config
+	Config                         aws.Config
+	S3Options                      []func(*s3.Options)
+	DynamoOptions                  []func(*dynamodb.Options)
 	AllocationsTableName           string
 	BlobStoreBucketEndpoint        string
 	BlobStoreBucketRegion          string
@@ -276,37 +279,30 @@ func FromEnv(ctx context.Context) Config {
 }
 
 func Construct(cfg Config) (storage.Service, error) {
-	var blobStore *S3BlobStore
+	blobStoreOpts := cfg.S3Options
 	if cfg.BlobStoreBucketAccessKeyID != "" && cfg.BlobStoreBucketSecretAccessKey != "" {
-		blobStore = NewS3BlobStore(
-			aws.Config{
-				Region: cfg.BlobStoreBucketRegion,
-				Credentials: credentials.NewStaticCredentialsProvider(
-					cfg.BlobStoreBucketAccessKeyID,
-					cfg.BlobStoreBucketSecretAccessKey,
-					"",
-				),
-			},
-			cfg.BlobStoreBucket,
-			cfg.BlobStorePrefix,
-			func(opts *s3.Options) {
-				if cfg.BlobStoreBucketEndpoint != "" {
-					opts.BaseEndpoint = &cfg.BlobStoreBucketEndpoint
-					opts.UsePathStyle = true
-				}
-			},
-		)
-	} else {
-		blobStore = NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix)
+		blobStoreOpts = append(blobStoreOpts, func(opts *s3.Options) {
+			opts.Region = cfg.BlobStoreBucketRegion
+			opts.Credentials = credentials.NewStaticCredentialsProvider(
+				cfg.BlobStoreBucketAccessKeyID,
+				cfg.BlobStoreBucketSecretAccessKey,
+				"",
+			)
+			if cfg.BlobStoreBucketEndpoint != "" {
+				opts.BaseEndpoint = &cfg.BlobStoreBucketEndpoint
+				opts.UsePathStyle = true
+			}
+		})
 	}
-	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName)
-	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix))
+	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix, blobStoreOpts...)
+	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName, cfg.DynamoOptions...)
+	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix, cfg.S3Options...))
 	if err != nil {
 		return nil, fmt.Errorf("constructing claim store: %w", err)
 	}
-	ipniStore := NewS3Store(cfg.Config, cfg.IPNIStoreBucket, cfg.IPNIStorePrefix)
-	chunkLinksTable := NewDynamoProviderContextTable(cfg.Config, cfg.ChunkLinksTableName)
-	metadataTable := NewDynamoProviderContextTable(cfg.Config, cfg.MetadataTableName)
+	ipniStore := NewS3Store(cfg.Config, cfg.IPNIStoreBucket, cfg.IPNIStorePrefix, cfg.S3Options...)
+	chunkLinksTable := NewDynamoProviderContextTable(cfg.Config, cfg.ChunkLinksTableName, cfg.DynamoOptions...)
+	metadataTable := NewDynamoProviderContextTable(cfg.Config, cfg.MetadataTableName, cfg.DynamoOptions...)
 	publisherStore := store.NewPublisherStore(ipniStore, chunkLinksTable, metadataTable, store.WithMetadataContext(metadata.MetadataContext))
 	pubURL, err := url.Parse(cfg.PublicURL)
 	if err != nil {
@@ -337,8 +333,8 @@ func Construct(cfg Config) (storage.Service, error) {
 	if len(indexingServiceProofs) == 0 {
 		return nil, ErrIndexingServiceProofsMissing
 	}
-	ranLinkIndex := NewDynamoRanLinkIndex(cfg.Config, cfg.RanLinkIndexTableName)
-	s3ReceiptStore := NewS3Store(cfg.Config, cfg.ReceiptStoreBucket, cfg.ReceiptStorePrefix)
+	ranLinkIndex := NewDynamoRanLinkIndex(cfg.Config, cfg.RanLinkIndexTableName, cfg.DynamoOptions...)
+	s3ReceiptStore := NewS3Store(cfg.Config, cfg.ReceiptStoreBucket, cfg.ReceiptStorePrefix, cfg.S3Options...)
 	receiptStore, err := receiptstore.NewReceiptStore(s3ReceiptStore, ranLinkIndex)
 	if err != nil {
 		return nil, fmt.Errorf("setting up receipt store: %w", err)

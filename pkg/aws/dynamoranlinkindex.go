@@ -24,10 +24,10 @@ type DynamoRanLinkIndex struct {
 var _ receiptstore.RanLinkIndex = (*DynamoRanLinkIndex)(nil)
 
 // NewDynamoRanLinkIndex returns a ProviderContextTable connected to a AWS DynamoDB table
-func NewDynamoRanLinkIndex(cfg aws.Config, tableName string) *DynamoRanLinkIndex {
+func NewDynamoRanLinkIndex(cfg aws.Config, tableName string, opts ...func(*dynamodb.Options)) *DynamoRanLinkIndex {
 	return &DynamoRanLinkIndex{
 		tableName:      tableName,
-		dynamoDbClient: dynamodb.NewFromConfig(cfg),
+		dynamoDbClient: dynamodb.NewFromConfig(cfg, opts...),
 	}
 }
 

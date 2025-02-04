@@ -26,10 +26,10 @@ type DynamoProviderContextTable struct {
 var _ store.ProviderContextTable = (*DynamoProviderContextTable)(nil)
 
 // NewDynamoProviderContextTable returns a ProviderContextTable connected to a AWS DynamoDB table
-func NewDynamoProviderContextTable(cfg aws.Config, tableName string) *DynamoProviderContextTable {
+func NewDynamoProviderContextTable(cfg aws.Config, tableName string, opts ...func(*dynamodb.Options)) *DynamoProviderContextTable {
 	return &DynamoProviderContextTable{
 		tableName:      tableName,
-		dynamoDbClient: dynamodb.NewFromConfig(cfg),
+		dynamoDbClient: dynamodb.NewFromConfig(cfg, opts...),
 	}
 }
 

@@ -43,8 +43,8 @@ func TestPublisherService(t *testing.T) {
 		svc, err := New(testutil.Alice, publisherStore, addr, WithLogLevel("info"))
 		require.NoError(t, err)
 
-		space := testutil.RandomDID()
-		shard := testutil.RandomMultihash()
+		space := testutil.RandomDID(t)
+		shard := testutil.RandomMultihash(t)
 		location := testutil.Must(url.Parse(fmt.Sprintf("http://localhost:3000/blob/%s", digestutil.Format(shard))))(t)
 
 		claim, err := assert.Location.Delegate(
@@ -143,8 +143,8 @@ func TestPublisherService(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		space := testutil.RandomDID()
-		shard := testutil.RandomMultihash()
+		space := testutil.RandomDID(t)
+		shard := testutil.RandomMultihash(t)
 		location := testutil.Must(url.Parse(fmt.Sprintf("http://localhost:3000/blob/%s", digestutil.Format(shard))))(t)
 
 		claim, err := assert.Location.Delegate(

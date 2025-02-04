@@ -18,13 +18,13 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc := allocation.Allocation{
-			Space: testutil.RandomDID(),
+			Space: testutil.RandomDID(t),
 			Blob: allocation.Blob{
-				Digest: testutil.RandomMultihash(),
+				Digest: testutil.RandomMultihash(t),
 				Size:   uint64(1 + rand.IntN(1000)),
 			},
 			Expires: uint64(time.Now().Unix()),
-			Cause:   testutil.RandomCID(),
+			Cause:   testutil.RandomCID(t),
 		}
 
 		err = store.Put(context.Background(), alloc)
@@ -41,20 +41,20 @@ func TestDsAllocationStore(t *testing.T) {
 		require.NoError(t, err)
 
 		alloc0 := allocation.Allocation{
-			Space: testutil.RandomDID(),
+			Space: testutil.RandomDID(t),
 			Blob: allocation.Blob{
-				Digest: testutil.RandomMultihash(),
+				Digest: testutil.RandomMultihash(t),
 				Size:   uint64(1 + rand.IntN(1000)),
 			},
 			Expires: uint64(time.Now().Unix()),
-			Cause:   testutil.RandomCID(),
+			Cause:   testutil.RandomCID(t),
 		}
 
 		alloc1 := allocation.Allocation{
-			Space:   testutil.RandomDID(),
+			Space:   testutil.RandomDID(t),
 			Blob:    alloc0.Blob,
 			Expires: uint64(time.Now().Unix()),
-			Cause:   testutil.RandomCID(),
+			Cause:   testutil.RandomCID(t),
 		}
 
 		err = store.Put(context.Background(), alloc0)

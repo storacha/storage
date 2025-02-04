@@ -22,10 +22,10 @@ type DynamoAllocationStore struct {
 }
 
 // NewDynamoAllocationStore returns an AllocationStore connected to a AWS DynamoDB table
-func NewDynamoAllocationStore(cfg aws.Config, tableName string) *DynamoAllocationStore {
+func NewDynamoAllocationStore(cfg aws.Config, tableName string, opts ...func(*dynamodb.Options)) *DynamoAllocationStore {
 	return &DynamoAllocationStore{
 		tableName:      tableName,
-		dynamoDbClient: dynamodb.NewFromConfig(cfg),
+		dynamoDbClient: dynamodb.NewFromConfig(cfg, opts...),
 	}
 }
 

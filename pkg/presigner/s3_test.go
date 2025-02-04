@@ -15,7 +15,7 @@ func TestS3Signer(t *testing.T) {
 	endpoint, err := url.Parse("http://localhost:3000")
 	require.NoError(t, err)
 
-	signer := testutil.RandomSigner()
+	signer := testutil.RandomSigner(t)
 
 	accessKeyID := signer.DID().String()
 	secretAccessKey := testutil.Must(ed25519.Format(signer))(t)
@@ -24,7 +24,7 @@ func TestS3Signer(t *testing.T) {
 		reqSigner, err := NewS3RequestPresigner(accessKeyID, secretAccessKey, *endpoint, "data")
 		require.NoError(t, err)
 
-		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(), 138, 900)
+		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(t), 138, 900)
 		require.NoError(t, err)
 
 		fmt.Println(url.String())
@@ -38,7 +38,7 @@ func TestS3Signer(t *testing.T) {
 		reqSigner, err := NewS3RequestPresigner(accessKeyID, secretAccessKey, *endpoint, "")
 		require.NoError(t, err)
 
-		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(), 138, 900)
+		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(t), 138, 900)
 		require.NoError(t, err)
 
 		// mess with the url
@@ -54,7 +54,7 @@ func TestS3Signer(t *testing.T) {
 		reqSigner, err := NewS3RequestPresigner(accessKeyID, secretAccessKey, *endpoint, "")
 		require.NoError(t, err)
 
-		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(), 138, 900)
+		url, headers, err := reqSigner.SignUploadURL(context.Background(), testutil.RandomMultihash(t), 138, 900)
 		require.NoError(t, err)
 
 		// mess with the headers
