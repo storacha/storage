@@ -1,5 +1,6 @@
 locals {
   web_functions = { for k, v in local.functions : k => v if(v.route != "") }
+  domain_name   = terraform.workspace == "prod" ? "${var.app}.${var.domain}" : "${terraform.workspace}.${var.app}.${var.domain}"
 }
 
 resource "aws_apigatewayv2_api" "api" {
@@ -51,7 +52,7 @@ data "terraform_remote_state" "shared" {
 }
 
 resource "aws_acm_certificate" "cert" {
-  domain_name       = terraform.workspace == "prod" ? "${var.app}.${var.domain}" : "${terraform.workspace}.${var.app}.${var.domain}"
+  domain_name       = local.domain_name
   validation_method = "DNS"
 
   lifecycle {
@@ -73,7 +74,7 @@ resource "aws_acm_certificate_validation" "cert" {
   validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }
 resource "aws_apigatewayv2_domain_name" "custom_domain" {
-  domain_name = "${terraform.workspace}.${var.app}.${var.domain}"
+  domain_name = local.domain_name
 
   domain_name_configuration {
     certificate_arn = aws_acm_certificate_validation.cert.certificate_arn
@@ -103,7 +104,7 @@ resource "aws_apigatewayv2_api_mapping" "api_mapping" {
 
 resource "aws_route53_record" "api_gateway" {
   zone_id = data.terraform_remote_state.shared.outputs.primary_zone.zone_id
-  name    = "${terraform.workspace}.${var.app}.${var.domain}"
+  name    = aws_apigatewayv2_domain_name.custom_domain.domain_name
   type    = "A"
 
   alias {
@@ -153,12 +154,12 @@ data "aws_iam_policy_document" "api_gateway_logging_policy" {
 }
 
 resource "aws_iam_role" "api_gateway_logging_role" {
-  name               = "api-gateway-logging-role"
+  name               = "${terraform.workspace}-${var.app}-api-gateway-logging-role"
   assume_role_policy = data.aws_iam_policy_document.api_gateway_assume_role_policy.json
 }
 
 resource "aws_iam_role_policy" "api_gateway_logging_role_policy" {
-  name   = "api-gateway-logging-policy"
+  name   = "${terraform.workspace}-${var.app}-api-gateway-logging-policy"
   role   = aws_iam_role.api_gateway_logging_role.name
   policy = data.aws_iam_policy_document.api_gateway_logging_policy.json
 }
