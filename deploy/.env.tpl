@@ -4,7 +4,7 @@
 
 # Your name. Note: "staging" and "prod" are reserved for deployments from CI.
 TF_WORKSPACE=
-# Generate using CLI: `./storage identity gen`.
+# Generate using CLI: `storage identity gen`.
 TF_VAR_private_key=
 # A delegation granting the DID of this storage node (public key corresponding
 # to the value set in `TF_VAR_private_key`) "claim/cache" on an indexer node.

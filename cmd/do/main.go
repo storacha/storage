@@ -13,6 +13,7 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
+	"github.com/storacha/storage/cmd"
 	"github.com/storacha/storage/pkg/principalresolver"
 	s3ds "github.com/storacha/storage/pkg/s3"
 	"github.com/storacha/storage/pkg/server"
@@ -214,7 +215,7 @@ func main() {
 					go func() {
 						time.Sleep(time.Millisecond * 50)
 						if err == nil {
-							printHero(id.DID())
+							cmd.PrintHero(id.DID())
 						}
 					}()
 
@@ -232,20 +233,4 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func printHero(id did.DID) {
-	fmt.Printf(`
- 00000000                                                   00                  
-00      00    00                                            00                  
- 000        000000   00000000   00000  0000000    0000000   00000000    0000000 
-    00000     00    00     000  00           00  00     0   00    00         00 
-        000   00    00      00  00     00000000  00         00    00    0000000 
-000     000   00    00     000  00    000    00  000    00  00    00   00    00 
- 000000000    0000   0000000    00     000000000   000000   00    00   000000000
-
-🔥 Storage Node %s
-🆔 %s
-🚀 Ready!
-`, "v0.0.0", id.String())
 }

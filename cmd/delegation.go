@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var delegationCmd = &cli.Command{
+var DelegationCmd = &cli.Command{
 	Name:    "delegation",
 	Aliases: []string{"dg"},
 	Usage:   "Delegation tools.",

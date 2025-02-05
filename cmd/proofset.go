@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var proofSetCmd = &cli.Command{
+var ProofSetCmd = &cli.Command{
 	Name:    "proofset",
 	Aliases: []string{"ps"},
 	Usage:   "proofset tools.",

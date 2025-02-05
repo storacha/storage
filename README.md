@@ -8,7 +8,9 @@
 
 ### Getting Started
 
-First, generate a private key for your storage node. This can be done on any computer, not necessarily the deployment target.
+Install [Go](https://go.dev) v1.23.3 or higher.
+
+Next, generate a private key for your storage node. This can be done on any computer, not necessarily the deployment target.
 
 Clone the repo and `cd` into the repo directory:
 
@@ -17,21 +19,21 @@ git clone https://github.com/storacha/storage.git
 cd storage
 ```
 
-Build the CLI tool:
+Build and install the CLI tool:
 
 ```sh
-go build -o ./storage ./cmd
+make install
 ```
 
 Generate a new identity:
 
 ```sh
-./storage identity gen
+storage identity gen
 ```
 
 Make a note of your node identity. The string beginning `Mg` is your private key. Do not share this with anyone.
 
-Next, obtain a delegation allowing your node to publish claims to the Storacha Indexer node(s). Contact the engineers in `#node-providers` on the Storacha Discord - give them your public key (the string beginning with `did:key:`).
+Next, obtain a delegation allowing your node to publish claims to the Storacha Indexer node(s). Contact the engineers in `#node-providers` on the Storacha Discord - give them your _public_ key (the string beginning with `did:key:`).
 
 ### System Requriements
 
@@ -55,7 +57,7 @@ STORAGE_INDEXING_SERVICE_PROOF=  # delegation(s) from the Storacha Indexing node
 Clone the repo and build the binary as per the [getting started](#getting-started) section. Set environment variables as above. The following command will start the Storage Node daemon:
 
 ```sh
-./storage start
+storage start
 ```
 
 #### Deployment to DigitalOcean

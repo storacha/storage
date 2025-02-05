@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bytes"
@@ -22,7 +22,8 @@ import (
 )
 
 var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 requires a size to be present")
-var clientCmd = &cli.Command{
+
+var ClientCmd = &cli.Command{
 	Name:    "client",
 	Aliases: []string{"c"},
 	Usage:   "test a running storage node as a client",
