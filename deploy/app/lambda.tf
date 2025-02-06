@@ -224,7 +224,9 @@ data "aws_iam_policy_document" "lambda_logs_document" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = [for k, group in aws_cloudwatch_log_group.lambda_log_group : group.arn]
+    resources = [
+      "arn:aws:logs:*:*:*"
+    ]
   }
 }
 
