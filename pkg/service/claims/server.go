@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -29,9 +30,10 @@ func (srv *Server) Serve(mux *http.ServeMux) {
 
 func NewHandler(claims claimstore.ClaimStore) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := cid.Parse(r.PathValue("claim"))
+		parts := strings.Split(r.URL.Path, "/")
+		c, err := cid.Parse(parts[len(parts)-1])
 		if err != nil {
-			http.Error(w, fmt.Sprintf("invalid CID: %s", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("invalid claim CID: %s", err), http.StatusBadRequest)
 			return
 		}
 
