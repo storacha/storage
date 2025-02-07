@@ -17,8 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-piece/pkg/piece"
@@ -204,22 +202,13 @@ func FromEnv(ctx context.Context) Config {
 		}
 	}
 
-	cryptoPrivKey, err := crypto.UnmarshalEd25519PrivateKey(id.Raw())
-	if err != nil {
-		panic(fmt.Errorf("unmarshaling private key: %w", err))
-	}
-
 	ipniStoreKeyPrefix := os.Getenv("IPNI_STORE_KEY_PREFIX")
 	if len(ipniStoreKeyPrefix) == 0 {
 		ipniStoreKeyPrefix = "ipni/v1/ad/"
 	}
 
-	peer, err := peer.IDFromPrivateKey(cryptoPrivKey)
-	if err != nil {
-		panic(fmt.Errorf("parsing private key to peer: %w", err))
-	}
+	ipniPublisherAnnounceAddress := fmt.Sprintf("/dns/%s/https", mustGetEnv("IPNI_STORE_BUCKET_REGIONAL_DOMAIN"))
 
-	ipniPublisherAnnounceAddress := fmt.Sprintf("/dns4/%s/tcp/443/https/p2p/%s", mustGetEnv("IPNI_STORE_BUCKET_REGIONAL_DOMAIN"), peer.String())
 	blobsPublicURL := "https://" + mustGetEnv("BLOB_STORE_BUCKET_REGIONAL_DOMAIN")
 	proofSetString := os.Getenv("PDP_PROOFSET")
 	var proofSet uint64
