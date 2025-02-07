@@ -1,10 +1,12 @@
+VERSION=$(shell awk -F'"' '/"version":/ {print $$4}' version.json)
+
 storage:
-	go build -o ./storage ./cmd/storage
+	go build -ldflags="-s -w -X github.com/storacha/storage/pkg/build.version=$(VERSION)" -o ./storage ./cmd/storage
 
 .PHONY: install
 
 install:
-	go install ./cmd/storage
+	go install -ldflags="-s -w -X github.com/storacha/storage/pkg/build.version=$(VERSION)" ./cmd/storage
 
 .PHONY: clean
 
