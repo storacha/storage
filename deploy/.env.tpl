@@ -53,7 +53,7 @@ TF_VAR_external_blob_bucket_secret_access_key=
 # Indexing service configuration ###############################################
 
 TF_VAR_indexing_service_did=did:web:indexer.storacha.network
-TF_VAR_indexing_service_url=https://indexer.storacha.network
+TF_VAR_indexing_service_url=https://indexer.storacha.network/claims
 
 # Debugging ####################################################################
 

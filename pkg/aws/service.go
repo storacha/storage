@@ -211,7 +211,7 @@ func FromEnv(ctx context.Context) Config {
 
 	ipniStoreKeyPrefix := os.Getenv("IPNI_STORE_KEY_PREFIX")
 	if len(ipniStoreKeyPrefix) == 0 {
-		ipniStoreKeyPrefix = "/ipni/v1/ad/"
+		ipniStoreKeyPrefix = "ipni/v1/ad/"
 	}
 
 	peer, err := peer.IDFromPrivateKey(cryptoPrivKey)
