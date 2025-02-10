@@ -15,7 +15,7 @@ func TestPatternAccess(t *testing.T) {
 		access, err := NewPatternAccess(fmt.Sprintf("%s{blob}", prefix))
 		require.NoError(t, err)
 
-		url, err := access.GetDownloadURL(testutil.RandomMultihash())
+		url, err := access.GetDownloadURL(testutil.RandomMultihash(t))
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(url.String(), prefix))
 	})
@@ -30,7 +30,7 @@ func TestPatternAccess(t *testing.T) {
 		access, err := NewPatternAccess("://localhost/{blob}")
 		require.NoError(t, err)
 
-		_, err = access.GetDownloadURL(testutil.RandomMultihash())
+		_, err = access.GetDownloadURL(testutil.RandomMultihash(t))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "missing protocol scheme")
 	})

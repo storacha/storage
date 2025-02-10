@@ -1,3 +1,7 @@
-/cmd/storage
+/.vscode
 /storage
-/build
+*.car
+build
+.terraform
+.env
+.tfworkspace

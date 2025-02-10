@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipni/go-libipni/maurl"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-metadata"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
@@ -165,9 +164,19 @@ func New(opts ...Option) (*StorageService, error) {
 			blobStore = blobstore.NewMapBlobstore()
 			log.Warn("Blob store not configured, using in-memory store")
 		}
+
 		blobOpts = append(blobOpts, blobs.WithBlobstore(blobStore))
-		blobOpts = append(blobOpts, blobs.WithPublicURLAccess(pubURL))
-		blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
+		if c.blobsPublicURL != (url.URL{}) {
+			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(c.blobsPublicURL))
+		} else {
+			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(pubURL))
+		}
+
+		if c.blobsPresigner != nil {
+			blobOpts = append(blobOpts, blobs.WithPresigner(c.blobsPresigner))
+		} else {
+			blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
+		}
 	} else {
 		curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 		if err != nil {
@@ -187,24 +196,18 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating blob service: %w", err)
 	}
 
-	var ma multiaddr.Multiaddr
-	if c.publisherAnnouceAddr != "" {
-		ma, err = multiaddr.NewMultiaddr(c.publisherAnnouceAddr)
-		if err != nil {
-			return nil, fmt.Errorf("parsing publisher address: %w", err)
-		}
-	} else {
-		ma, err = maurl.FromURL(&pubURL)
-		if err != nil {
-			return nil, fmt.Errorf("parsing publisher url as multiaddr: %w", err)
-		}
+	peerAddr, err := maurl.FromURL(&pubURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing publisher url as multiaddr: %w", err)
 	}
+
 	claims, err := claims.New(
 		id,
 		claimStore,
 		publisherStore,
-		ma,
+		peerAddr,
 		claims.WithPublisherDirectAnnounce(c.announceURLs...),
+		claims.WithPublisherAnnounceAddress(c.publisherAnnouceAddr),
 		claims.WithPublisherIndexingService(c.indexingService),
 		claims.WithPublisherIndexingServiceProof(c.indexingServiceProofs...),
 	)

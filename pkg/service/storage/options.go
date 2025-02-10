@@ -5,6 +5,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/principal"
@@ -12,6 +13,7 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/presigner"
 	"github.com/storacha/storage/pkg/store/allocationstore"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/claimstore"
@@ -28,6 +30,8 @@ type PDPConfig struct {
 type config struct {
 	id                    principal.Signer
 	publicURL             url.URL
+	blobsPublicURL        url.URL
+	blobsPresigner        presigner.RequestPresigner
 	blobStore             blobstore.Blobstore
 	allocationStore       allocationstore.AllocationStore
 	allocationDatastore   datastore.Datastore
@@ -35,7 +39,7 @@ type config struct {
 	claimDatastore        datastore.Datastore
 	publisherStore        store.PublisherStore
 	publisherDatastore    datastore.Datastore
-	publisherAnnouceAddr  string
+	publisherAnnouceAddr  multiaddr.Multiaddr
 	receiptStore          receiptstore.ReceiptStore
 	receiptDatastore      datastore.Datastore
 	pdp                   *PDPConfig
@@ -68,6 +72,22 @@ func WithPublicURL(url url.URL) Option {
 func WithBlobstore(blobStore blobstore.Blobstore) Option {
 	return func(c *config) error {
 		c.blobStore = blobStore
+		return nil
+	}
+}
+
+// WithBlobsPublicURL configures the blob storage to use a public URL
+func WithBlobsPublicURL(blobStorePublicURL url.URL) Option {
+	return func(c *config) error {
+		c.blobsPublicURL = blobStorePublicURL
+		return nil
+	}
+}
+
+// WithBlobsPresigner configures the blob storage to use a set presigner
+func WithBlobsPresigner(blobStorePresigner presigner.RequestPresigner) Option {
+	return func(c *config) error {
+		c.blobsPresigner = blobStorePresigner
 		return nil
 	}
 }
@@ -135,18 +155,18 @@ func WithPublisherStore(publisherStore store.PublisherStore) Option {
 
 // WithPublisherDatastore configures the underlying datastore to use for storing
 // IPNI advertisements and their entries.
-func WithPublisherAnnounceAddr(publisherAnnounceAddr string) Option {
+func WithPublisherDatastore(dstore datastore.Datastore) Option {
 	return func(c *config) error {
-		c.publisherAnnouceAddr = publisherAnnounceAddr
+		c.publisherDatastore = dstore
 		return nil
 	}
 }
 
-// WithPublisherDatastore configures the underlying datastore to use for storing
-// IPNI advertisements and their entries.
-func WithPublisherDatastore(dstore datastore.Datastore) Option {
+// WithPublisherAnnounceAddress sets the address put into announce messages to
+// tell indexers where to fetch advertisements from.
+func WithPublisherAnnounceAddress(addr multiaddr.Multiaddr) Option {
 	return func(c *config) error {
-		c.publisherDatastore = dstore
+		c.publisherAnnouceAddr = addr
 		return nil
 	}
 }

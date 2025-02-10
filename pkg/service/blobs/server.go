@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -54,8 +55,8 @@ func NewBlobPutHandler(presigner presigner.RequestPresigner, allocs allocationst
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-
-		_, bytes, err := multibase.Decode(r.PathValue("blob"))
+		parts := strings.Split(r.URL.Path, "/")
+		_, bytes, err := multibase.Decode(parts[len(parts)-1])
 		if err != nil {
 			http.Error(w, fmt.Sprintf("decoding multibase encoded digest: %s", err), http.StatusBadRequest)
 			return

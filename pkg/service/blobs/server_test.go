@@ -41,7 +41,7 @@ func TestServer(t *testing.T) {
 	blobs, err := blobstore.NewFsBlobstore(rootdir, tmpdir)
 	require.NoError(t, err)
 
-	signer := testutil.RandomSigner()
+	signer := testutil.RandomSigner(t)
 	accessKeyID := signer.DID().String()
 	secretAccessKey := testutil.Must(ed25519.Format(signer))(t)
 	presigner, err := presigner.NewS3RequestPresigner(accessKeyID, secretAccessKey, *srvurl, "blob")
@@ -56,7 +56,7 @@ func TestServer(t *testing.T) {
 	srv.Serve(mux)
 
 	t.Run("get blob", func(t *testing.T) {
-		data := testutil.RandomBytes(32)
+		data := testutil.RandomBytes(t, 32)
 		digest, err := multihash.Sum(data, multihash.SHA2_256, -1)
 		require.NoError(t, err)
 
@@ -68,12 +68,12 @@ func TestServer(t *testing.T) {
 
 	t.Run("put blob", func(t *testing.T) {
 		t.Run("basic", func(t *testing.T) {
-			data := testutil.RandomBytes(32)
+			data := testutil.RandomBytes(t, 32)
 			digest, err := multihash.Sum(data, multihash.SHA2_256, -1)
 			require.NoError(t, err)
 
 			// create a fake allocation
-			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
+			err = allocs.Put(context.Background(), randomAllocation(t, digest, uint64(len(data))))
 			require.NoError(t, err)
 
 			putBlob(t, presigner, digest, data, http.StatusOK)
@@ -81,12 +81,12 @@ func TestServer(t *testing.T) {
 		})
 
 		t.Run("allow repeated write", func(t *testing.T) {
-			data := testutil.RandomBytes(32)
+			data := testutil.RandomBytes(t, 32)
 			digest, err := multihash.Sum(data, multihash.SHA2_256, -1)
 			require.NoError(t, err)
 
 			// create fake allocation
-			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
+			err = allocs.Put(context.Background(), randomAllocation(t, digest, uint64(len(data))))
 			require.NoError(t, err)
 
 			putBlob(t, presigner, digest, data, http.StatusOK)
@@ -95,12 +95,12 @@ func TestServer(t *testing.T) {
 		})
 
 		t.Run("persist previous blob on repeated write failure", func(t *testing.T) {
-			data := testutil.RandomBytes(32)
+			data := testutil.RandomBytes(t, 32)
 			digest, err := multihash.Sum(data, multihash.SHA2_256, -1)
 			require.NoError(t, err)
 
 			// create a fake allocation
-			err = allocs.Put(context.Background(), randomAllocation(digest, uint64(len(data))))
+			err = allocs.Put(context.Background(), randomAllocation(t, digest, uint64(len(data))))
 			require.NoError(t, err)
 
 			putBlob(t, presigner, digest, data, http.StatusOK)
@@ -112,15 +112,15 @@ func TestServer(t *testing.T) {
 	})
 }
 
-func randomAllocation(digest multihash.Multihash, size uint64) allocation.Allocation {
+func randomAllocation(t *testing.T, digest multihash.Multihash, size uint64) allocation.Allocation {
 	return allocation.Allocation{
-		Space: testutil.RandomDID(),
+		Space: testutil.RandomDID(t),
 		Blob: allocation.Blob{
 			Digest: digest,
 			Size:   size,
 		},
 		Expires: uint64(time.Now().Unix() + 900),
-		Cause:   testutil.RandomCID(),
+		Cause:   testutil.RandomCID(t),
 	}
 }
 

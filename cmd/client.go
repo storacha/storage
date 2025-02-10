@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bytes"
@@ -21,8 +21,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 reqiures a size to be present")
-var clientCmd = &cli.Command{
+var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 requires a size to be present")
+
+var ClientCmd = &cli.Command{
 	Name:    "client",
 	Aliases: []string{"c"},
 	Usage:   "test a running storage node as a client",

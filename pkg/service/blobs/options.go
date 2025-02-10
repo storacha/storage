@@ -52,6 +52,13 @@ func WithPublicURLAccess(publicURL url.URL) Option {
 	}
 }
 
+func WithPresigner(presigner presigner.RequestPresigner) Option {
+	return func(o *options) error {
+		o.presigner = presigner
+		return nil
+	}
+}
+
 func WithPublicURLPresigner(id principal.Signer, publicURL url.URL) Option {
 	return func(o *options) error {
 

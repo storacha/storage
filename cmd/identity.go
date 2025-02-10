@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var identityCmd = &cli.Command{
+var IdentityCmd = &cli.Command{
 	Name:    "identity",
 	Aliases: []string{"id"},
 	Usage:   "Identity tools.",

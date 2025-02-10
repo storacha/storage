@@ -30,7 +30,7 @@ func TestBlobstore(t *testing.T) {
 
 	for k, s := range impls {
 		t.Run("roundtrip "+k, func(t *testing.T) {
-			data := testutil.RandomBytes(10)
+			data := testutil.RandomBytes(t, 10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
 			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(data))
@@ -43,7 +43,7 @@ func TestBlobstore(t *testing.T) {
 		})
 
 		t.Run("not found "+k, func(t *testing.T) {
-			data := testutil.RandomBytes(10)
+			data := testutil.RandomBytes(t, 10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
 			obj, err := s.Get(context.Background(), digest)
@@ -53,8 +53,8 @@ func TestBlobstore(t *testing.T) {
 		})
 
 		t.Run("data consistency "+k, func(t *testing.T) {
-			data := testutil.RandomBytes(10)
-			baddata := testutil.RandomBytes(10)
+			data := testutil.RandomBytes(t, 10)
+			baddata := testutil.RandomBytes(t, 10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
 			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(baddata))
@@ -62,7 +62,7 @@ func TestBlobstore(t *testing.T) {
 		})
 
 		t.Run("filesystemer "+k, func(t *testing.T) {
-			data := testutil.RandomBytes(10)
+			data := testutil.RandomBytes(t, 10)
 			digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
 
 			err := s.Put(context.Background(), digest, uint64(len(data)), bytes.NewBuffer(data))

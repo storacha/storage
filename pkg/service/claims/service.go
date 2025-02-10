@@ -23,7 +23,7 @@ func (c *ClaimService) Store() claimstore.ClaimStore {
 
 var _ Claims = (*ClaimService)(nil)
 
-func New(id principal.Signer, claimStore claimstore.ClaimStore, publisherStore store.PublisherStore, addr multiaddr.Multiaddr, opts ...Option) (*ClaimService, error) {
+func New(id principal.Signer, claimStore claimstore.ClaimStore, publisherStore store.PublisherStore, publicAddr multiaddr.Multiaddr, opts ...Option) (*ClaimService, error) {
 	o := &options{}
 	for _, opt := range opts {
 		err := opt(o)
@@ -35,10 +35,11 @@ func New(id principal.Signer, claimStore claimstore.ClaimStore, publisherStore s
 	publisher, err := publisher.New(
 		id,
 		publisherStore,
-		addr,
+		publicAddr,
 		publisher.WithDirectAnnounce(o.announceURLs...),
 		publisher.WithIndexingService(o.indexingService),
 		publisher.WithIndexingServiceProof(o.indexingServiceProofs...),
+		publisher.WithAnnounceAddress(o.announceAddr),
 	)
 	if err != nil {
 		return nil, err
