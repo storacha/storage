@@ -21,7 +21,7 @@ type SQSEventHandlerBuilder func(aws.Config) (SQSEventHandler, error)
 func StartSQSEventHandler(makeHandler SQSEventHandlerBuilder) {
 	ctx := context.Background()
 	cfg := aws.FromEnv(ctx)
-	telemetry.SetupErrorReporting()
+	telemetry.SetupErrorReporting(cfg.SentryDSN, cfg.SentryEnvironment)
 
 	handler, err := makeHandler(cfg)
 	if err != nil {
@@ -51,7 +51,7 @@ type HTTPHandlerBuilder func(aws.Config) (http.Handler, error)
 func StartHTTPHandler(makeHandler HTTPHandlerBuilder) {
 	ctx := context.Background()
 	cfg := aws.FromEnv(ctx)
-	telemetry.SetupErrorReporting()
+	telemetry.SetupErrorReporting(cfg.SentryDSN, cfg.SentryEnvironment)
 
 	handler, err := makeHandler(cfg)
 	if err != nil {

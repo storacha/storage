@@ -92,6 +92,18 @@ variable "principal_mapping" {
   default     = ""
 }
 
+variable "sentry_dsn" {
+  type        = string
+  description = "DSN for Sentry (get it from your Sentry project's properties). Leave unset to disable error reporting."
+  default     = ""
+}
+
+variable "sentry_environment" {
+  type        = string
+  description = "Environment name for Sentry"
+  default     = ""
+}
+
 // Externally hosted, S3 compatible blob bucket? These variables are for you.
 // Note: credentials MUST have s3:GetObject, s3:PutObject s3:ListBucket perms.
 

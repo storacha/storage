@@ -29,7 +29,7 @@ TF_VAR_region=us-west-2
 # Tags applied to AWS resources (useful for cost accounting).
 TF_VAR_app=storage
 TF_VAR_owner=storacha
-TF_VAR_team=Storacha Engineer
+TF_VAR_team=Storacha Engineering
 TF_VAR_org=Storacha
 
 # Curio integration ############################################################
@@ -37,6 +37,15 @@ TF_VAR_org=Storacha
 TF_VAR_use_pdp=false
 TF_VAR_pdp_proofset=0
 TF_VAR_curio_url=
+
+# Error reporting to Sentry ####################################################
+
+# Sentry DSN for error reporting. Obtain from sentry.io.
+# Leave blank to disable error reporting.
+TF_VAR_sentry_dsn=
+# Sentry environment to use for error reporting.
+# Defaults to the terraform workspace being used if not set.
+TF_VAR_sentry_environment=
 
 # External (S3 compatible) blob bucket #########################################
 

@@ -34,13 +34,14 @@ func NewHTTPError(err error, statusCode int) HTTPError {
 type ErrorReturningHTTPHandler func(http.ResponseWriter, *http.Request) error
 
 // SetupErrorReporting configures the Sentry SDK for error reporting
-func SetupErrorReporting() {
+func SetupErrorReporting(sentryDSN, environment string) {
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         "https://12f7f995ae45ad94bfdbe154f18f8404@o609598.ingest.us.sentry.io/4508777465446401",
-		Environment: "vic",
+		Dsn:         sentryDSN,
+		Environment: environment,
 		Release:     build.Version,
 		Transport:   sentry.NewHTTPSyncTransport(),
 	})
+
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
