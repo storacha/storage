@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -36,10 +37,11 @@ type ErrorReturningHTTPHandler func(http.ResponseWriter, *http.Request) error
 // SetupErrorReporting configures the Sentry SDK for error reporting
 func SetupErrorReporting(sentryDSN, environment string) {
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         sentryDSN,
-		Environment: environment,
-		Release:     build.Version,
-		Transport:   sentry.NewHTTPSyncTransport(),
+		Dsn:           sentryDSN,
+		Environment:   environment,
+		Release:       build.Version,
+		Transport:     sentry.NewHTTPSyncTransport(),
+		EnableTracing: false,
 	})
 
 	if err != nil {
@@ -51,7 +53,7 @@ func SetupErrorReporting(sentryDSN, environment string) {
 func NewErrorReportingHandler(errorReturningHandler ErrorReturningHTTPHandler) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := errorReturningHandler(w, r); err != nil {
-			ReportError(err)
+			ReportError(r.Context(), err)
 
 			// if the error is an HTTPError, send an appropriate response aside from reporting it
 			if e, ok := err.(HTTPError); ok {
@@ -65,6 +67,11 @@ func NewErrorReportingHandler(errorReturningHandler ErrorReturningHTTPHandler) h
 }
 
 // ReportError reports an error to Sentry
-func ReportError(err error) {
-	sentry.CaptureException(err)
+func ReportError(ctx context.Context, err error) {
+	hub := sentry.GetHubFromContext(ctx)
+	if hub != nil {
+		hub.CaptureException(err)
+	} else {
+		sentry.CaptureException(err)
+	}
 }

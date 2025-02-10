@@ -25,7 +25,7 @@ func StartSQSEventHandler(makeHandler SQSEventHandlerBuilder) {
 
 	handler, err := makeHandler(cfg)
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.ReportError(ctx, err)
 		panic(err)
 	}
 
@@ -37,7 +37,7 @@ func instrumentSQSEventHandler(handler SQSEventHandler) SQSEventHandler {
 	return func(ctx context.Context, sqsEvent events.SQSEvent) error {
 		err := handler(ctx, sqsEvent)
 		if err != nil {
-			telemetry.ReportError(err)
+			telemetry.ReportError(ctx, err)
 		}
 
 		return err
@@ -55,7 +55,7 @@ func StartHTTPHandler(makeHandler HTTPHandlerBuilder) {
 
 	handler, err := makeHandler(cfg)
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.ReportError(ctx, err)
 		panic(err)
 	}
 
