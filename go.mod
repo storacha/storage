@@ -29,6 +29,7 @@ require (
 	github.com/storacha/go-capabilities v0.0.0-20250120154346-44180817ecb7
 	github.com/storacha/go-jobqueue v0.0.0-20241103222443-bb7a7b589719
 	github.com/storacha/go-metadata v0.0.0-20241216142904-a60e20043cef
+	github.com/storacha/go-piece v0.0.0-20241110131739-7631aadb97ea
 	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
 	github.com/storacha/ipni-publisher v0.0.0-20241112152400-07a540928427
 	github.com/stretchr/testify v1.10.0
@@ -110,7 +111,6 @@ require (
 	github.com/polydawn/refmt v0.89.1-0.20231129105047-37766d95467a // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/storacha/go-piece v0.0.0-20241110131739-7631aadb97ea
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/ucan-wg/go-ucan v0.0.0-20240916120445-37f52863156c // indirect
 	github.com/whyrusleeping/cbor-gen v0.2.0 // indirect

@@ -38,7 +38,7 @@ func TestPublisherService(t *testing.T) {
 
 	t.Run("publishes location commitments", func(t *testing.T) {
 		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
-		publisherStore := store.FromDatastore(dstore)
+		publisherStore := store.FromDatastore(dstore, store.WithMetadataContext(metadata.MetadataContext))
 
 		svc, err := New(testutil.Alice, publisherStore, addr, WithLogLevel("info"))
 		require.NoError(t, err)
@@ -96,9 +96,40 @@ func TestPublisherService(t *testing.T) {
 		require.Equal(t, shard, ents[0])
 	})
 
+	t.Run("allow skip publish existing advert", func(t *testing.T) {
+		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
+		publisherStore := store.FromDatastore(dstore, store.WithMetadataContext(metadata.MetadataContext))
+
+		svc, err := New(testutil.Alice, publisherStore, addr, WithLogLevel("info"))
+		require.NoError(t, err)
+
+		space := testutil.RandomDID(t)
+		shard := testutil.RandomMultihash(t)
+		location := testutil.Must(url.Parse(fmt.Sprintf("http://localhost:3000/blob/%s", digestutil.Format(shard))))(t)
+
+		claim, err := assert.Location.Delegate(
+			testutil.Alice,
+			space,
+			testutil.Alice.DID().String(),
+			assert.LocationCaveats{
+				Space:    space,
+				Content:  types.FromHash(shard),
+				Location: []url.URL{*location},
+			},
+			delegation.WithNoExpiration(),
+		)
+		require.NoError(t, err)
+
+		err = svc.Publish(ctx, claim)
+		require.NoError(t, err)
+
+		err = svc.Publish(ctx, claim)
+		require.NoError(t, err)
+	})
+
 	t.Run("caches claims", func(t *testing.T) {
 		dstore := dssync.MutexWrap(datastore.NewMapDatastore())
-		publisherStore := store.FromDatastore(dstore)
+		publisherStore := store.FromDatastore(dstore, store.WithMetadataContext(metadata.MetadataContext))
 
 		handlerCalled := false
 		handler := func(cap ucan.Capability[claim.CacheCaveats], inv invocation.Invocation, ctx server.InvocationContext) (ok.Unit, fx.Effects, error) {

@@ -2,9 +2,11 @@ package publisher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
+	"sync"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -38,6 +40,7 @@ type PublisherService struct {
 	provider              peer.AddrInfo
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
+	mutex                 *sync.Mutex
 }
 
 func (pub *PublisherService) Store() store.PublisherStore {
@@ -48,7 +51,7 @@ func (pub *PublisherService) Publish(ctx context.Context, claim delegation.Deleg
 	ability := claim.Capabilities()[0].Can()
 	switch ability {
 	case assert.LocationAbility:
-		err := PublishLocationCommitment(ctx, pub.publisher, pub.provider, claim)
+		err := PublishLocationCommitment(ctx, pub.mutex, pub.publisher, pub.provider, claim)
 		if err != nil {
 			return err
 		}
@@ -60,6 +63,7 @@ func (pub *PublisherService) Publish(ctx context.Context, claim delegation.Deleg
 
 func PublishLocationCommitment(
 	ctx context.Context,
+	mutex *sync.Mutex,
 	publisher ipnipub.Publisher,
 	provider peer.AddrInfo,
 	locationCommitment delegation.Delegation,
@@ -90,9 +94,15 @@ func PublishLocationCommitment(
 		},
 	)
 
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	adlink, err := publisher.Publish(ctx, provider, string(contextid), slices.Values(digests), meta)
 	if err != nil {
-		return fmt.Errorf("publishing claim: %w", err)
+		if !errors.Is(err, ipnipub.ErrAlreadyAdvertised) {
+			return fmt.Errorf("publishing claim: %w", err)
+		}
+		log.Warnf("Skipping previously published claim")
 	}
 
 	log.Infof("Published advertisement: %s", adlink)
@@ -262,6 +272,7 @@ func New(
 		provInfo,
 		o.indexingService,
 		o.indexingServiceProofs,
+		&sync.Mutex{},
 	}, nil
 }
 
