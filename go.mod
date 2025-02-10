@@ -37,6 +37,11 @@ require (
 )
 
 require (
+	github.com/getsentry/sentry-go v0.31.1 // indirect
+	golang.org/x/text v0.21.0 // indirect
+)
+
+require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.8 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.19 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.29 // indirect

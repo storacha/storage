@@ -7,6 +7,7 @@ import (
 
 	"github.com/storacha/go-ucanto/server"
 	ucanhttp "github.com/storacha/go-ucanto/transport/http"
+	"github.com/storacha/storage/internal/telemetry"
 )
 
 type Server struct {
@@ -23,16 +24,14 @@ func NewServer(service Service, options ...server.Option) (*Server, error) {
 }
 
 func (srv *Server) Serve(mux *http.ServeMux) {
-	mux.HandleFunc("POST /", NewHandler(srv.ucanServer))
+	mux.Handle("POST /", NewHandler(srv.ucanServer))
 }
 
-func NewHandler(server server.ServerView) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func NewHandler(server server.ServerView) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) error {
 		res, err := server.Request(ucanhttp.NewHTTPRequest(r.Body, r.Header))
 		if err != nil {
-			log.Errorf("handling UCAN request: %w", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return telemetry.NewHTTPError(fmt.Errorf("handling UCAN request: %w", err), http.StatusInternalServerError)
 		}
 
 		for key, vals := range res.Headers() {
@@ -47,7 +46,11 @@ func NewHandler(server server.ServerView) func(http.ResponseWriter, *http.Reques
 
 		_, err = io.Copy(w, res.Body())
 		if err != nil {
-			log.Errorf("sending UCAN response: %w", err)
+			return fmt.Errorf("sending UCAN response: %w", err)
 		}
+
+		return nil
 	}
+
+	return telemetry.NewErrorReportingHandler(handler)
 }

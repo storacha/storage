@@ -6,11 +6,11 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/ipfs/go-cid"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-capabilities/pkg/types"
+	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/aws"
 	"github.com/storacha/storage/pkg/pdp/aggregator"
@@ -18,7 +18,22 @@ import (
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
-func makeHandler(pieceAccepter *aggregator.PieceAccepter) func(ctx context.Context, sqsEvent events.SQSEvent) error {
+func main() {
+	lambda.StartSQSEventHandler(makeHandler)
+}
+
+func makeHandler(cfg aws.Config) (lambda.SQSEventHandler, error) {
+	aggregateStore := ipldstore.IPLDStore[datamodel.Link, aggregate.Aggregate](
+		aws.NewS3Store(cfg.Config, cfg.AggregatesBucket, cfg.AggregatesPrefix),
+		aggregate.AggregateType(), types.Converters...)
+	ranLinkIndex := aws.NewDynamoRanLinkIndex(cfg.Config, cfg.RanLinkIndexTableName)
+	s3ReceiptStore := aws.NewS3Store(cfg.Config, cfg.ReceiptStoreBucket, cfg.ReceiptStorePrefix)
+	receiptStore, err := receiptstore.NewReceiptStore(s3ReceiptStore, ranLinkIndex)
+	if err != nil {
+		return nil, fmt.Errorf("setting up receipt store: %w", err)
+	}
+	pieceAccepter := aggregator.NewPieceAccepter(cfg.Signer, aggregateStore, receiptStore)
+
 	return func(ctx context.Context, sqsEvent events.SQSEvent) error {
 		// process messages in parallel
 		aggregateLinks := make([]datamodel.Link, 0, len(sqsEvent.Records))
@@ -36,20 +51,5 @@ func makeHandler(pieceAccepter *aggregator.PieceAccepter) func(ctx context.Conte
 			aggregateLinks = append(aggregateLinks, cidlink.Link{Cid: c})
 		}
 		return pieceAccepter.AcceptPieces(ctx, aggregateLinks)
-	}
-}
-
-func main() {
-	config := aws.FromEnv(context.Background())
-	aggregateStore := ipldstore.IPLDStore[datamodel.Link, aggregate.Aggregate](
-		aws.NewS3Store(config.Config, config.AggregatesBucket, config.AggregatesPrefix),
-		aggregate.AggregateType(), types.Converters...)
-	ranLinkIndex := aws.NewDynamoRanLinkIndex(config.Config, config.RanLinkIndexTableName)
-	s3ReceiptStore := aws.NewS3Store(config.Config, config.ReceiptStoreBucket, config.ReceiptStorePrefix)
-	receiptStore, err := receiptstore.NewReceiptStore(s3ReceiptStore, ranLinkIndex)
-	if err != nil {
-		panic(fmt.Errorf("setting up receipt store: %w", err))
-	}
-	pieceAccepter := aggregator.NewPieceAccepter(config.Signer, aggregateStore, receiptStore)
-	lambda.Start(makeHandler(pieceAccepter))
+	}, nil
 }
