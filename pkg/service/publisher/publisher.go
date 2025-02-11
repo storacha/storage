@@ -99,10 +99,11 @@ func PublishLocationCommitment(
 
 	adlink, err := publisher.Publish(ctx, provider, string(contextid), slices.Values(digests), meta)
 	if err != nil {
-		if !errors.Is(err, ipnipub.ErrAlreadyAdvertised) {
-			return fmt.Errorf("publishing claim: %w", err)
+		if errors.Is(err, ipnipub.ErrAlreadyAdvertised) {
+			log.Warnf("Skipping previously published claim")
+			return nil
 		}
-		log.Warnf("Skipping previously published claim")
+		return fmt.Errorf("publishing claim: %w", err)
 	}
 
 	log.Infof("Published advertisement: %s", adlink)
