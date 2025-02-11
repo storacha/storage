@@ -40,7 +40,7 @@ type PublisherService struct {
 	provider              peer.AddrInfo
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
-	mutex                 *sync.Mutex
+	mutex                 sync.Mutex
 }
 
 func (pub *PublisherService) Store() store.PublisherStore {
@@ -51,7 +51,7 @@ func (pub *PublisherService) Publish(ctx context.Context, claim delegation.Deleg
 	ability := claim.Capabilities()[0].Can()
 	switch ability {
 	case assert.LocationAbility:
-		err := PublishLocationCommitment(ctx, pub.mutex, pub.publisher, pub.provider, claim)
+		err := PublishLocationCommitment(ctx, &pub.mutex, pub.publisher, pub.provider, claim)
 		if err != nil {
 			return err
 		}
@@ -266,13 +266,12 @@ func New(
 	}
 
 	return &PublisherService{
-		id,
-		publisherStore,
-		publisher,
-		provInfo,
-		o.indexingService,
-		o.indexingServiceProofs,
-		&sync.Mutex{},
+		id:                    id,
+		store:                 publisherStore,
+		publisher:             publisher,
+		provider:              provInfo,
+		indexingService:       o.indexingService,
+		indexingServiceProofs: o.indexingServiceProofs,
 	}, nil
 }
 
