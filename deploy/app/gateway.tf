@@ -73,6 +73,7 @@ resource "aws_acm_certificate_validation" "cert" {
   certificate_arn         = aws_acm_certificate.cert.arn
   validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }
+
 resource "aws_apigatewayv2_domain_name" "custom_domain" {
   domain_name = local.domain_name
 
@@ -82,11 +83,12 @@ resource "aws_apigatewayv2_domain_name" "custom_domain" {
     security_policy = "TLS_1_2"
   }
 }
+
 resource "aws_apigatewayv2_stage" "stage" {
-  api_id = aws_apigatewayv2_api.api.id
-  name   = "$default"
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
   auto_deploy = true
-  
+
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.access_logs.arn
     format          = var.access_logging_log_format
