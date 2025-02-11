@@ -11,6 +11,7 @@ on:
       - ".github/workflows/terraform.yml"
       - "cmd/**"
       - "deploy/**"
+      - "internal/**"
       - "pkg/**"
   pull_request:
     branches: [main]
