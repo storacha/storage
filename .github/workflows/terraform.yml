@@ -91,6 +91,7 @@ jobs:
 
       - name: Build Go Apps
         run: |
+          cd deploy
           touch .env
           make lambdas
 
