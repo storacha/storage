@@ -31,11 +31,11 @@ jobs:
       env: staging
       workspace: staging
       apply: ${{ github.event_name != 'pull_request' }}
-      use-external-blob-bucket: ${{ env.STAGING_USE_EXTERNAL_BLOB_BUCKET }}
-      external-blob-bucket-endpoint: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
-      external-blob-bucket-region: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_REGION }}
-      external-blob-bucket-name: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
-      external-blob-bucket-domain: ${{ env.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
+      use-external-blob-bucket: ${{ vars.STAGING_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-endpoint: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
+      external-blob-bucket-region: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_REGION }}
+      external-blob-bucket-name: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
+      external-blob-bucket-domain: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
       aws-account-id: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.STAGING_AWS_REGION }}
@@ -53,11 +53,11 @@ jobs:
       env: production
       workspace: prod
       apply: true
-      use-external-blob-bucket: ${{ env.PROD_USE_EXTERNAL_BLOB_BUCKET }}
-      external-blob-bucket-endpoint: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
-      external-blob-bucket-region: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_REGION }}
-      external-blob-bucket-name: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
-      external-blob-bucket-domain: ${{ env.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}
+      use-external-blob-bucket: ${{ vars.PROD_USE_EXTERNAL_BLOB_BUCKET }}
+      external-blob-bucket-endpoint: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
+      external-blob-bucket-region: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_REGION }}
+      external-blob-bucket-name: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
+      external-blob-bucket-domain: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}
     secrets:
       aws-account-id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.PROD_AWS_REGION }}
