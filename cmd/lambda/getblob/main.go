@@ -1,27 +1,26 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
+	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/pkg/aws"
 )
 
-func makeHandler(blobsPublicURL string, keyPattern string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func main() {
+	lambda.StartHTTPHandler(makeHandler)
+}
+
+func makeHandler(cfg aws.Config) (http.Handler, error) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 		blobStr := parts[len(parts)-1]
+		keyPattern := cfg.BlobStoreBucketKeyPattern
 		if keyPattern == "" {
 			keyPattern = "blob/{blob}"
 		}
 		key := strings.ReplaceAll(keyPattern, "{blob}", blobStr)
-		http.Redirect(w, r, blobsPublicURL+"/"+key, http.StatusTemporaryRedirect)
-	}
-}
-func main() {
-	config := aws.FromEnv(context.Background())
-	lambda.Start(httpadapter.NewV2(http.HandlerFunc(makeHandler(config.BlobsPublicURL, config.BlobStoreBucketKeyPattern))).ProxyWithContext)
+		http.Redirect(w, r, cfg.BlobsPublicURL+"/"+key, http.StatusTemporaryRedirect)
+	}), nil
 }

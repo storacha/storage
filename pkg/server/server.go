@@ -39,7 +39,7 @@ func ListenAndServe(addr string, service storage.Service, options ...server.Opti
 // NewServer creates a new storage node server.
 func NewServer(service storage.Service, options ...server.Option) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", NewHandler(service.ID()))
+	mux.Handle("GET /{$}", NewHandler(service.ID()))
 
 	httpUcanSrv, err := storage.NewServer(service, options...)
 	if err != nil {
@@ -77,10 +77,10 @@ func NewServer(service storage.Service, options ...server.Option) (*http.ServeMu
 }
 
 // NewHandler displays version info.
-func NewHandler(id principal.Signer) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func NewHandler(id principal.Signer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("🔥 storage %s\n", build.Version)))
 		w.Write([]byte("- https://github.com/storacha/storage\n"))
 		w.Write([]byte(fmt.Sprintf("- %s", id.DID())))
-	}
+	})
 }

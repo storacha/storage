@@ -108,6 +108,8 @@ type Config struct {
 	Config                         aws.Config
 	S3Options                      []func(*s3.Options)
 	DynamoOptions                  []func(*dynamodb.Options)
+	SentryDSN                      string
+	SentryEnvironment              string
 	AllocationsTableName           string
 	BlobStoreBucketEndpoint        string
 	BlobStoreBucketRegion          string
@@ -237,6 +239,8 @@ func FromEnv(ctx context.Context) Config {
 
 	return Config{
 		Config:                         awsConfig,
+		SentryDSN:                      os.Getenv("SENTRY_DSN"),
+		SentryEnvironment:              os.Getenv("SENTRY_ENVIRONMENT"),
 		Signer:                         id,
 		ChunkLinksTableName:            mustGetEnv("CHUNK_LINKS_TABLE_NAME"),
 		MetadataTableName:              mustGetEnv("METADATA_TABLE_NAME"),

@@ -8,13 +8,11 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"github.com/storacha/storage/internal/telemetry"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/claimstore"
 )
-
-var log = logging.Logger("claims")
 
 type Server struct {
 	claims claimstore.ClaimStore
@@ -25,32 +23,33 @@ func NewServer(claims claimstore.ClaimStore) (*Server, error) {
 }
 
 func (srv *Server) Serve(mux *http.ServeMux) {
-	mux.HandleFunc("GET /claim/{claim}", NewHandler(srv.claims))
+	mux.Handle("GET /claim/{claim}", NewHandler(srv.claims))
 }
 
-func NewHandler(claims claimstore.ClaimStore) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func NewHandler(claims claimstore.ClaimStore) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) error {
 		parts := strings.Split(r.URL.Path, "/")
 		c, err := cid.Parse(parts[len(parts)-1])
 		if err != nil {
-			http.Error(w, fmt.Sprintf("invalid claim CID: %s", err), http.StatusBadRequest)
-			return
+			return telemetry.NewHTTPError(fmt.Errorf("invalid claim CID: %w", err), http.StatusBadRequest)
 		}
 
 		dlg, err := claims.Get(r.Context(), cidlink.Link{Cid: c})
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				http.Error(w, fmt.Sprintf("not found: %s", c), http.StatusNotFound)
-				return
+				return telemetry.NewHTTPError(fmt.Errorf("not found: %s", c), http.StatusNotFound)
 			}
-			log.Errorf("getting claim: %w", err)
-			http.Error(w, "failed to get claim", http.StatusInternalServerError)
-			return
+
+			return telemetry.NewHTTPError(fmt.Errorf("failed to get claim: %w", err), http.StatusInternalServerError)
 		}
 
 		_, err = io.Copy(w, dlg.Archive())
 		if err != nil {
-			log.Warnf("serving claim: %s: %w", c, err)
+			return fmt.Errorf("serving claim: %s: %w", c, err)
 		}
+
+		return nil
 	}
+
+	return telemetry.NewErrorReportingHandler(handler)
 }

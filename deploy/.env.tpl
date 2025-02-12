@@ -29,7 +29,7 @@ TF_VAR_region=us-west-2
 # Tags applied to AWS resources (useful for cost accounting).
 TF_VAR_app=storage
 TF_VAR_owner=storacha
-TF_VAR_team=Storacha Engineer
+TF_VAR_team=Storacha Engineering
 TF_VAR_org=Storacha
 
 # Blob bucket config ###########################################################
@@ -42,6 +42,15 @@ TF_VAR_blob_bucket_key_pattern=blob/{blob}
 TF_VAR_use_pdp=false
 TF_VAR_pdp_proofset=0
 TF_VAR_curio_url=
+
+# Error reporting to Sentry ####################################################
+
+# Sentry DSN for error reporting. Obtain from sentry.io.
+# Leave blank to disable error reporting.
+TF_VAR_sentry_dsn=
+# Sentry environment to use for error reporting.
+# Defaults to the terraform workspace being used if not set.
+TF_VAR_sentry_environment=
 
 # External (S3 compatible) blob bucket #########################################
 
@@ -59,10 +68,3 @@ TF_VAR_external_blob_bucket_secret_access_key=
 
 TF_VAR_indexing_service_did=did:web:indexer.storacha.network
 TF_VAR_indexing_service_url=https://indexer.storacha.network/claims
-
-# Debugging ####################################################################
-
-# Setting this variable enables tracing for lambdas based on HTTP handlers.
-# Currently, only Honeycomb is supported as the tracing backend. You can create
-# a Honeycomb account and get an API key from honeycomb.io.
-TF_VAR_honeycomb_api_key=

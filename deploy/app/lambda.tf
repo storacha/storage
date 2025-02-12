@@ -77,6 +77,8 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
+      SENTRY_DSN                          = var.sentry_dsn
+      SENTRY_ENVIRONMENT                  = var.sentry_environment == "" ? terraform.workspace : var.sentry_environment
       IPNI_ENDPOINT                       = "https://cid.contact"
       CHUNK_LINKS_TABLE_NAME              = aws_dynamodb_table.chunk_links.id
       METADATA_TABLE_NAME                 = aws_dynamodb_table.metadata.id

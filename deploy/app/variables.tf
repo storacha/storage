@@ -13,7 +13,7 @@ variable "owner" {
 variable "team" {
   description = "name of team managing working on the project"
   type        = string
-  default     = "Storacha Engineer"
+  default     = "Storacha Engineering"
 }
 
 variable "org" {
@@ -96,6 +96,18 @@ variable "blob_bucket_key_pattern" {
   type        = string
   description = "Optional key pattern (with {blob} specifier) for blob bucket"
   default     = "blob/{blob}"
+}
+
+variable "sentry_dsn" {
+  type        = string
+  description = "DSN for Sentry (get it from your Sentry project's properties). Leave unset to disable error reporting."
+  default     = ""
+}
+
+variable "sentry_environment" {
+  type        = string
+  description = "Environment name for Sentry"
+  default     = ""
 }
 
 // Externally hosted, S3 compatible blob bucket? These variables are for you.
