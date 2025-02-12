@@ -375,7 +375,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		} else {
 			pattern = fmt.Sprintf("%s/%s", pattern, cfg.BlobStoreBucketKeyPattern)
 		}
-		access, err := access.NewPatternAccess(fmt.Sprintf("%s/%s", blobsPublicURL.String(), cfg.BlobStoreBucketKeyPattern))
+		access, err := access.NewPatternAccess(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("setting up pattern acess: %w", err)
 		}
