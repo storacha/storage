@@ -13,7 +13,7 @@ variable "owner" {
 variable "team" {
   description = "name of team managing working on the project"
   type        = string
-  default     = "Storacha Engineer"
+  default     = "Storacha Engineering"
 }
 
 variable "org" {
