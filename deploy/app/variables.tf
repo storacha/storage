@@ -142,3 +142,9 @@ variable "external_blob_bucket_secret_access_key" {
   description = "Optional secret access key for external blob bucket"
   default     = ""
 }
+
+variable "use_noop_blobstore" {
+  type        = bool
+  description = "Use a no-op blobstore for testing"
+  default     = false
+}

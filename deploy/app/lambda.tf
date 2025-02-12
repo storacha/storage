@@ -106,6 +106,7 @@ resource "aws_lambda_function" "lambda" {
       PDP_PROOFSET                        = var.pdp_proofset,
       CURIO_URL                           = var.curio_url,
       PRINCIPAL_MAPPING                   = var.principal_mapping,
+      USE_NOOP_BLOBSTORE                  = var.use_noop_blobstore,
     }
   }
 }
