@@ -8,14 +8,11 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/storage/internal/telemetry"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/claimstore"
 )
-
-var log = logging.Logger("claims")
 
 type Server struct {
 	claims claimstore.ClaimStore
