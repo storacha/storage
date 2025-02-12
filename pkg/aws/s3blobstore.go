@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -17,20 +18,34 @@ import (
 	"github.com/storacha/storage/pkg/store/blobstore"
 )
 
+type KeyFormatterFunc func(digest multihash.Multihash) string
+
 // S3BlobStore implements the blobstore.BlobStore interface on S3
 type S3BlobStore struct {
 	bucket    string
-	keyPrefix string
+	formatKey KeyFormatterFunc
 	s3Client  *s3.Client
 }
 
 var _ blobstore.Blobstore = (*S3BlobStore)(nil)
 
-func NewS3BlobStore(cfg aws.Config, bucket string, keyPrefix string, opts ...func(*s3.Options)) *S3BlobStore {
+// NewPatternKeyFormatter creates a key formatter which replaces instances of
+// "{blob}" in the provided pattern with the base58btc encoding of the multihash
+// digest.
+func NewPatternKeyFormatter(pattern string) KeyFormatterFunc {
+	return func(digest multihash.Multihash) string {
+		return strings.ReplaceAll(pattern, "{blob}", digestutil.Format(digest))
+	}
+}
+
+func NewS3BlobStore(cfg aws.Config, bucket string, formatKey KeyFormatterFunc, opts ...func(*s3.Options)) *S3BlobStore {
+	if formatKey == nil {
+		formatKey = digestutil.Format
+	}
 	return &S3BlobStore{
 		s3Client:  s3.NewFromConfig(cfg, opts...),
 		bucket:    bucket,
-		keyPrefix: keyPrefix,
+		formatKey: formatKey,
 	}
 }
 
@@ -45,7 +60,7 @@ type S3BlobPresigner struct {
 func (s *S3BlobPresigner) SignUploadURL(ctx context.Context, digest multihash.Multihash, size uint64, ttl uint64) (url.URL, http.Header, error) {
 	signedReq, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(s.bs.bucket),
-		Key:           aws.String(s.bs.keyPrefix + digestutil.Format(digest)),
+		Key:           aws.String(s.bs.formatKey(digest)),
 		ContentLength: aws.Int64(int64(size)),
 	}, func(opts *s3.PresignOptions) {
 		opts.Expires = time.Duration(int64(ttl) * int64(time.Second))
@@ -76,10 +91,9 @@ func (s *S3BlobStore) PresignClient() presigner.RequestPresigner {
 
 // Put implements blobstore.Blobstore.
 func (s *S3BlobStore) Put(ctx context.Context, digest multihash.Multihash, size uint64, body io.Reader) error {
-	key := digestutil.Format(digest)
 	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucket),
-		Key:           aws.String(s.keyPrefix + key),
+		Key:           aws.String(s.formatKey(digest)),
 		Body:          body,
 		ContentLength: aws.Int64(int64(size)),
 	})
@@ -99,10 +113,9 @@ func (s *S3BlobStore) Get(ctx context.Context, digest multihash.Multihash, opts 
 		}
 		rangeParam = &rangeString
 	}
-	key := digestutil.Format(digest)
 	outPut, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(s.keyPrefix + key),
+		Key:    aws.String(s.formatKey(digest)),
 		Range:  rangeParam,
 	})
 	if err != nil {

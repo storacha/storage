@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,6 +28,7 @@ import (
 	"github.com/storacha/go-ucanto/principal/signer"
 
 	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/aggregator"
 	"github.com/storacha/storage/pkg/pdp/curio"
@@ -111,8 +113,8 @@ type Config struct {
 	BlobStoreBucketRegion          string
 	BlobStoreBucketAccessKeyID     string
 	BlobStoreBucketSecretAccessKey string
+	BlobStoreBucketKeyPattern      string
 	BlobStoreBucket                string
-	BlobStorePrefix                string
 	AggregatesBucket               string
 	AggregatesPrefix               string
 	BufferBucket                   string
@@ -249,8 +251,8 @@ func FromEnv(ctx context.Context) Config {
 		BlobStoreBucketRegion:          os.Getenv("BLOB_STORE_BUCKET_REGION"),
 		BlobStoreBucketAccessKeyID:     secrets[os.Getenv("BLOB_STORE_BUCKET_ACCESS_KEY_ID")],
 		BlobStoreBucketSecretAccessKey: secrets[os.Getenv("BLOB_STORE_BUCKET_SECRET_ACCESS_KEY")],
+		BlobStoreBucketKeyPattern:      os.Getenv("BLOB_STORE_BUCKET_KEY_PATTERN"),
 		BlobStoreBucket:                mustGetEnv("BLOB_STORE_BUCKET_NAME"),
-		BlobStorePrefix:                os.Getenv("BLOB_STORE_KEY_PREFIX"),
 		BufferBucket:                   os.Getenv("BUFFER_BUCKET_NAME"),
 		BufferPrefix:                   os.Getenv("BUFFER_KEY_PREFIX"),
 		AggregatesBucket:               os.Getenv("AGGREGATES_BUCKET_NAME"),
@@ -288,7 +290,11 @@ func Construct(cfg Config) (storage.Service, error) {
 			}
 		})
 	}
-	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, cfg.BlobStorePrefix, blobStoreOpts...)
+	var formatKey KeyFormatterFunc
+	if cfg.BlobStoreBucketKeyPattern != "" {
+		formatKey = NewPatternKeyFormatter(cfg.BlobStoreBucketKeyPattern)
+	}
+	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, formatKey, blobStoreOpts...)
 	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName, cfg.DynamoOptions...)
 	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix, cfg.S3Options...))
 	if err != nil {
@@ -304,7 +310,7 @@ func Construct(cfg Config) (storage.Service, error) {
 	}
 	blobsPublicURL, err := url.Parse(cfg.BlobsPublicURL)
 	if err != nil {
-		return nil, fmt.Errorf("parsing public url: %w", err)
+		return nil, fmt.Errorf("parsing blob store public url: %w", err)
 	}
 	announceURL, err := url.Parse(cfg.AnnounceURL)
 	if err != nil {
@@ -361,5 +367,20 @@ func Construct(cfg Config) (storage.Service, error) {
 
 		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{PDPService: pdp}))
 	}
+
+	if cfg.BlobStoreBucketKeyPattern != "" {
+		pattern := blobsPublicURL.String()
+		if strings.HasSuffix(pattern, "/") {
+			pattern = fmt.Sprintf("%s%s", pattern, cfg.BlobStoreBucketKeyPattern)
+		} else {
+			pattern = fmt.Sprintf("%s/%s", pattern, cfg.BlobStoreBucketKeyPattern)
+		}
+		access, err := access.NewPatternAccess(fmt.Sprintf("%s/%s", blobsPublicURL.String(), cfg.BlobStoreBucketKeyPattern))
+		if err != nil {
+			return nil, fmt.Errorf("setting up pattern acess: %w", err)
+		}
+		opts = append(opts, storage.WithBlobsAccess(access))
+	}
+
 	return storage.New(opts...)
 }

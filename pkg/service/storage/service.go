@@ -166,7 +166,9 @@ func New(opts ...Option) (*StorageService, error) {
 		}
 
 		blobOpts = append(blobOpts, blobs.WithBlobstore(blobStore))
-		if c.blobsPublicURL != (url.URL{}) {
+		if c.blobsAccess != nil {
+			blobOpts = append(blobOpts, blobs.WithAccess(c.blobsAccess))
+		} else if c.blobsPublicURL != (url.URL{}) {
 			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(c.blobsPublicURL))
 		} else {
 			blobOpts = append(blobOpts, blobs.WithPublicURLAccess(pubURL))
@@ -174,6 +176,8 @@ func New(opts ...Option) (*StorageService, error) {
 
 		if c.blobsPresigner != nil {
 			blobOpts = append(blobOpts, blobs.WithPresigner(c.blobsPresigner))
+		} else if c.blobsPublicURL != (url.URL{}) {
+			blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, c.blobsPublicURL))
 		} else {
 			blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
 		}

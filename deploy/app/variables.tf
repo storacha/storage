@@ -92,6 +92,12 @@ variable "principal_mapping" {
   default     = ""
 }
 
+variable "blob_bucket_key_pattern" {
+  type        = string
+  description = "Optional key pattern (with {blob} specifier) for blob bucket"
+  default     = "blob/{blob}"
+}
+
 // Externally hosted, S3 compatible blob bucket? These variables are for you.
 // Note: credentials MUST have s3:GetObject, s3:PutObject s3:ListBucket perms.
 
@@ -134,11 +140,5 @@ variable "external_blob_bucket_access_key_id" {
 variable "external_blob_bucket_secret_access_key" {
   type        = string
   description = "Optional secret access key for external blob bucket"
-  default     = ""
-}
-
-variable "external_blob_bucket_key_prefix" {
-  type        = string
-  description = "Optional key prefix for external blob bucket"
   default     = ""
 }

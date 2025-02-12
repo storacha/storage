@@ -32,6 +32,11 @@ TF_VAR_owner=storacha
 TF_VAR_team=Storacha Engineer
 TF_VAR_org=Storacha
 
+# Blob bucket config ###########################################################
+
+# Key pattern for blob bucket
+TF_VAR_blob_bucket_key_pattern=blob/{blob}
+
 # Curio integration ############################################################
 
 TF_VAR_use_pdp=false
@@ -49,8 +54,6 @@ TF_VAR_external_blob_bucket_name=
 TF_VAR_external_blob_bucket_domain=
 TF_VAR_external_blob_bucket_access_key_id=
 TF_VAR_external_blob_bucket_secret_access_key=
-# Prefix keys in the bucket with the following string - default ""
-TF_VAR_external_blob_bucket_key_prefix=
 
 # Indexing service configuration ###############################################
 

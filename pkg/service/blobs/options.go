@@ -39,6 +39,13 @@ func WithBlobstore(bs blobstore.Blobstore) Option {
 	}
 }
 
+func WithAccess(access access.Access) Option {
+	return func(o *options) error {
+		o.access = access
+		return nil
+	}
+}
+
 func WithPublicURLAccess(publicURL url.URL) Option {
 	return func(o *options) error {
 		accessURL := publicURL
