@@ -51,6 +51,7 @@ jobs:
       indexing-service-proof: ${{ secrets.STAGING_INDEXING_SERVICE_PROOF }}
       external-blob-bucket-access-key-id: ${{ secrets.STAGING_EXTERNAL_BLOB_BUCKET_ACCESS_KEY_ID }}
       external-blob-bucket-secret-access-key: ${{ secrets.STAGING_EXTERNAL_BLOB_BUCKET_SECRET_ACCESS_KEY }}
+      sentry-dsn: ${{ secrets.SENTRY_DSN }}
 
   # deploy to prod on new releases
   production:
@@ -78,3 +79,4 @@ jobs:
       indexing-service-proof: ${{ secrets.PROD_INDEXING_SERVICE_PROOF }}
       external-blob-bucket-access-key-id: ${{ secrets.PROD_EXTERNAL_BLOB_BUCKET_ACCESS_KEY_ID }}
       external-blob-bucket-secret-access-key: ${{ secrets.PROD_EXTERNAL_BLOB_BUCKET_SECRET_ACCESS_KEY }}
+      sentry-dsn: ${{ secrets.SENTRY_DSN }}

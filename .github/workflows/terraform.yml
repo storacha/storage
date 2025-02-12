@@ -56,7 +56,7 @@ on:
         required: false
       external-blob-bucket-secret-access-key:
         required: false
-      honeycomb-api-key:
+      sentry-dsn:
         required: false
 
 concurrency:
@@ -83,7 +83,7 @@ env:
   TF_VAR_external_blob_bucket_access_key_id: ${{ secrets.external-blob-bucket-access-key-id }}
   TF_VAR_external_blob_bucket_secret_access_key: ${{ secrets.external-blob-bucket-secret-access-key }}
   TF_VAR_external_blob_key_prefix: ${{ inputs.external-blob-bucket-key-prefix }}
-  TF_VAR_honeycomb_api_key: ${{ secrets.honeycomb-api-key }}
+  TF_VAR_sentry_dsn: ${{ secrets.sentry-dsn }}
 
 permissions:
   id-token: write # This is required for requesting the JWT
