@@ -92,6 +92,12 @@ variable "principal_mapping" {
   default     = ""
 }
 
+variable "blob_bucket_key_pattern" {
+  type        = string
+  description = "Optional key pattern (with {blob} specifier) for blob bucket"
+  default     = "blob/{blob}"
+}
+
 variable "sentry_dsn" {
   type        = string
   description = "DSN for Sentry (get it from your Sentry project's properties). Leave unset to disable error reporting."
@@ -146,11 +152,5 @@ variable "external_blob_bucket_access_key_id" {
 variable "external_blob_bucket_secret_access_key" {
   type        = string
   description = "Optional secret access key for external blob bucket"
-  default     = ""
-}
-
-variable "external_blob_bucket_key_prefix" {
-  type        = string
-  description = "Optional key prefix for external blob bucket"
   default     = ""
 }

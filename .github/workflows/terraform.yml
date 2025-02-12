@@ -21,6 +21,9 @@ on:
       principal-mapping:
         required: false
         type: string
+      blob-bucket-key-pattern:
+        required: false
+        type: string
       use-external-blob-bucket:
         required: false
         type: boolean
@@ -34,9 +37,6 @@ on:
         required: false
         type: string
       external-blob-bucket-domain:
-        required: false
-        type: string
-      external-blob-bucket-key-prefix:
         required: false
         type: string
     secrets:
@@ -75,6 +75,7 @@ env:
   TF_VAR_indexing_service_url: ${{ inputs.indexing-service-url }}
   TF_VAR_indexing_service_proof: ${{ secrets.indexing-service-proof }}
   TF_VAR_principal_mapping: ${{ inputs.principal-mapping }}
+  TF_VAR_blob_bucket_key_pattern: ${{ inputs.blob-bucket-key-pattern }}
   TF_VAR_use_external_blob_bucket: ${{ inputs.use-external-blob-bucket }}
   TF_VAR_external_blob_bucket_endpoint: ${{ inputs.external-blob-bucket-endpoint }}
   TF_VAR_external_blob_bucket_region: ${{ inputs.external-blob-bucket-region }}
@@ -82,7 +83,6 @@ env:
   TF_VAR_external_blob_bucket_domain: ${{ inputs.external-blob-bucket-domain }}
   TF_VAR_external_blob_bucket_access_key_id: ${{ secrets.external-blob-bucket-access-key-id }}
   TF_VAR_external_blob_bucket_secret_access_key: ${{ secrets.external-blob-bucket-secret-access-key }}
-  TF_VAR_external_blob_key_prefix: ${{ inputs.external-blob-bucket-key-prefix }}
   TF_VAR_sentry_dsn: ${{ secrets.sentry-dsn }}
 
 permissions:

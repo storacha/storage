@@ -12,6 +12,7 @@ import (
 	"github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/presigner"
 	"github.com/storacha/storage/pkg/store/allocationstore"
@@ -33,6 +34,7 @@ type config struct {
 	blobsPublicURL        url.URL
 	blobsPresigner        presigner.RequestPresigner
 	blobStore             blobstore.Blobstore
+	blobsAccess           access.Access
 	allocationStore       allocationstore.AllocationStore
 	allocationDatastore   datastore.Datastore
 	claimStore            claimstore.ClaimStore
@@ -80,6 +82,14 @@ func WithBlobstore(blobStore blobstore.Blobstore) Option {
 func WithBlobsPublicURL(blobStorePublicURL url.URL) Option {
 	return func(c *config) error {
 		c.blobsPublicURL = blobStorePublicURL
+		return nil
+	}
+}
+
+// WithBlobsAccess configures the access instance for blob storage.
+func WithBlobsAccess(access access.Access) Option {
+	return func(c *config) error {
+		c.blobsAccess = access
 		return nil
 	}
 }

@@ -32,6 +32,11 @@ TF_VAR_owner=storacha
 TF_VAR_team=Storacha Engineering
 TF_VAR_org=Storacha
 
+# Blob bucket config ###########################################################
+
+# Key pattern for blob bucket
+TF_VAR_blob_bucket_key_pattern=blob/{blob}
+
 # Curio integration ############################################################
 
 TF_VAR_use_pdp=false
@@ -58,17 +63,8 @@ TF_VAR_external_blob_bucket_name=
 TF_VAR_external_blob_bucket_domain=
 TF_VAR_external_blob_bucket_access_key_id=
 TF_VAR_external_blob_bucket_secret_access_key=
-# Prefix keys in the bucket with the following string - default ""
-TF_VAR_external_blob_bucket_key_prefix=
 
 # Indexing service configuration ###############################################
 
 TF_VAR_indexing_service_did=did:web:indexer.storacha.network
 TF_VAR_indexing_service_url=https://indexer.storacha.network/claims
-
-# Debugging ####################################################################
-
-# Setting this variable enables tracing for lambdas based on HTTP handlers.
-# Currently, only Honeycomb is supported as the tracing backend. You can create
-# a Honeycomb account and get an API key from honeycomb.io.
-TF_VAR_honeycomb_api_key=

@@ -94,7 +94,7 @@ resource "aws_lambda_function" "lambda" {
       BLOB_STORE_BUCKET_SECRET_ACCESS_KEY = var.use_external_blob_bucket ? aws_ssm_parameter.external_blob_bucket_secret_access_key[0].name : ""
       BLOB_STORE_BUCKET_REGIONAL_DOMAIN   = var.use_external_blob_bucket ? var.external_blob_bucket_domain : aws_s3_bucket.blob_store_bucket.bucket_regional_domain_name
       BLOB_STORE_BUCKET_NAME              = var.use_external_blob_bucket ? var.external_blob_bucket_name : aws_s3_bucket.blob_store_bucket.bucket
-      BLOB_STORE_KEY_PREFIX               = var.use_external_blob_bucket ? var.external_blob_bucket_key_prefix : "blob/"
+      BLOB_STORE_BUCKET_KEY_PATTERN       = var.blob_bucket_key_pattern
       BUFFER_BUCKET_NAME                  = var.use_pdp ? aws_s3_bucket.buffer_bucket[0].bucket : ""
       AGGREGATES_BUCKET_NAME              = var.use_pdp ? aws_s3_bucket.aggregates_bucket[0].bucket : ""
       INDEXING_SERVICE_DID                = var.indexing_service_did

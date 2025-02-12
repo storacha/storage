@@ -36,12 +36,12 @@ jobs:
       indexing-service-did: ${{ vars.STAGING_INDEXING_SERVICE_DID }}
       indexing-service-url: ${{ vars.STAGING_INDEXING_SERVICE_URL }}
       principal-mapping: ${{ vars.STAGING_PRINCIPAL_MAPPING }}
+      blob-bucket-key-pattern: ${{ vars.STAGING_BLOB_BUCKET_KEY_PATTERN }}
       use-external-blob-bucket: ${{ vars.STAGING_USE_EXTERNAL_BLOB_BUCKET == 'true' }}
       external-blob-bucket-endpoint: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
       external-blob-bucket-region: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_REGION }}
       external-blob-bucket-name: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_DOMAIN }}
-      external-blob-bucket-key-prefix: ${{ vars.STAGING_EXTERNAL_BLOB_BUCKET_KEY_PREFIX }}
     secrets:
       aws-account-id: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.STAGING_AWS_REGION }}
@@ -64,12 +64,12 @@ jobs:
       indexing-service-did: ${{ vars.PROD_INDEXING_SERVICE_DID }}
       indexing-service-url: ${{ vars.PROD_INDEXING_SERVICE_URL }}
       principal-mapping: ${{ vars.PROD_PRINCIPAL_MAPPING }}
+      blob-bucket-key-pattern: ${{ vars.PROD_BLOB_BUCKET_KEY_PATTERN }}
       use-external-blob-bucket: ${{ vars.PROD_USE_EXTERNAL_BLOB_BUCKET == 'true' }}
       external-blob-bucket-endpoint: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_ENDPOINT }}
       external-blob-bucket-region: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_REGION }}
       external-blob-bucket-name: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_NAME }}
       external-blob-bucket-domain: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_DOMAIN }}
-      external-blob-bucket-key-prefix: ${{ vars.PROD_EXTERNAL_BLOB_BUCKET_KEY_PREFIX }}
     secrets:
       aws-account-id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
       aws-region: ${{ secrets.PROD_AWS_REGION }}
