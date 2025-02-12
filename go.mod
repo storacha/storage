@@ -15,6 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.55.5
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
+	github.com/getsentry/sentry-go v0.31.1
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-datastore v0.6.0
@@ -36,10 +37,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 )
 
-require (
-	github.com/getsentry/sentry-go v0.31.1 // indirect
-	golang.org/x/text v0.21.0 // indirect
-)
+require golang.org/x/text v0.21.0 // indirect
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.8 // indirect
