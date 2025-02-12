@@ -136,3 +136,9 @@ variable "external_blob_bucket_secret_access_key" {
   description = "Optional secret access key for external blob bucket"
   default     = ""
 }
+
+variable "external_blob_bucket_key_prefix" {
+  type        = string
+  description = "Optional key prefix for external blob bucket"
+  default     = ""
+}

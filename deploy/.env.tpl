@@ -49,6 +49,8 @@ TF_VAR_external_blob_bucket_name=
 TF_VAR_external_blob_bucket_domain=
 TF_VAR_external_blob_bucket_access_key_id=
 TF_VAR_external_blob_bucket_secret_access_key=
+# Prefix keys in the bucket with the following string - default ""
+TF_VAR_external_blob_bucket_key_prefix=
 
 # Indexing service configuration ###############################################
 
