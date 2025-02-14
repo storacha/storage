@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-cid"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	multihash "github.com/multiformats/go-multihash"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/store"
 )

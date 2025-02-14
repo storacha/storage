@@ -12,7 +12,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/ipld/hash/sha256"
 	"github.com/storacha/go-ucanto/did"

@@ -7,12 +7,12 @@ import (
 	"io"
 
 	"github.com/ipld/go-ipld-prime/datamodel"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-ucanto/core/car"
 	"github.com/storacha/go-ucanto/core/dag/blockstore"
 	"github.com/storacha/go-ucanto/core/receipt"
 	rdm "github.com/storacha/go-ucanto/core/receipt/datamodel"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/ipni-publisher/pkg/store"
 )
 
 type RanLinkIndex interface {

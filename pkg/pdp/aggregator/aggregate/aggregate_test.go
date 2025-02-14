@@ -10,8 +10,8 @@ import (
 
 	"github.com/filecoin-project/go-data-segment/merkletree"
 	commp "github.com/filecoin-project/go-fil-commp-hashhash"
-	"github.com/storacha/go-piece/pkg/digest"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/digest"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/stretchr/testify/require"
 )

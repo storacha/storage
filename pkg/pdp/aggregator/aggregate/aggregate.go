@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/go-data-segment/merkletree"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/schema"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/iterable"
 	"github.com/storacha/storage/pkg/pdp/curio"
 )

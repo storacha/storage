@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/ipld/go-ipld-prime/datamodel"
-	"github.com/storacha/go-capabilities/pkg/types"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/capabilities/types"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/fns"

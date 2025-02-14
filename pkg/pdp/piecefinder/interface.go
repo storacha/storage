@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	multihash "github.com/multiformats/go-multihash"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/piece"
 )
 
 type PieceFinder interface {
