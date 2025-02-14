@@ -62,9 +62,6 @@ TF_VAR_indexing_service_url=https://indexer.storacha.network/claims
 
 # Debugging ####################################################################
 
-# Set to true to use a noop blobstore for testing purposes.
-TF_VAR_use_noop_blobstore=false
-
 # Setting this variable enables tracing for lambdas based on HTTP handlers.
 # Currently, only Honeycomb is supported as the tracing backend. You can create
 # a Honeycomb account and get an API key from honeycomb.io.

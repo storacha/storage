@@ -36,7 +36,6 @@ import (
 	"github.com/storacha/storage/pkg/pdp/piecefinder"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/service/storage"
-	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/delegationstore"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
@@ -110,7 +109,6 @@ type Config struct {
 	S3Options                      []func(*s3.Options)
 	DynamoOptions                  []func(*dynamodb.Options)
 	AllocationsTableName           string
-	UseNoopBlobstore               bool
 	BlobStoreBucketEndpoint        string
 	BlobStoreBucketRegion          string
 	BlobStoreBucketAccessKeyID     string
@@ -249,7 +247,6 @@ func FromEnv(ctx context.Context) Config {
 		ClaimStoreBucket:               mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
 		ClaimStorePrefix:               os.Getenv("CLAIM_STORE_KEY_REFIX"),
 		AllocationsTableName:           mustGetEnv("ALLOCATIONS_TABLE_NAME"),
-		UseNoopBlobstore:               os.Getenv("USE_NOOP_BLOBSTORE") == "true",
 		BlobStoreBucketEndpoint:        os.Getenv("BLOB_STORE_BUCKET_ENDPOINT"),
 		BlobStoreBucketRegion:          os.Getenv("BLOB_STORE_BUCKET_REGION"),
 		BlobStoreBucketAccessKeyID:     secrets[os.Getenv("BLOB_STORE_BUCKET_ACCESS_KEY_ID")],
@@ -278,31 +275,26 @@ func FromEnv(ctx context.Context) Config {
 }
 
 func Construct(cfg Config) (storage.Service, error) {
-	blobStore := blobstore.NewNoopBlobstore()
-	if !cfg.UseNoopBlobstore {
-		blobStoreOpts := cfg.S3Options
-		if cfg.BlobStoreBucketAccessKeyID != "" && cfg.BlobStoreBucketSecretAccessKey != "" {
-			blobStoreOpts = append(blobStoreOpts, func(opts *s3.Options) {
-				opts.Region = cfg.BlobStoreBucketRegion
-				opts.Credentials = credentials.NewStaticCredentialsProvider(
-					cfg.BlobStoreBucketAccessKeyID,
-					cfg.BlobStoreBucketSecretAccessKey,
-					"",
-				)
-				if cfg.BlobStoreBucketEndpoint != "" {
-					opts.BaseEndpoint = &cfg.BlobStoreBucketEndpoint
-					opts.UsePathStyle = true
-				}
-			})
-		}
-
-		var formatKey KeyFormatterFunc
-		if cfg.BlobStoreBucketKeyPattern != "" {
-			formatKey = NewPatternKeyFormatter(cfg.BlobStoreBucketKeyPattern)
-		}
-		blobStore = NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, formatKey, blobStoreOpts...)
+	blobStoreOpts := cfg.S3Options
+	if cfg.BlobStoreBucketAccessKeyID != "" && cfg.BlobStoreBucketSecretAccessKey != "" {
+		blobStoreOpts = append(blobStoreOpts, func(opts *s3.Options) {
+			opts.Region = cfg.BlobStoreBucketRegion
+			opts.Credentials = credentials.NewStaticCredentialsProvider(
+				cfg.BlobStoreBucketAccessKeyID,
+				cfg.BlobStoreBucketSecretAccessKey,
+				"",
+			)
+			if cfg.BlobStoreBucketEndpoint != "" {
+				opts.BaseEndpoint = &cfg.BlobStoreBucketEndpoint
+				opts.UsePathStyle = true
+			}
+		})
 	}
-
+	var formatKey KeyFormatterFunc
+	if cfg.BlobStoreBucketKeyPattern != "" {
+		formatKey = NewPatternKeyFormatter(cfg.BlobStoreBucketKeyPattern)
+	}
+	blobStore := NewS3BlobStore(cfg.Config, cfg.BlobStoreBucket, formatKey, blobStoreOpts...)
 	allocationStore := NewDynamoAllocationStore(cfg.Config, cfg.AllocationsTableName, cfg.DynamoOptions...)
 	claimStore, err := delegationstore.NewDelegationStore(NewS3Store(cfg.Config, cfg.ClaimStoreBucket, cfg.ClaimStorePrefix, cfg.S3Options...))
 	if err != nil {
@@ -364,10 +356,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 		storage.WithReceiptStore(receiptStore),
 		storage.WithBlobsPublicURL(*blobsPublicURL),
-	}
-
-	if b, ok := blobStore.(*S3BlobStore); ok {
-		opts = append(opts, storage.WithBlobsPresigner(b.PresignClient()))
+		storage.WithBlobsPresigner(blobStore.PresignClient()),
 	}
 
 	if cfg.SQSPDPPieceAggregatorURL != "" && cfg.CurioURL != "" {
