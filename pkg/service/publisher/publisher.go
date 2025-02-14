@@ -16,9 +16,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/go-capabilities/pkg/assert"
-	"github.com/storacha/go-capabilities/pkg/claim"
-	"github.com/storacha/go-metadata"
+	"github.com/storacha/go-libstoracha/capabilities/pkg/assert"
+	"github.com/storacha/go-libstoracha/capabilities/pkg/claim"
+	"github.com/storacha/go-libstoracha/metadata"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
@@ -26,8 +26,8 @@ import (
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/principal"
-	ipnipub "github.com/storacha/ipni-publisher/pkg/publisher"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	ipnipub "github.com/storacha/go-libstoracha/ipnipublisher/pkg/publisher"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 	"github.com/storacha/storage/pkg/service/publisher/advertisement"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/presigner"

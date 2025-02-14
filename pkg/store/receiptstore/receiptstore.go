@@ -12,7 +12,7 @@ import (
 	"github.com/storacha/go-ucanto/core/receipt"
 	rdm "github.com/storacha/go-ucanto/core/receipt/datamodel"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 )
 
 type RanLinkIndex interface {

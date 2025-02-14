@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/go-capabilities/pkg/assert"
-	"github.com/storacha/go-capabilities/pkg/blob"
-	"github.com/storacha/go-capabilities/pkg/types"
+	"github.com/storacha/go-libstoracha/capabilities/pkg/assert"
+	"github.com/storacha/go-libstoracha/capabilities/pkg/blob"
+	"github.com/storacha/go-libstoracha/capabilities/pkg/types"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"

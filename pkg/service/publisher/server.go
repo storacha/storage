@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/storacha/ipni-publisher/pkg/server"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/server"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 )
 
 type Server struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/storacha/go-ucanto/core/delegation"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 )
 
 type Publisher interface {

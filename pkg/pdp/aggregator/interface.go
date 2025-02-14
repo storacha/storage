@@ -3,7 +3,7 @@ package aggregator
 import (
 	"context"
 
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/pkg/piece"
 )
 
 // Aggregator is an interface for accessing an aggregation queue
