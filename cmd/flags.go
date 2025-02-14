@@ -22,11 +22,11 @@ var CurioURLFlag = &cli.StringFlag{
 }
 
 var PrivateKeyFlag = &cli.StringFlag{
-	Name:     "private-key",
-	Aliases:  []string{"s"},
-	Usage:    "Multibase base64 encoded private key identity for the node.",
-	EnvVars:  []string{"STORAGE_PRIVATE_KEY"},
-	Required: true,
+	Name:    "private-key",
+	Aliases: []string{"s"},
+	Usage:   "Multibase base64 encoded private key identity for the node.",
+	EnvVars: []string{"STORAGE_PRIVATE_KEY"},
+	//Required: true,
 }
 
 var ClientKeyFlag = &cli.StringFlag{

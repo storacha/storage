@@ -9,9 +9,9 @@ import (
 
 	"github.com/filecoin-project/go-commp-utils/v2/zerocomm"
 	"github.com/filecoin-project/go-data-segment/merkletree"
-	"github.com/storacha/go-piece/pkg/digest"
-	"github.com/storacha/go-piece/pkg/piece"
-	"github.com/storacha/go-piece/pkg/size"
+	"github.com/storacha/go-libstoracha/piece/pkg/digest"
+	"github.com/storacha/go-libstoracha/piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/piece/pkg/size"
 )
 
 // This code is adapted from
