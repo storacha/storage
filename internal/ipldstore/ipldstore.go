@@ -8,8 +8,8 @@ import (
 
 	"github.com/ipld/go-ipld-prime/node/bindnode"
 	"github.com/ipld/go-ipld-prime/schema"
-	"github.com/storacha/go-ucanto/core/ipld/codec/cbor"
 	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
+	"github.com/storacha/go-ucanto/core/ipld/codec/cbor"
 )
 
 type KVStore[K, V any] interface {

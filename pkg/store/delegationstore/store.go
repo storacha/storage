@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 )
 
 type delegationStore struct {

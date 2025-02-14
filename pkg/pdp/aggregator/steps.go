@@ -6,9 +6,9 @@ import (
 
 	"github.com/ipld/go-ipld-prime/datamodel"
 	"github.com/storacha/go-libstoracha/capabilities/pkg/types"
+	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 	"github.com/storacha/go-libstoracha/piece/pkg/piece"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/go-libstoracha/ipnipublisher/pkg/store"
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
