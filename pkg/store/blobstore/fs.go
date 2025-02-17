@@ -16,7 +16,6 @@ import (
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/store"
 )
 
 type FileObject struct {
@@ -88,7 +87,7 @@ func (b *FsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts 
 	f, err := os.Open(n)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return nil, store.ErrNotFound
+			return nil, nil
 		}
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
