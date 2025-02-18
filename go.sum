@@ -619,8 +619,6 @@ github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t6
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
-github.com/storacha/go-libstoracha v0.0.0-20250214203437-4eb30d828640 h1:NGNjVDwcgMhZR6miT2XVbPjs7zF+WKs8Q6nnX0hemR0=
-github.com/storacha/go-libstoracha v0.0.0-20250214203437-4eb30d828640/go.mod h1:AsPBhhzmzG48XdydXeiKemk2xnyPS7qvC7jH4+cu4Ek=
 github.com/storacha/go-libstoracha v0.0.1 h1:cVt9FAU+WD0yu9JO4hcmaW87RTO1p3pHDwdnnvNowtY=
 github.com/storacha/go-libstoracha v0.0.1/go.mod h1:AsPBhhzmzG48XdydXeiKemk2xnyPS7qvC7jH4+cu4Ek=
 github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b h1:VrHLcBUCVArxh996EV2mfQVqgj8j4K21TbDRM4PFG/4=
