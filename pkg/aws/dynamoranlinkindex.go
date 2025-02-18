@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 

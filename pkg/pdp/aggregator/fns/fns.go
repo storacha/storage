@@ -11,8 +11,8 @@ import (
 
 	ipldprime "github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/schema"
-	"github.com/storacha/go-capabilities/pkg/pdp"
-	"github.com/storacha/go-piece/pkg/piece"
+	"github.com/storacha/go-libstoracha/capabilities/pdp"
+	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/invocation/ran"
 	"github.com/storacha/go-ucanto/core/ipld"
 	"github.com/storacha/go-ucanto/core/iterable"

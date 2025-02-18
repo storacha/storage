@@ -10,10 +10,10 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipni/go-libipni/maurl"
-	"github.com/storacha/go-metadata"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
+	"github.com/storacha/go-libstoracha/metadata"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/service/blobs"

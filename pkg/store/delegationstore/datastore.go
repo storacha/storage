@@ -2,7 +2,7 @@ package delegationstore
 
 import (
 	"github.com/ipfs/go-datastore"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 )
 
 // NewDsDelegationStore creates a [DelegationStore] backed by an IPFS datastore.

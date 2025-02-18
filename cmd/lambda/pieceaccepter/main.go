@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/storacha/go-capabilities/pkg/types"
+	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/aws"

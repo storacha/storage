@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/server"
-	"github.com/storacha/ipni-publisher/pkg/store"
 	"github.com/storacha/storage/pkg/build"
 	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/service/claims"

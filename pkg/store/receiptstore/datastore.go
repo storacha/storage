@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/storacha/ipni-publisher/pkg/store"
+	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 )
 
 const receiptsPrefix = "receipts/"

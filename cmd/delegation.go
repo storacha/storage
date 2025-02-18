@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/storacha/go-capabilities/pkg/blob"
-	"github.com/storacha/go-capabilities/pkg/pdp"
+	"github.com/storacha/go-libstoracha/capabilities/blob"
+	"github.com/storacha/go-libstoracha/capabilities/pdp"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
