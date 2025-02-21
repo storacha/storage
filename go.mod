@@ -31,6 +31,7 @@ require (
 	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
+	go.uber.org/mock v0.5.0
 )
 
 require golang.org/x/text v0.22.0 // indirect
