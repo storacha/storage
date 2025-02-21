@@ -15,6 +15,20 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 )
 
+type PDPClient interface {
+	Ping(ctx context.Context) error
+	CreateProofSet(ctx context.Context, request CreateProofSet) (StatusRef, error)
+	ProofSetCreationStatus(ctx context.Context, ref StatusRef) (ProofSetStatus, error)
+	GetProofSet(ctx context.Context, id uint64) (ProofSet, error)
+	DeleteProofSet(ctx context.Context, id uint64) error
+	AddRootsToProofSet(ctx context.Context, id uint64, addRoots []AddRoot) error
+	AddPiece(ctx context.Context, addPiece AddPiece) (*UploadRef, error)
+	UploadPiece(ctx context.Context, ref UploadRef, data io.Reader) error
+	FindPiece(ctx context.Context, piece PieceHash) (FoundPiece, error)
+	GetPiece(ctx context.Context, pieceCid string) (io.ReadCloser, error)
+	GetPieceURL(pieceCid string) url.URL
+}
+
 const pdpRoutePath = "/pdp"
 const proofSetsPath = "/proof-sets"
 const piecePath = "/piece"
@@ -115,6 +129,8 @@ type (
 		client     *http.Client
 	}
 )
+
+var _ PDPClient = (*Client)(nil)
 
 func New(client *http.Client, endpoint *url.URL, authHeader string) *Client {
 	return &Client{
@@ -224,7 +240,6 @@ func (c *Client) GetPieceURL(pieceCid string) url.URL {
 }
 
 func (c *Client) sendRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
-
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("generating http request: %w", err)
