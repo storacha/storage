@@ -1,16 +1,11 @@
 package fns_test
 
 import (
-	"fmt"
-	"io"
-	"math/rand"
 	"testing"
-	"time"
 
+	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 
-	"github.com/filecoin-project/go-fil-commp-hashhash"
-	"github.com/storacha/go-libstoracha/piece/digest"
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
@@ -185,7 +180,7 @@ func TestAggregatePieces(t *testing.T) {
 
 			// Build the input pieces
 			for _, size := range tc.pieceSizes {
-				pl := createPiece(t, size)
+				pl := testutil.CreatePiece(t, size)
 				pieces = append(pieces, pl)
 			}
 
@@ -207,37 +202,4 @@ func TestAggregatePieces(t *testing.T) {
 			}
 		})
 	}
-}
-
-// createPiece is a helper that produces a piece with the given unpadded size,
-// using random data so we don't rely on any pre-computed fixtures.
-func createPiece(t *testing.T, unpaddedSize int64) piece.PieceLink {
-	t.Helper()
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	dataReader := io.LimitReader(r, unpaddedSize)
-
-	calc := &commp.Calc{}
-	n, err := io.Copy(calc, dataReader)
-	require.NoError(t, err, "failed copying data into commp.Calc")
-	require.Equal(t, unpaddedSize, n)
-
-	commP, paddedSize, err := calc.Digest()
-	require.NoError(t, err, "failed to compute commP")
-
-	pieceDigest, err := digest.FromCommitmentAndSize(commP, uint64(unpaddedSize))
-	require.NoError(t, err, "failed building piece digest from commP")
-
-	p := piece.FromPieceDigest(pieceDigest)
-	// Ensure our piece’s PaddedSize matches the commp library’s reported paddedSize.
-	require.Equal(t, paddedSize, p.PaddedSize())
-
-	t.Logf("Created test piece: %s from unpadded size: %d", pieceLinkString(p), unpaddedSize)
-	return p
-}
-
-// pieceLinkString is a helper to display piece metadata in logs.
-func pieceLinkString(p piece.PieceLink) string {
-	return fmt.Sprintf("Piece: %s, Height: %d, Padding: %d, PaddedSize: %d",
-		p.Link(), p.Height(), p.Padding(), p.PaddedSize())
 }
