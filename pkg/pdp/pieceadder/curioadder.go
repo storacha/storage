@@ -5,14 +5,20 @@ import (
 	"encoding/hex"
 	"net/url"
 
-	multihash "github.com/multiformats/go-multihash"
+	"github.com/multiformats/go-multihash"
 	"github.com/storacha/storage/pkg/pdp/curio"
 )
 
+type PieceAdder interface {
+	AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (*url.URL, error)
+}
+
 // Generates URLs by interacting with Curio
 type CurioAdder struct {
-	client *curio.Client
+	client curio.PDPClient
 }
+
+var _ PieceAdder = (*CurioAdder)(nil)
 
 func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, size uint64) (*url.URL, error) {
 	decoded, err := multihash.Decode(digest)
@@ -39,6 +45,6 @@ func (p *CurioAdder) AddPiece(ctx context.Context, digest multihash.Multihash, s
 	return refURL, nil
 }
 
-func NewCurioAdder(client *curio.Client) PieceAdder {
+func NewCurioAdder(client curio.PDPClient) PieceAdder {
 	return &CurioAdder{client}
 }

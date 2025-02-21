@@ -11,18 +11,54 @@ import (
 
 	"github.com/ipfs/go-cid"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	multihash "github.com/multiformats/go-multihash"
+	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/store"
 )
 
-type CurioFinder struct {
-	client *curio.Client
+type PieceFinder interface {
+	FindPiece(ctx context.Context, digest multihash.Multihash, size uint64) (piece.PieceLink, error)
+	URLForPiece(piece.PieceLink) url.URL
 }
 
-const maxAttempts = 10
-const retryDelay = 5 * time.Second
+var _ PieceFinder = (*CurioFinder)(nil)
+
+type CurioFinder struct {
+	client      curio.PDPClient
+	maxAttempts int
+	retryDelay  time.Duration
+}
+
+type Option func(cf *CurioFinder)
+
+func WithRetryDelay(d time.Duration) Option {
+	return func(cf *CurioFinder) {
+		cf.retryDelay = d
+	}
+}
+
+func WithMaxAttempts(n int) Option {
+	return func(cf *CurioFinder) {
+		cf.maxAttempts = n
+	}
+}
+
+const defaultMaxAttempts = 10
+const defaultRetryDelay = 5 * time.Second
+
+func NewCurioFinder(client curio.PDPClient, opts ...Option) PieceFinder {
+	cf := &CurioFinder{
+		client:      client,
+		maxAttempts: defaultMaxAttempts,
+		retryDelay:  defaultRetryDelay,
+	}
+
+	for _, opt := range opts {
+		opt(cf)
+	}
+	return cf
+}
 
 // GetDownloadURL implements access.Access.
 func (a *CurioFinder) FindPiece(ctx context.Context, digest multihash.Multihash, size uint64) (piece.PieceLink, error) {
@@ -57,10 +93,10 @@ func (a *CurioFinder) FindPiece(ctx context.Context, digest multihash.Multihash,
 		}
 		// piece not found, try again
 		attempts++
-		if attempts >= maxAttempts {
+		if attempts >= a.maxAttempts {
 			return nil, fmt.Errorf("maximum retries exceeded: %w", store.ErrNotFound)
 		}
-		timer := time.NewTimer(retryDelay)
+		timer := time.NewTimer(a.retryDelay)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -71,8 +107,4 @@ func (a *CurioFinder) FindPiece(ctx context.Context, digest multihash.Multihash,
 
 func (a *CurioFinder) URLForPiece(piece piece.PieceLink) url.URL {
 	return a.client.GetPieceURL(piece.V1Link().String())
-}
-
-func NewCurioFinder(client *curio.Client) PieceFinder {
-	return &CurioFinder{client}
 }
