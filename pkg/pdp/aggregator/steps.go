@@ -55,18 +55,32 @@ func NewInProgressWorkspace(store store.Store) InProgressWorkspace {
 type AggregateStore ipldstore.KVStore[datamodel.Link, aggregate.Aggregate]
 type QueueSubmissionFn func(ctx context.Context, aggregateLink datamodel.Link) error
 
+type PieceAggregatorOption func(pa *PieceAggregator)
+
+func WithAggregator(a BufferedAggregator) PieceAggregatorOption {
+	return func(pa *PieceAggregator) {
+		pa.aggregator = a
+	}
+}
+
 type PieceAggregator struct {
 	workspace       InProgressWorkspace
 	store           AggregateStore
 	queueSubmission QueueSubmissionFn
+	aggregator      BufferedAggregator
 }
 
-func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, queueSubmission QueueSubmissionFn) *PieceAggregator {
-	return &PieceAggregator{
+func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, queueSubmission QueueSubmissionFn, opts ...PieceAggregatorOption) *PieceAggregator {
+	pa := &PieceAggregator{
 		workspace:       workspace,
 		store:           store,
 		queueSubmission: queueSubmission,
 	}
+
+	for _, opt := range opts {
+		opt(pa)
+	}
+	return pa
 }
 
 func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.PieceLink) error {
@@ -74,19 +88,19 @@ func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.P
 	if err != nil {
 		return fmt.Errorf("reading in progress pieces from work space: %w", err)
 	}
-	buffer, aggregates, err := fns.AggregatePieces(buffer, pieces)
+	buffer, aggregates, err := pa.aggregator.AggregatePieces(buffer, pieces)
 	if err != nil {
 		return fmt.Errorf("calculating aggegates: %w", err)
 	}
 	if err := pa.workspace.PutBuffer(ctx, buffer); err != nil {
 		return fmt.Errorf("updating work space: %w", err)
 	}
-	for _, aggregate := range aggregates {
-		err := pa.store.Put(ctx, aggregate.Root.Link(), aggregate)
+	for _, a := range aggregates {
+		err := pa.store.Put(ctx, a.Root.Link(), a)
 		if err != nil {
 			return fmt.Errorf("storing aggregate: %w", err)
 		}
-		if err := pa.queueSubmission(ctx, aggregate.Root.Link()); err != nil {
+		if err := pa.queueSubmission(ctx, a.Root.Link()); err != nil {
 			return fmt.Errorf("queueing aggregates for submission: %w", err)
 		}
 	}
@@ -169,4 +183,14 @@ func (pa *PieceAccepter) AcceptPieces(ctx context.Context, aggregateLinks []data
 		}
 	}
 	return nil
+}
+
+type BufferingAggregator struct{}
+
+func (a *BufferingAggregator) AggregatePiece(buffer fns.Buffer, newPiece piece.PieceLink) (fns.Buffer, *aggregate.Aggregate, error) {
+	return fns.AggregatePiece(buffer, newPiece)
+}
+
+func (a *BufferingAggregator) AggregatePieces(buffer fns.Buffer, pieces []piece.PieceLink) (fns.Buffer, []aggregate.Aggregate, error) {
+	return fns.AggregatePieces(buffer, pieces)
 }
