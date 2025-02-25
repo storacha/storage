@@ -28,7 +28,7 @@ require (
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/storacha/go-libstoracha v0.0.1
-	github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b
+	github.com/storacha/go-ucanto v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
 )

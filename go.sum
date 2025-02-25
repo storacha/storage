@@ -621,8 +621,8 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
 github.com/storacha/go-libstoracha v0.0.1 h1:cVt9FAU+WD0yu9JO4hcmaW87RTO1p3pHDwdnnvNowtY=
 github.com/storacha/go-libstoracha v0.0.1/go.mod h1:AsPBhhzmzG48XdydXeiKemk2xnyPS7qvC7jH4+cu4Ek=
-github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b h1:VrHLcBUCVArxh996EV2mfQVqgj8j4K21TbDRM4PFG/4=
-github.com/storacha/go-ucanto v0.2.1-0.20241110061414-d4eb802c541b/go.mod h1:7ba9jAgqmwlF/JfyFUQcGV07uiYNlmJNu8qH4hHtrJk=
+github.com/storacha/go-ucanto v0.3.0 h1:m4jDVREdA6VjcI+j3/lMmRDCmP8gijDk+EkzzC6ANBU=
+github.com/storacha/go-ucanto v0.3.0/go.mod h1:kslS8xldf12d2D4kj0wBfOvAP1gftzMjTxBdJwGKwZE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
