@@ -51,7 +51,7 @@ var IdentityCmd = &cli.Command{
 				if _, err := fmt.Fprintf(os.Stderr, "# %s\n", signer.DID()); err != nil {
 					return fmt.Errorf("writing output: %w", err)
 				}
-				if n, err := fmt.Fprintf(os.Stdout, string(out)); err != nil {
+				if n, err := fmt.Fprint(os.Stdout, string(out)); err != nil {
 					return fmt.Errorf("writing output: %w", err)
 				} else if n != len(out) {
 					return fmt.Errorf("writing output: wrote %d of %d bytes", n, len(out))
