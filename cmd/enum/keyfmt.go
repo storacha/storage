@@ -1,4 +1,4 @@
-package types
+package enum
 
 // inspiration: https://github.com/zarldev/goenums
 
