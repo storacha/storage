@@ -12,7 +12,7 @@ import (
 
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/storage/cmd/types"
+	"github.com/storacha/storage/cmd/enum"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,36 +31,20 @@ var IdentityCmd = &cli.Command{
 				&cli.StringFlag{
 					Name:        "type",
 					Aliases:     []string{"t"},
-					Usage:       fmt.Sprintf("Output format type. Accepted values: %s", types.KeyFormats.All()),
+					Usage:       fmt.Sprintf("Output format type. Accepted values: %s", enum.KeyFormats.All()),
 					Value:       "JSON",
 					Destination: &keyFormat,
 				},
 			},
 			Action: func(cCtx *cli.Context) error {
-				format := types.ParseKeyFormat(strings.ToUpper(keyFormat))
+				format := enum.ParseKeyFormat(strings.ToUpper(keyFormat))
 				if !format.IsValid() {
-					return fmt.Errorf("unknown type: '%s'. Accepted values: %s", keyFormat, types.KeyFormats.All())
+					return fmt.Errorf("unknown type: '%s'. Accepted values: %s", keyFormat, enum.KeyFormats.All())
 				}
 
-				signer, err := ed25519.Generate()
+				signer, out, err := CreateSignerKeyPair(format)
 				if err != nil {
-					return fmt.Errorf("generating ed25519 key: %w", err)
-				}
-
-				var out []byte
-				switch format {
-				case types.KeyFormats.JSON:
-					out, err = marshalJSONKey(signer)
-					if err != nil {
-						return fmt.Errorf("marshaling JSON: %w", err)
-					}
-				case types.KeyFormats.PEM:
-					out, err = marshalPEMKey(signer)
-					if err != nil {
-						return fmt.Errorf("marshaling PEM: %w", err)
-					}
-				default:
-					return fmt.Errorf("unknown format: %s", keyFormat)
+					return err
 				}
 
 				// print the did to stderr allowing the output of the command to be redirected to a file.
@@ -77,6 +61,30 @@ var IdentityCmd = &cli.Command{
 			},
 		},
 	},
+}
+
+func CreateSignerKeyPair(format enum.KeyFormat) (principal.Signer, []byte, error) {
+	signer, err := ed25519.Generate()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generating ed25519 key: %w", err)
+	}
+
+	var out []byte
+	switch format {
+	case enum.KeyFormats.JSON:
+		out, err = marshalJSONKey(signer)
+		if err != nil {
+			return nil, nil, fmt.Errorf("marshaling JSON: %w", err)
+		}
+	case enum.KeyFormats.PEM:
+		out, err = marshalPEMKey(signer)
+		if err != nil {
+			return nil, nil, fmt.Errorf("marshaling PEM: %w", err)
+		}
+	default:
+		return nil, nil, fmt.Errorf("unknown format: %s", keyFormat)
+	}
+	return signer, out, nil
 }
 
 func marshalPEMKey(signer principal.Signer) ([]byte, error) {

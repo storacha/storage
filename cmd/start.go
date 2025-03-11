@@ -1,19 +1,27 @@
 package cmd
 
 import (
+	crypto_ed25519 "crypto/ed25519"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
+	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
+	"github.com/storacha/storage/cmd/enum"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -22,12 +30,19 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var privKeyFile string
+
 var StartCmd = &cli.Command{
 	Name:  "start",
 	Usage: "Start the storage node daemon.",
 	Flags: []cli.Flag{
-		PrivateKeyFlag,
 		CurioURLFlag,
+		&cli.PathFlag{
+			Name:        "key-file",
+			Usage:       "Path to a file containing ed25519 private key, typically created by the id gen command.",
+			Required:    true,
+			Destination: &privKeyFile,
+		},
 		&cli.IntFlag{
 			Name:    "port",
 			Aliases: []string{"p"},
@@ -61,34 +76,18 @@ var StartCmd = &cli.Command{
 		},
 	},
 	Action: func(cCtx *cli.Context) error {
-		var err error
-		port := cCtx.Int("port")
-
-		pkstr := cCtx.String("private-key")
-		if pkstr == "" {
-			signer, err := ed25519.Generate()
-			if err != nil {
-				return fmt.Errorf("generating ed25519 key: %w", err)
-			}
-			log.Errorf("Server ID is not configured, generated one for you: %s", signer.DID().String())
-			pkstr, err = ed25519.Format(signer)
-			if err != nil {
-				return fmt.Errorf("formatting ed25519 key: %w", err)
-			}
-		}
-
-		id, err := ed25519.Parse(pkstr)
+		id, err := PrincipalSignerFromFile(privKeyFile)
 		if err != nil {
-			return fmt.Errorf("parsing private key: %w", err)
-		}
-
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("getting user home directory: %w", err)
+			return err
 		}
 
 		dataDir := cCtx.String("data-dir")
 		if dataDir == "" {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("getting user home directory: %w", err)
+			}
+
 			dir, err := mkdirp(homeDir, ".storacha")
 			if err != nil {
 				return err
@@ -171,6 +170,7 @@ var StartCmd = &cli.Command{
 			}
 		}
 
+		port := cCtx.Int("port")
 		pubURLstr := cCtx.String("public-url")
 		if pubURLstr == "" {
 			pubURLstr = fmt.Sprintf("http://localhost:%d", port)
@@ -271,4 +271,88 @@ var StartCmd = &cli.Command{
 		)
 		return err
 	},
+}
+
+func PrincipalSignerFromFile(path string) (principal.Signer, error) {
+	// open the file
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("opening file: %w", err)
+	}
+	defer f.Close()
+
+	// ensure its either json or pem
+	baseName := strings.Trim(filepath.Ext(path), ".")
+	typ := enum.ParseKeyFormat(strings.ToUpper(baseName))
+	if !typ.IsValid() {
+		return nil, fmt.Errorf("unsupported file type: %s, expected .json or .pem", baseName)
+	}
+
+	// read accordingly
+	switch typ {
+	case enum.KeyFormats.PEM:
+		return readPrivateKeyFromPEM(f)
+	case enum.KeyFormats.JSON:
+		return readPrivateKeyFromJSON(f)
+	}
+
+	return nil, fmt.Errorf("unsupported file type: %s, expected .json or .pem", baseName)
+}
+
+func readPrivateKeyFromJSON(f io.Reader) (principal.Signer, error) {
+	jsonData, err := io.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("reading private key file: %w", err)
+	}
+
+	var key struct {
+		DID string `json:"did"`
+		Key string `json:"key"`
+	}
+	if err := json.Unmarshal(jsonData, &key); err != nil {
+		return nil, fmt.Errorf("unmarshaling private key file to json: %w", err)
+	}
+
+	return ed25519.Parse(key.Key)
+}
+
+func readPrivateKeyFromPEM(f io.Reader) (principal.Signer, error) {
+	pemData, err := io.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("reading private key: %w", err)
+	}
+
+	var privateKey *crypto_ed25519.PrivateKey
+	rest := pemData
+
+	// Loop until no more blocks
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			// No more PEM blocks
+			break
+		}
+		rest = remaining
+
+		// Look for "PRIVATE KEY"
+		if block.Type == "PRIVATE KEY" {
+			parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse PKCS#8 private key: %w", err)
+			}
+
+			// We expect a ed25519 private key, cast it
+			key, ok := parsedKey.(crypto_ed25519.PrivateKey)
+			if !ok {
+				return nil, fmt.Errorf("the parsed key is not an ED25519 private key")
+			}
+			privateKey = &key
+			break
+		}
+	}
+
+	if privateKey == nil {
+		return nil, fmt.Errorf("could not find a PRIVATE KEY block in the PEM file")
+	}
+	return ed25519.FromRaw(*privateKey)
 }
