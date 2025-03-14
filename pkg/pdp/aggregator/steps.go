@@ -75,6 +75,8 @@ func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, que
 		workspace:       workspace,
 		store:           store,
 		queueSubmission: queueSubmission,
+		// default aggregator is BufferingAggregator, it can be overridden via options.
+		aggregator: &BufferingAggregator{},
 	}
 
 	for _, opt := range opts {
@@ -120,6 +122,7 @@ type AggregateSubmitter struct {
 
 func NewAggregateSubmitteer(proofSet uint64, store AggregateStore, client *curio.Client, queuePieceAccept QueuePieceAcceptFn) *AggregateSubmitter {
 	return &AggregateSubmitter{
+		proofSet:         proofSet,
 		store:            store,
 		client:           client,
 		queuePieceAccept: queuePieceAccept,
