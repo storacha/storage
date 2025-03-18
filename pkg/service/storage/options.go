@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"net/url"
 
 	"github.com/ipfs/go-datastore"
@@ -26,6 +27,7 @@ type PDPConfig struct {
 	PDPDatastore  datastore.Datastore
 	CurioEndpoint *url.URL
 	ProofSet      uint64
+	Database      *sql.DB
 }
 
 type config struct {

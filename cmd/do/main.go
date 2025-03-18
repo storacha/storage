@@ -100,6 +100,7 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					ctx := cCtx.Context
 					var err error
 					port := cCtx.Int("port")
 
@@ -200,7 +201,7 @@ func main() {
 					if err != nil {
 						return fmt.Errorf("creating service instance: %w", err)
 					}
-					err = svc.Startup()
+					err = svc.Startup(ctx)
 					if err != nil {
 						return fmt.Errorf("starting service: %w", err)
 					}

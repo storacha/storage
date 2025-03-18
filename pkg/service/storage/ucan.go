@@ -242,11 +242,14 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					err = storageService.Claims().Publisher().Publish(ctx, claim)
-					if err != nil {
-						log.Errorf("publishing location commitment: %w", err)
-						return blob.AcceptOk{}, nil, failure.FromError(err)
-					}
+					/*
+						err = storageService.Claims().Publisher().Publish(ctx, claim)
+						if err != nil {
+							log.Errorf("publishing location commitment: %w", err)
+							return blob.AcceptOk{}, nil, failure.FromError(err)
+						}
+
+					*/
 
 					return blob.AcceptOk{Site: claim.Link(), PDP: pdpLink}, fx.NewEffects(fx.WithFork(forks...)), nil
 				},

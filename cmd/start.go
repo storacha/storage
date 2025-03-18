@@ -22,6 +22,7 @@ import (
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
 	"github.com/storacha/storage/cmd/enum"
+	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -156,10 +157,16 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
+			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
+			pdpDB, err := jobqueue.NewInMemoryDB(cCtx.Context)
+			if err != nil {
+				return err
+			}
 			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
 				ProofSet:      uint64(proofSet),
+				Database:      pdpDB,
 			}
 		}
 
@@ -229,7 +236,7 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return fmt.Errorf("creating service instance: %w", err)
 		}
-		err = svc.Startup()
+		err = svc.Startup(cCtx.Context)
 		if err != nil {
 			return fmt.Errorf("starting service: %w", err)
 		}
