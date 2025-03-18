@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	logging "github.com/ipfs/go-log/v2"
 	ipldprime "github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/schema"
 	"github.com/storacha/go-libstoracha/capabilities/pdp"
@@ -20,7 +21,11 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/curio"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
+
+var log = logging.Logger("fns")
 
 //go:embed buffer.ipldsch
 var bufferSchema []byte
@@ -62,6 +67,11 @@ func InsertOrderedByDescendingSize(sortedPieces []piece.PieceLink, newPiece piec
 const MinAggregateSize = 128 << 20
 
 func AggregatePiece(buffer Buffer, newPiece piece.PieceLink) (Buffer, *aggregate.Aggregate, error) {
+	log.Infow("Aggregate Piece",
+		"link", newPiece.Link().String(),
+		"padded size", newPiece.PaddedSize(),
+		"buffer size", buffer.TotalSize,
+	)
 	// if the piece is aggregatable on its own it should submit immediately
 	if newPiece.PaddedSize() > MinAggregateSize {
 		aggregate, err := aggregate.NewAggregate([]piece.PieceLink{newPiece})
@@ -104,6 +114,14 @@ func AggregatePieces(buffer Buffer, pieces []piece.PieceLink) (Buffer, []aggrega
 }
 
 func SubmitAggregates(ctx context.Context, client *curio.Client, proofSet uint64, aggregates []aggregate.Aggregate) error {
+	log.Info("submit aggregates",
+		zap.Array("aggregates", zapcore.ArrayMarshalerFunc(func(arr zapcore.ArrayEncoder) error {
+			for _, agg := range aggregates { // aggregates is []Aggregate
+				arr.AppendObject(agg) // agg already implements ObjectMarshaler
+			}
+			return nil
+		})),
+	)
 	return client.AddRootsToProofSet(ctx, proofSet, slices.Collect(iterable.Map(func(aggregate aggregate.Aggregate) curio.AddRoot {
 		return aggregate.ToCurioAddRoot()
 	}, slices.Values(aggregates))))

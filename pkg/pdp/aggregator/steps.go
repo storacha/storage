@@ -53,7 +53,10 @@ func NewInProgressWorkspace(store store.Store) InProgressWorkspace {
 }
 
 type AggregateStore ipldstore.KVStore[datamodel.Link, aggregate.Aggregate]
-type QueueSubmissionFn func(ctx context.Context, aggregateLink datamodel.Link) error
+
+type LinkQueue interface {
+	Enqueue(ctx context.Context, name string, msg datamodel.Link) error
+}
 
 type PieceAggregatorOption func(pa *PieceAggregator)
 
@@ -64,17 +67,17 @@ func WithAggregator(a BufferedAggregator) PieceAggregatorOption {
 }
 
 type PieceAggregator struct {
-	workspace       InProgressWorkspace
-	store           AggregateStore
-	queueSubmission QueueSubmissionFn
-	aggregator      BufferedAggregator
+	workspace  InProgressWorkspace
+	store      AggregateStore
+	queue      LinkQueue
+	aggregator BufferedAggregator
 }
 
-func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, queueSubmission QueueSubmissionFn, opts ...PieceAggregatorOption) *PieceAggregator {
+func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, queueSubmission LinkQueue, opts ...PieceAggregatorOption) *PieceAggregator {
 	pa := &PieceAggregator{
-		workspace:       workspace,
-		store:           store,
-		queueSubmission: queueSubmission,
+		workspace: workspace,
+		store:     store,
+		queue:     queueSubmission,
 		// default aggregator is BufferingAggregator, it can be overridden via options.
 		aggregator: &BufferingAggregator{},
 	}
@@ -86,6 +89,7 @@ func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, que
 }
 
 func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.PieceLink) error {
+	log.Infow("Aggregate pieces", "count", len(pieces))
 	buffer, err := pa.workspace.GetBuffer(ctx)
 	if err != nil {
 		return fmt.Errorf("reading in progress pieces from work space: %w", err)
@@ -102,7 +106,7 @@ func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.P
 		if err != nil {
 			return fmt.Errorf("storing aggregate: %w", err)
 		}
-		if err := pa.queueSubmission(ctx, a.Root.Link()); err != nil {
+		if err := pa.queue.Enqueue(ctx, "piece_submit", a.Root.Link()); err != nil {
 			return fmt.Errorf("queueing aggregates for submission: %w", err)
 		}
 	}
@@ -111,25 +115,24 @@ func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.P
 
 // Step 2: Submit to curio
 
-type QueuePieceAcceptFn func(ctx context.Context, aggregateLink datamodel.Link) error
-
 type AggregateSubmitter struct {
-	proofSet         uint64
-	store            AggregateStore
-	client           *curio.Client
-	queuePieceAccept QueuePieceAcceptFn
+	proofSet uint64
+	store    AggregateStore
+	client   *curio.Client
+	queue    LinkQueue
 }
 
-func NewAggregateSubmitteer(proofSet uint64, store AggregateStore, client *curio.Client, queuePieceAccept QueuePieceAcceptFn) *AggregateSubmitter {
+func NewAggregateSubmitteer(proofSet uint64, store AggregateStore, client *curio.Client, queuePieceAccept LinkQueue) *AggregateSubmitter {
 	return &AggregateSubmitter{
-		proofSet:         proofSet,
-		store:            store,
-		client:           client,
-		queuePieceAccept: queuePieceAccept,
+		proofSet: proofSet,
+		store:    store,
+		client:   client,
+		queue:    queuePieceAccept,
 	}
 }
 
 func (as *AggregateSubmitter) SubmitAggregates(ctx context.Context, aggregateLinks []datamodel.Link) error {
+	log.Infow("Submit aggregates", "count", len(aggregateLinks))
 	aggregates := make([]aggregate.Aggregate, 0, len(aggregateLinks))
 	for _, aggregateLink := range aggregateLinks {
 		aggregate, err := as.store.Get(ctx, aggregateLink)
@@ -142,7 +145,7 @@ func (as *AggregateSubmitter) SubmitAggregates(ctx context.Context, aggregateLin
 		return fmt.Errorf("submitting aggregates to Curio: %w", err)
 	}
 	for _, aggregateLink := range aggregateLinks {
-		err := as.queuePieceAccept(ctx, aggregateLink)
+		err := as.queue.Enqueue(ctx, "piece_accept", aggregateLink)
 		if err != nil {
 			return fmt.Errorf("queuing piece acceptance: %w", err)
 		}
