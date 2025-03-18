@@ -1,17 +1,19 @@
 package cmd
 
-import "github.com/urfave/cli/v2"
+import (
+	"github.com/urfave/cli/v2"
+)
 
 func RequiredStringFlag(strFlag *cli.StringFlag) *cli.StringFlag {
-	copy := *strFlag
-	copy.Required = true
-	return &copy
+	cpy := *strFlag
+	cpy.Required = true
+	return &cpy
 }
 
 func RequiredIntFlag(strFlag *cli.Int64Flag) *cli.Int64Flag {
-	copy := *strFlag
-	copy.Required = true
-	return &copy
+	cpy := *strFlag
+	cpy.Required = true
+	return &cpy
 }
 
 var CurioURLFlag = &cli.StringFlag{
@@ -21,12 +23,12 @@ var CurioURLFlag = &cli.StringFlag{
 	EnvVars: []string{"STORAGE_CURIO_URL"},
 }
 
-var PrivateKeyFlag = &cli.StringFlag{
-	Name:     "private-key",
-	Aliases:  []string{"s"},
-	Usage:    "Multibase base64 encoded private key identity for the node.",
-	EnvVars:  []string{"STORAGE_PRIVATE_KEY"},
-	Required: true,
+var KeyFileFlag = &cli.PathFlag{
+	Name:      "key-file",
+	Usage:     "Path to a file containing ed25519 private key, typically created by the id gen command.",
+	EnvVars:   []string{"STORAGE_PRIVATE_KEY"},
+	Required:  true,
+	TakesFile: true,
 }
 
 var ClientKeyFlag = &cli.StringFlag{
