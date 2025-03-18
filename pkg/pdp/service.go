@@ -2,7 +2,9 @@ package pdp
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/storacha/go-ucanto/ucan"
@@ -17,7 +19,7 @@ type PDPService struct {
 	aggregator  aggregator.Aggregator
 	pieceFinder piecefinder.PieceFinder
 	pieceAdder  pieceadder.PieceAdder
-	startFuncs  []func() error
+	startFuncs  []func(ctx context.Context) error
 	closeFuncs  []func(ctx context.Context) error
 }
 
@@ -33,10 +35,10 @@ func (p *PDPService) PieceFinder() piecefinder.PieceFinder {
 	return p.pieceFinder
 }
 
-func (p *PDPService) Startup() error {
+func (p *PDPService) Startup(ctx context.Context) error {
 	var err error
 	for _, startFunc := range p.startFuncs {
-		err = errors.Join(startFunc())
+		err = errors.Join(startFunc(ctx))
 	}
 	return err
 }
@@ -51,17 +53,29 @@ func (p *PDPService) Shutdown(ctx context.Context) error {
 
 var _ PDP = (*PDPService)(nil)
 
-func NewLocal(ds datastore.Datastore, client *curio.Client, proofSet uint64, issuer ucan.Signer, receiptStore receiptstore.ReceiptStore) *PDPService {
-	aggregator := aggregator.NewLocal(ds, client, proofSet, issuer, receiptStore)
+func NewLocal(
+	ds datastore.Datastore,
+	db *sql.DB,
+	client *curio.Client,
+	proofSet uint64,
+	issuer ucan.Signer,
+	receiptStore receiptstore.ReceiptStore,
+) (*PDPService, error) {
+	aggregator, err := aggregator.NewLocal(ds, db, client, proofSet, issuer, receiptStore)
+	if err != nil {
+		return nil, fmt.Errorf("creating local aggregator: %w", err)
+	}
 	return &PDPService{
 		aggregator:  aggregator,
 		pieceFinder: piecefinder.NewCurioFinder(client),
 		pieceAdder:  pieceadder.NewCurioAdder(client),
-		startFuncs: []func() error{
-			func() error { aggregator.Startup(); return nil },
+		startFuncs: []func(ctx context.Context) error{
+			func(ctx context.Context) error {
+				return aggregator.Startup(ctx)
+			},
 		},
 		closeFuncs: []func(context.Context) error{
 			func(ctx context.Context) error { aggregator.Shutdown(ctx); return nil },
 		},
-	}
+	}, nil
 }

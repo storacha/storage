@@ -16,7 +16,6 @@ import (
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/ipld/hash/sha256"
 	"github.com/storacha/go-ucanto/did"
-	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/client"
 	"github.com/urfave/cli/v2"
 )
@@ -53,10 +52,6 @@ var ClientCmd = &cli.Command{
 				if err != nil {
 					return err
 				}
-				spaceDid, err := did.Parse(cCtx.String("space-did"))
-				if err != nil {
-					return fmt.Errorf("parsing space did: %w", err)
-				}
 				blobFile, err := os.Open(cCtx.String("blob"))
 				if err != nil {
 					return fmt.Errorf("opening blob file: %w", err)
@@ -64,6 +59,10 @@ var ClientCmd = &cli.Command{
 				blobData, err := io.ReadAll(blobFile)
 				if err != nil {
 					return fmt.Errorf("reading blob file: %w", err)
+				}
+				spaceDid, err := did.Parse(cCtx.String("space-did"))
+				if err != nil {
+					return fmt.Errorf("parsing space did: %w", err)
 				}
 				digest, err := sha256.Hasher.Sum(blobData)
 				if err != nil {
@@ -93,6 +92,11 @@ var ClientCmd = &cli.Command{
 						return fmt.Errorf("unsuccessful put, status: %s, message: %s", res.Status, string(resData))
 					}
 				}
+				// TODO(forrest): after a blob is uploaded to `address`, curio adds it to `parked_pieces`, `parked_piece_refs`, `pdp_piece_uploads`, and `pdp_piece_mh_to_commp`.
+				// when we aggregate the piece, and add it to the root set, curio must have a reference to it in `pdp_piecerefs` else the operation of adding a root will fail.
+				// Adding a reference to `pdp_piecerefs` happens async to upload via the PDPNotifyTask in curio, where curio queries `pdp_piece_uploads` and then inserts into `pdp_piecerefs`.
+				// we cannot add a piece to the root set until the PDPNotifyTask is complete. When uploading a piece we may provide a `NotifyURL` in the request that curio
+				// will call when its ready for a new root to be added for the piece.
 				blobResult, err := client.BlobAccept(spaceDid, digest.Bytes(), uint64(len(blobData)), cidlink.Link{Cid: cid.NewCidV1(cid.Raw, digest.Bytes())})
 				if err != nil {
 					return fmt.Errorf("accepting blob: %w", err)
@@ -159,9 +163,9 @@ var ClientCmd = &cli.Command{
 }
 
 func getClient(cCtx *cli.Context) (*client.Client, error) {
-	id, err := ed25519.Parse(cCtx.String("client-key"))
+	id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 	if err != nil {
-		return nil, fmt.Errorf("parsing private key: %w", err)
+		return nil, err
 	}
 	proofFile, err := os.Open(cCtx.String("proof"))
 	if err != nil {
