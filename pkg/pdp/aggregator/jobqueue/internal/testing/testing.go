@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/stretchr/testify/require"
 )
 
 //go:embed schema.sql
@@ -48,7 +49,9 @@ func NewQ(t testing.TB, opts queue.NewOpts) *queue.Queue {
 		opts.Name = "test"
 	}
 
-	return queue.New(opts)
+	q, err := queue.New(opts)
+	require.NoError(t, err)
+	return q
 }
 
 type Logger func(msg string, args ...any)
