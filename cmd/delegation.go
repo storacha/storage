@@ -9,7 +9,6 @@ import (
 	"github.com/storacha/go-libstoracha/capabilities/pdp"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
-	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/urfave/cli/v2"
 )
@@ -24,7 +23,7 @@ var DelegationCmd = &cli.Command{
 			Aliases: []string{"gen"},
 			Usage:   "Generate a new storage delegation",
 			Flags: []cli.Flag{
-				PrivateKeyFlag,
+				KeyFileFlag,
 				&cli.StringFlag{
 					Name:     "client-did",
 					Aliases:  []string{"d"},
@@ -34,7 +33,7 @@ var DelegationCmd = &cli.Command{
 				},
 			},
 			Action: func(cCtx *cli.Context) error {
-				id, err := ed25519.Parse(cCtx.String("private-key"))
+				id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 				if err != nil {
 					return fmt.Errorf("parsing private key: %w", err)
 				}
