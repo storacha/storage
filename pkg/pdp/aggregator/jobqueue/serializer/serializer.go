@@ -1,4 +1,4 @@
-package jobqueue
+package serializer
 
 import (
 	"github.com/ipld/go-ipld-prime/node/bindnode"

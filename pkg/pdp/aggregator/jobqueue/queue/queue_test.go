@@ -59,40 +59,24 @@ func TestQueue(t *testing.T) {
 }
 
 func TestQueue_New(t *testing.T) {
-	t.Run("panics if db is nil", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			require.Equal(t, "db cannot be nil", r)
-		}()
-
-		queue.New(queue.NewOpts{Name: "test"})
+	t.Run("errors if db is nil", func(t *testing.T) {
+		_, err := queue.New(queue.NewOpts{Name: "test"})
+		require.Error(t, err)
 	})
 
-	t.Run("panics if name is empty", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			require.Equal(t, "name cannot be empty", r)
-		}()
-
-		queue.New(queue.NewOpts{DB: &sql.DB{}})
+	t.Run("errors if name is empty", func(t *testing.T) {
+		_, err := queue.New(queue.NewOpts{DB: &sql.DB{}})
+		require.Error(t, err)
 	})
 
-	t.Run("panics if max receive is negative", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			require.Equal(t, "max receive cannot be negative", r)
-		}()
-
-		queue.New(queue.NewOpts{DB: &sql.DB{}, Name: "test", MaxReceive: -1})
+	t.Run("errors if max receive is negative", func(t *testing.T) {
+		_, err := queue.New(queue.NewOpts{DB: &sql.DB{}, Name: "test", MaxReceive: -1})
+		require.Error(t, err)
 	})
 
-	t.Run("panics if timeout is negative", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			require.Equal(t, "timeout cannot be negative", r)
-		}()
-
-		queue.New(queue.NewOpts{DB: &sql.DB{}, Name: "test", Timeout: -1})
+	t.Run("errors if timeout is negative", func(t *testing.T) {
+		_, err := queue.New(queue.NewOpts{DB: &sql.DB{}, Name: "test", Timeout: -1})
+		require.Error(t, err)
 	})
 }
 
@@ -428,5 +412,7 @@ func newQ(t testing.TB, opts queue.NewOpts) *queue.Queue {
 		opts.Name = "test"
 	}
 
-	return queue.New(opts)
+	q, err := queue.New(opts)
+	require.NoError(t, err)
+	return q
 }

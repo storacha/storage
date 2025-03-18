@@ -1,10 +1,10 @@
-package jobqueue
+package worker
 
 import (
 	"time"
 )
 
-// Config holds all parameters needed to initialize a JobQueue.
+// Config holds all parameters needed to initialize a Worker.
 type Config struct {
 	Log           StandardLogger
 	JobCountLimit int
@@ -12,7 +12,7 @@ type Config struct {
 	Extend        time.Duration
 }
 
-// Option modifies a Config before creating the JobQueue.
+// Option modifies a Config before creating the Worker.
 type Option func(*Config)
 
 func WithLog(l StandardLogger) Option {
@@ -58,19 +58,19 @@ type StandardLogger interface {
 	Errorw(msg string, keysAndValues ...interface{})
 }
 
-type discardLogger struct{}
+type DiscardLogger struct{}
 
-var _ StandardLogger = (*discardLogger)(nil)
+var _ StandardLogger = (*DiscardLogger)(nil)
 
-func (d *discardLogger) Debug(args ...interface{})                       {}
-func (d *discardLogger) Debugf(format string, args ...interface{})       {}
-func (d *discardLogger) Debugw(msg string, keysAndValues ...interface{}) {}
-func (d *discardLogger) Error(args ...interface{})                       {}
-func (d *discardLogger) Errorf(format string, args ...interface{})       {}
-func (d *discardLogger) Errorw(msg string, keysAndValues ...interface{}) {}
-func (d *discardLogger) Infof(format string, args ...interface{})        {}
-func (d *discardLogger) Info(args ...interface{})                        {}
-func (d *discardLogger) Infow(msg string, keysAndValues ...interface{})  {}
-func (d *discardLogger) Warn(args ...interface{})                        {}
-func (d *discardLogger) Warnf(format string, args ...interface{})        {}
-func (d *discardLogger) Warnw(msg string, keysAndValues ...interface{})  {}
+func (d *DiscardLogger) Debug(args ...interface{})                       {}
+func (d *DiscardLogger) Debugf(format string, args ...interface{})       {}
+func (d *DiscardLogger) Debugw(msg string, keysAndValues ...interface{}) {}
+func (d *DiscardLogger) Error(args ...interface{})                       {}
+func (d *DiscardLogger) Errorf(format string, args ...interface{})       {}
+func (d *DiscardLogger) Errorw(msg string, keysAndValues ...interface{}) {}
+func (d *DiscardLogger) Infof(format string, args ...interface{})        {}
+func (d *DiscardLogger) Info(args ...interface{})                        {}
+func (d *DiscardLogger) Infow(msg string, keysAndValues ...interface{})  {}
+func (d *DiscardLogger) Warn(args ...interface{})                        {}
+func (d *DiscardLogger) Warnf(format string, args ...interface{})        {}
+func (d *DiscardLogger) Warnw(msg string, keysAndValues ...interface{})  {}

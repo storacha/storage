@@ -89,7 +89,6 @@ func NewPieceAggregator(workspace InProgressWorkspace, store AggregateStore, que
 }
 
 func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.PieceLink) error {
-	log.Infow("Aggregate pieces", "count", len(pieces))
 	buffer, err := pa.workspace.GetBuffer(ctx)
 	if err != nil {
 		return fmt.Errorf("reading in progress pieces from work space: %w", err)
@@ -106,7 +105,7 @@ func (pa *PieceAggregator) AggregatePieces(ctx context.Context, pieces []piece.P
 		if err != nil {
 			return fmt.Errorf("storing aggregate: %w", err)
 		}
-		if err := pa.queue.Enqueue(ctx, "piece_submit", a.Root.Link()); err != nil {
+		if err := pa.queue.Enqueue(ctx, PieceSubmitTask, a.Root.Link()); err != nil {
 			return fmt.Errorf("queueing aggregates for submission: %w", err)
 		}
 	}
@@ -145,7 +144,7 @@ func (as *AggregateSubmitter) SubmitAggregates(ctx context.Context, aggregateLin
 		return fmt.Errorf("submitting aggregates to Curio: %w", err)
 	}
 	for _, aggregateLink := range aggregateLinks {
-		err := as.queue.Enqueue(ctx, "piece_accept", aggregateLink)
+		err := as.queue.Enqueue(ctx, PieceAcceptTask, aggregateLink)
 		if err != nil {
 			return fmt.Errorf("queuing piece acceptance: %w", err)
 		}

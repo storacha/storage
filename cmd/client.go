@@ -92,6 +92,11 @@ var ClientCmd = &cli.Command{
 						return fmt.Errorf("unsuccessful put, status: %s, message: %s", res.Status, string(resData))
 					}
 				}
+				// TODO(forrest): after a blob is uploaded to `address`, curio adds it to `parked_pieces`, `parked_piece_refs`, `pdp_piece_uploads`, and `pdp_piece_mh_to_commp`.
+				// when we aggregate the piece, and add it to the root set, curio must have a reference to it in `pdp_piecerefs` else the operation of adding a root will fail.
+				// Adding a reference to `pdp_piecerefs` happens async to upload via the PDPNotifyTask in curio, where curio queries `pdp_piece_uploads` and then inserts into `pdp_piecerefs`.
+				// we cannot add a piece to the root set until the PDPNotifyTask is complete. When uploading a piece we may provide a `NotifyURL` in the request that curio
+				// will call when its ready for a new root to be added for the piece.
 				blobResult, err := client.BlobAccept(spaceDid, digest.Bytes(), uint64(len(blobData)), cidlink.Link{Cid: cid.NewCidV1(cid.Raw, digest.Bytes())})
 				if err != nil {
 					return fmt.Errorf("accepting blob: %w", err)

@@ -5,7 +5,7 @@
 // in the root directory of this source tree, or at:
 // https://opensource.org/licenses/MIT
 
-package jobqueue_test
+package worker_test
 
 import (
 	"context"
@@ -16,36 +16,29 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	internalsql "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/sql"
 	internaltesting "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/testing"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRunner_Register(t *testing.T) {
 	t.Run("can register a new job", func(t *testing.T) {
-		r := jobqueue.New[[]byte](nil, nil)
+		r := worker.New[[]byte](nil, nil)
 		r.Register("test", func(ctx context.Context, m []byte) error {
 			return nil
 		})
 	})
 
-	t.Run("panics if the same job is registered twice", func(t *testing.T) {
-		r := jobqueue.New[[]byte](nil, nil)
-		r.Register("test", func(ctx context.Context, m []byte) error {
+	t.Run("errors if the same job is registered twice", func(t *testing.T) {
+		r := worker.New[[]byte](nil, nil)
+		err := r.Register("test", func(ctx context.Context, m []byte) error {
 			return nil
 		})
-		defer func() {
-			r := recover()
-			if r == nil {
-				t.Fatal("did not panic")
-			}
-			require.Equal(t, `job "test" already registered`, r)
-		}()
-		r.Register("test", func(ctx context.Context, m []byte) error {
-			return nil
-		})
+		require.NoError(t, err)
+		err = r.Register("test", func(ctx context.Context, m []byte) error { return nil })
+		require.Error(t, err)
 	})
 }
 
@@ -152,7 +145,7 @@ func TestCreateTx(t *testing.T) {
 	t.Run("can create a job inside a transaction", func(t *testing.T) {
 		db := internaltesting.NewInMemoryDB(t)
 		q := internaltesting.NewQ(t, queue.NewOpts{DB: db})
-		r := jobqueue.New[[]byte](q, &PassThroughSerializer[[]byte]{})
+		r := worker.New[[]byte](q, &PassThroughSerializer[[]byte]{})
 
 		var ran bool
 		ctx, cancel := context.WithCancel(context.Background())
@@ -173,15 +166,15 @@ func TestCreateTx(t *testing.T) {
 	})
 }
 
-func newRunner(t *testing.T) (*queue.Queue, *jobqueue.JobQueue[[]byte]) {
+func newRunner(t *testing.T) (*queue.Queue, *worker.Worker[[]byte]) {
 	t.Helper()
 
 	q := internaltesting.NewQ(t, queue.NewOpts{Timeout: 100 * time.Millisecond})
-	r := jobqueue.New[[]byte](
+	r := worker.New[[]byte](
 		q,
 		&PassThroughSerializer[[]byte]{},
-		jobqueue.WithLimit(10),
-		jobqueue.WithExtend(100*time.Millisecond),
+		worker.WithLimit(10),
+		worker.WithExtend(100*time.Millisecond),
 	)
 	return q, r
 }
