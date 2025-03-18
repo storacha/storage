@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 
-	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/urfave/cli/v2"
 )
@@ -21,8 +20,8 @@ var ProofSetCmd = &cli.Command{
 			Aliases: []string{"c"},
 			Usage:   "Generate a new proofset",
 			Flags: []cli.Flag{
+				KeyFileFlag,
 				RequiredStringFlag(CurioURLFlag),
-				PrivateKeyFlag,
 				&cli.StringFlag{
 					Name:     "record-keeper",
 					Aliases:  []string{"rk"},
@@ -32,15 +31,16 @@ var ProofSetCmd = &cli.Command{
 				},
 			},
 			Action: func(cCtx *cli.Context) error {
-				curioURLStr := cCtx.String("curio-url")
-				curioURL, err := url.Parse(curioURLStr)
-				if err != nil {
-					return fmt.Errorf("parsing curio URL: %w", err)
-				}
-				id, err := ed25519.Parse(cCtx.String("private-key"))
+				id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 				if err != nil {
 					return fmt.Errorf("parsing private key: %w", err)
 				}
+
+				curioURL, err := url.Parse(cCtx.String("curio-url"))
+				if err != nil {
+					return fmt.Errorf("parsing curio URL: %w", err)
+				}
+
 				curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 				if err != nil {
 					return fmt.Errorf("generating curio jwt: %w", err)
@@ -62,7 +62,7 @@ var ProofSetCmd = &cli.Command{
 			Aliases: []string{"cs"},
 			Usage:   "check on progress creating a proofset",
 			Flags: []cli.Flag{
-				PrivateKeyFlag,
+				KeyFileFlag,
 				RequiredStringFlag(CurioURLFlag),
 				&cli.StringFlag{
 					Name:     "ref-url",
@@ -73,15 +73,16 @@ var ProofSetCmd = &cli.Command{
 				},
 			},
 			Action: func(cCtx *cli.Context) error {
-				curioURLStr := cCtx.String("curio-url")
-				curioURL, err := url.Parse(curioURLStr)
+				curioURL, err := url.Parse(cCtx.String("curio-url"))
 				if err != nil {
 					return fmt.Errorf("parsing curio URL: %w", err)
 				}
-				id, err := ed25519.Parse(cCtx.String("private-key"))
+
+				id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 				if err != nil {
 					return fmt.Errorf("parsing private key: %w", err)
 				}
+
 				curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 				if err != nil {
 					return fmt.Errorf("generating curio jwt: %w", err)
@@ -107,20 +108,21 @@ var ProofSetCmd = &cli.Command{
 			Aliases: []string{"g"},
 			Usage:   "get a proofs set",
 			Flags: []cli.Flag{
-				PrivateKeyFlag,
+				KeyFileFlag,
 				RequiredStringFlag(CurioURLFlag),
 				RequiredIntFlag(ProofSetFlag),
 			},
 			Action: func(cCtx *cli.Context) error {
-				curioURLStr := cCtx.String("curio-url")
-				curioURL, err := url.Parse(curioURLStr)
+				curioURL, err := url.Parse(cCtx.String("curio-url"))
 				if err != nil {
 					return fmt.Errorf("parsing curio URL: %w", err)
 				}
-				id, err := ed25519.Parse(cCtx.String("private-key"))
+
+				id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 				if err != nil {
 					return fmt.Errorf("parsing private key: %w", err)
 				}
+
 				curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 				if err != nil {
 					return fmt.Errorf("generating curio jwt: %w", err)

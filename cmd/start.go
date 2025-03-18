@@ -30,19 +30,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var privKeyFile string
-
 var StartCmd = &cli.Command{
 	Name:  "start",
 	Usage: "Start the storage node daemon.",
 	Flags: []cli.Flag{
+		KeyFileFlag,
 		CurioURLFlag,
-		&cli.PathFlag{
-			Name:        "key-file",
-			Usage:       "Path to a file containing ed25519 private key, typically created by the id gen command.",
-			Required:    true,
-			Destination: &privKeyFile,
-		},
 		&cli.IntFlag{
 			Name:    "port",
 			Aliases: []string{"p"},
@@ -76,7 +69,7 @@ var StartCmd = &cli.Command{
 		},
 	},
 	Action: func(cCtx *cli.Context) error {
-		id, err := PrincipalSignerFromFile(privKeyFile)
+		id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 		if err != nil {
 			return err
 		}
