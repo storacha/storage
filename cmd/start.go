@@ -159,7 +159,7 @@ var StartCmd = &cli.Command{
 				return err
 			}
 			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
-			pdpDB, err := jobqueue.NewInMemoryDB(cCtx.Context)
+			pdpDB, err := jobqueue.NewInMemoryDB()
 			if err != nil {
 				return err
 			}

@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"fmt"
 	"time"
 
 	internalsql "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/sql"
@@ -36,18 +37,18 @@ type NewOpts struct {
 // - Logs are discarded.
 // - Max receive count is 3.
 // - Timeout is five seconds.
-func New(opts NewOpts) *Queue {
+func New(opts NewOpts) (*Queue, error) {
 	if opts.DB == nil {
-		panic("db cannot be nil")
+		return nil, errors.New("db is required")
 	}
 
 	// TODO(forrest): check if a queue with name already exists and fail if the case.
 	if opts.Name == "" {
-		panic("name cannot be empty")
+		return nil, errors.New("queue name is required")
 	}
 
 	if opts.MaxReceive < 0 {
-		panic("max receive cannot be negative")
+		return nil, errors.New("max receive cannot negative")
 	}
 
 	if opts.MaxReceive == 0 {
@@ -55,7 +56,7 @@ func New(opts NewOpts) *Queue {
 	}
 
 	if opts.Timeout < 0 {
-		panic("timeout cannot be negative")
+		return nil, errors.New("timeout cannot be negative")
 	}
 
 	if opts.Timeout == 0 {
@@ -67,7 +68,7 @@ func New(opts NewOpts) *Queue {
 		name:       opts.Name,
 		maxReceive: opts.MaxReceive,
 		timeout:    opts.Timeout,
-	}
+	}, nil
 }
 
 type Queue struct {
@@ -80,9 +81,18 @@ type Queue struct {
 type ID string
 
 type Message struct {
-	ID    ID
-	Delay time.Duration
-	Body  []byte
+	ID       ID
+	Delay    time.Duration
+	Received int
+	Body     []byte
+}
+
+func (q *Queue) MaxReceive() int {
+	return q.maxReceive
+}
+
+func (q *Queue) Timeout() time.Duration {
+	return q.timeout
 }
 
 // Send a Message to the queue with an optional delay.
@@ -157,10 +167,10 @@ func (q *Queue) ReceiveTx(ctx context.Context, tx *sql.Tx) (*Message, error) {
 			order by created
 			limit 1
 		)
-		returning id, body`
+		returning id, body, received`
 
 	var m Message
-	if err := tx.QueryRowContext(ctx, query, timeoutFormatted, q.name, nowFormatted, q.maxReceive).Scan(&m.ID, &m.Body); err != nil {
+	if err := tx.QueryRowContext(ctx, query, timeoutFormatted, q.name, nowFormatted, q.maxReceive).Scan(&m.ID, &m.Body, &m.Received); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -226,5 +236,8 @@ func (q *Queue) DeleteTx(ctx context.Context, tx *sql.Tx, id ID) error {
 // Setup the queue in the database.
 func Setup(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, schema)
-	return err
+	if err != nil {
+		return fmt.Errorf("setup queue schema: %w", err)
+	}
+	return nil
 }
