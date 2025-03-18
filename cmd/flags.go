@@ -31,13 +31,6 @@ var KeyFileFlag = &cli.PathFlag{
 	TakesFile: true,
 }
 
-var ClientKeyFlag = &cli.StringFlag{
-	Name:     "client-key",
-	Aliases:  []string{"s"},
-	Usage:    "Multibase base64 encoded private key identity for the client",
-	EnvVars:  []string{"STORAGE_CLIENT_KEY"},
-	Required: true,
-}
 var NodeDIDFlag = &cli.StringFlag{
 	Name:     "node-did",
 	Aliases:  []string{"nd"},
@@ -45,6 +38,7 @@ var NodeDIDFlag = &cli.StringFlag{
 	EnvVars:  []string{"STORAGE_NODE_DID"},
 	Required: true,
 }
+
 var NodeURLFlag = &cli.StringFlag{
 	Name:     "node-url",
 	Aliases:  []string{"nu"},
@@ -52,6 +46,7 @@ var NodeURLFlag = &cli.StringFlag{
 	EnvVars:  []string{"STORAGE_NODE_URL"},
 	Required: true,
 }
+
 var ProofFlag = &cli.StringFlag{
 	Name:     "proof",
 	Aliases:  []string{"p"},
@@ -61,7 +56,7 @@ var ProofFlag = &cli.StringFlag{
 }
 
 var ClientSetupFlags = []cli.Flag{
-	ClientKeyFlag,
+	KeyFileFlag,
 	NodeDIDFlag,
 	NodeURLFlag,
 	ProofFlag,
