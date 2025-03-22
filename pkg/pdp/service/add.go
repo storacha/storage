@@ -246,14 +246,14 @@ func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []Ad
 			for _, subrootEntry := range addReq.SubrootCIDs {
 				subInfo := subrootInfoMap[subrootEntry]
 				newRootAdd := models.PDPProofsetRootAdd{
-					Proofset:        proofSetID.Int64(),
+					ProofsetID:      proofSetID.Int64(),
 					Root:            addReq.RootCID,
 					AddMessageHash:  txHash.Hex(),
-					AddMessageIndex: int64(addMessageIndex),
+					AddMessageIndex: models.Ptr(int64(addMessageIndex)),
 					Subroot:         subrootEntry,
 					SubrootOffset:   int64(subInfo.SubrootOffset),
 					SubrootSize:     int64(subInfo.PieceInfo.Size),
-					PDPPieceRef:     subInfo.PDPPieceRefID,
+					PDPPieceRefID:   &subInfo.PDPPieceRefID,
 				}
 				if err := tx.WithContext(ctx).Create(&newRootAdd).Error; err != nil {
 					return err

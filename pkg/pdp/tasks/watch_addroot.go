@@ -58,7 +58,7 @@ func processPendingProofSetRootAdds(ctx context.Context, db *gorm.DB, ethClient 
 	// Query for pdp_proofset_root_adds entries where add_message_ok = TRUE
 	var rootAdds []models.PDPProofsetRootAdd
 	err := db.WithContext(ctx).
-		Distinct("proofset", "add_message_hash").
+		Distinct("proofset_id", "add_message_hash").
 		Where("add_message_ok = ?", true).
 		Find(&rootAdds).Error
 	if err != nil {
@@ -171,7 +171,7 @@ func extractAndInsertRootsFromReceipt(ctx context.Context, db *gorm.DB, receipt 
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Fetch the entries from pdp_proofset_root_adds
 		var rootAddEntries []models.PDPProofsetRootAdd
-		err := tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.Proofset, rootAdd.AddMessageHash).
+		err := tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.ProofsetID, rootAdd.AddMessageHash).
 			Order("add_message_index ASC, subroot_offset ASC").
 			Find(&rootAddEntries).Error
 		if err != nil {
@@ -180,23 +180,23 @@ func extractAndInsertRootsFromReceipt(ctx context.Context, db *gorm.DB, receipt 
 
 		// For each entry, use the corresponding rootId from the event
 		for _, entry := range rootAddEntries {
-			if entry.AddMessageIndex >= int64(len(rootIds)) {
+			if *entry.AddMessageIndex >= int64(len(rootIds)) {
 				return fmt.Errorf("index out of bounds: entry index %d exceeds rootIds length %d",
 					entry.AddMessageIndex, len(rootIds))
 			}
 
-			rootId := rootIds[entry.AddMessageIndex]
+			rootId := rootIds[*entry.AddMessageIndex]
 			// Insert into pdp_proofset_roots
 			root := models.PDPProofsetRoot{
-				Proofset:        entry.Proofset,
+				ProofsetID:      entry.ProofsetID,
 				Root:            entry.Root,
 				RootID:          int64(rootId),
 				Subroot:         entry.Subroot,
 				SubrootOffset:   entry.SubrootOffset,
 				SubrootSize:     entry.SubrootSize,
-				PDPPieceRef:     entry.PDPPieceRef,
+				PDPPieceRefID:   entry.PDPPieceRefID,
 				AddMessageHash:  entry.AddMessageHash,
-				AddMessageIndex: entry.AddMessageIndex,
+				AddMessageIndex: *entry.AddMessageIndex,
 			}
 			err := tx.Create(&root).Error
 			if err != nil {
@@ -205,7 +205,7 @@ func extractAndInsertRootsFromReceipt(ctx context.Context, db *gorm.DB, receipt 
 		}
 
 		// Delete from pdp_proofset_root_adds
-		err = tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.Proofset, rootAdd.AddMessageHash).
+		err = tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.PDPPieceRefID, rootAdd.AddMessageHash).
 			Delete(&models.PDPProofsetRootAdd{}).Error
 		if err != nil {
 			return fmt.Errorf("failed to delete from pdp_proofset_root_adds: %w", err)

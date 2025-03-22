@@ -111,137 +111,139 @@ func (ParkedPieceRef) TableName() string {
 	return "parked_piece_refs"
 }
 
-// PDPService represents the pdp_services table.
+// pdp_services
 type PDPService struct {
-	ID           int64     `gorm:"primaryKey;autoIncrement;column:id"`
-	Pubkey       []byte    `gorm:"not null;column:pubkey;unique"`
-	ServiceLabel string    `gorm:"not null;column:service_label;unique"`
-	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP;column:created_at"`
+	ID           int64     `gorm:"primaryKey;autoIncrement"`
+	Pubkey       []byte    `gorm:"not null;unique"`
+	ServiceLabel string    `gorm:"not null;unique"`
+	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPService) TableName() string {
 	return "pdp_services"
 }
 
-// PDPPieceUpload represents the pdp_piece_uploads table.
+// pdp_piece_uploads
 type PDPPieceUpload struct {
-	ID             string    `gorm:"type:uuid;primaryKey;column:id"`
-	Service        string    `gorm:"not null;column:service"`
-	CheckHashCodec string    `gorm:"not null;column:check_hash_codec"`
-	CheckHash      []byte    `gorm:"not null;column:check_hash"`
-	CheckSize      int64     `gorm:"not null;column:check_size"`
-	PieceCID       string    `gorm:"column:piece_cid"`
-	NotifyURL      string    `gorm:"not null;column:notify_url"`
-	NotifyTaskID   *int64    `gorm:"column:notify_task_id"`
-	PieceRef       *int64    `gorm:"column:piece_ref"`
-	CreatedAt      time.Time `gorm:"default:CURRENT_TIMESTAMP;column:created_at"`
+	ID             string      `gorm:"primaryKey;type:uuid"` // or use a UUID type
+	Service        string      `gorm:"not null"`             // references pdp_services(service_label)
+	ServiceModel   *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
+	CheckHashCodec string      `gorm:"not null"`
+	CheckHash      []byte      `gorm:"not null"`
+	CheckSize      int64       `gorm:"not null"`
+	PieceCID       *string
+	NotifyURL      string    `gorm:"not null"`
+	NotifyTaskID   *int64    // references harmony_task(id)
+	PieceRef       *int64    // references parked_piece_refs(ref_id)
+	CreatedAt      time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPPieceUpload) TableName() string {
 	return "pdp_piece_uploads"
 }
 
-// PDPPieceRef represents the pdp_piecerefs table.
+// pdp_piecerefs
 type PDPPieceRef struct {
-	ID               int64     `gorm:"primaryKey;autoIncrement;column:id"`
-	Service          string    `gorm:"not null;column:service"`
-	PieceCID         string    `gorm:"not null;column:piece_cid"`
-	PieceRef         int64     `gorm:"not null;column:piece_ref;unique"`
-	CreatedAt        time.Time `gorm:"default:CURRENT_TIMESTAMP;column:created_at"`
-	ProofsetRefCount int64     `gorm:"not null;default:0;column:proofset_refcount"`
+	ID               int64       `gorm:"primaryKey;autoIncrement"`
+	Service          string      `gorm:"not null"` // references pdp_services(service_label)
+	ServiceModel     *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
+	PieceCID         string      `gorm:"not null"`
+	PieceRef         int64       // references parked_piece_refs(ref_id)
+	CreatedAt        time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
+	ProofsetRefcount int64       `gorm:"default:0;not null"`
 }
 
 func (PDPPieceRef) TableName() string {
 	return "pdp_piecerefs"
 }
 
-// PDPProofSet represents the pdp_proof_sets table.
+// pdp_piece_mh_to_commp
+type PDPPieceMHToCommp struct {
+	Mhash []byte `gorm:"primaryKey"` // BYTEA primary key
+	Size  int64  `gorm:"not null"`
+	Commp string `gorm:"not null"`
+}
+
+func (PDPPieceMHToCommp) TableName() string {
+	return "pdp_piece_mh_to_commp"
+}
+
+// pdp_proof_sets
 type PDPProofSet struct {
-	ID                        int64   `gorm:"primaryKey;column:id;not null"`
-	PrevChallengeRequestEpoch *int64  `gorm:"column:prev_challenge_request_epoch"`
-	ChallengeRequestTaskID    *int64  `gorm:"column:challenge_request_task_id"`
-	ChallengeRequestMsgHash   *string `gorm:"column:challenge_request_msg_hash"`
-	ProvingPeriod             int64   `gorm:"not null;column:proving_period"`
-	ChallengeWindow           int64   `gorm:"not null;column:challenge_window"`
-	ProveAtEpoch              *int64  `gorm:"column:prove_at_epoch"`
-	InitReady                 bool    `gorm:"not null;default:false;column:init_ready"`
-	CreateMessageHash         string  `gorm:"not null;column:create_message_hash"`
-	Service                   string  `gorm:"not null;column:service"`
+	ID                        int64 `gorm:"primaryKey"` // big int
+	PrevChallengeRequestEpoch *int64
+	ChallengeRequestTaskID    *int64 // references harmony_task(id)
+	ChallengeRequestMsgHash   *string
+	ProvingPeriod             *int64
+	ChallengeWindow           *int64
+	ProveAtEpoch              *int64
+	InitReady                 bool        `gorm:"default:false;not null"`
+	CreateMessageHash         string      `gorm:"not null"`
+	Service                   string      `gorm:"not null"` // references pdp_services(service_label)
+	ServiceModel              *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:RESTRICT"`
 }
 
 func (PDPProofSet) TableName() string {
 	return "pdp_proof_sets"
 }
 
-// PDPProveTask represents the pdp_prove_tasks table.
+// pdp_prove_tasks (composite PK)
 type PDPProveTask struct {
-	Proofset int64 `gorm:"not null;column:proofset;primaryKey"`
-	TaskID   int64 `gorm:"not null;column:task_id;primaryKey"`
+	ProofsetID int64 `gorm:"primaryKey"` // references pdp_proof_sets(id)
+	TaskID     int64 `gorm:"primaryKey"` // references harmony_task(id)
 }
 
 func (PDPProveTask) TableName() string {
 	return "pdp_prove_tasks"
 }
 
-// PDPProofsetCreate represents the pdp_proofset_creates table.
+// pdp_proofset_creates
 type PDPProofsetCreate struct {
-	CreateMessageHash string    `gorm:"primaryKey;column:create_message_hash"`
-	Ok                *bool     `gorm:"column:ok"`
-	ProofsetCreated   bool      `gorm:"not null;default:false;column:proofset_created"`
-	Service           string    `gorm:"not null;column:service"`
-	CreatedAt         time.Time `gorm:"default:CURRENT_TIMESTAMP;column:created_at"`
+	CreateMessageHash string      `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
+	Ok                *bool       // NULL / TRUE / FALSE
+	ProofsetCreated   bool        `gorm:"default:false;not null"`
+	Service           string      `gorm:"not null"` // references pdp_services(service_label)
+	ServiceModel      *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
+	CreatedAt         time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPProofsetCreate) TableName() string {
 	return "pdp_proofset_creates"
 }
 
-// PDPProofsetRoot represents the pdp_proofset_roots table.
-// Primary key is composite: (proofset, root_id, subroot_offset)
+// pdp_proofset_roots (composite PK)
 type PDPProofsetRoot struct {
-	Proofset        int64  `gorm:"not null;column:proofset;primaryKey"`
-	RootID          int64  `gorm:"not null;column:root_id;primaryKey"`
-	SubrootOffset   int64  `gorm:"not null;column:subroot_offset;primaryKey"`
-	AddMessageHash  string `gorm:"not null;column:add_message_hash"`
-	AddMessageIndex int64  `gorm:"not null;column:add_message_index"`
-	Root            string `gorm:"not null;column:root"`
-	Subroot         string `gorm:"not null;column:subroot"`
-	SubrootSize     int64  `gorm:"not null;column:subroot_size"`
-	PDPPieceRef     int64  `gorm:"not null;column:pdp_pieceref"`
+	ProofsetID       int64  `gorm:"primaryKey"` // references pdp_proof_sets(id)
+	RootID           int64  `gorm:"primaryKey"`
+	SubrootOffset    int64  `gorm:"primaryKey"`
+	Root             string `gorm:"not null"`
+	AddMessageHash   string `gorm:"not null"` // references message_waits_eth(signed_tx_hash)
+	AddMessageIndex  int64
+	Subroot          string `gorm:"not null"`
+	SubrootOffsetVal int64  // same as SubrootOffset, but for clarity if needed
+	SubrootSize      int64
+	PDPPieceRefID    *int64 // references pdp_piecerefs(id)
 }
 
 func (PDPProofsetRoot) TableName() string {
 	return "pdp_proofset_roots"
 }
 
-// PDPProofsetRootAdd represents the pdp_proofset_root_adds table.
-// Primary key is composite: (proofset, add_message_hash, subroot_offset)
+// pdp_proofset_root_adds (composite PK)
 type PDPProofsetRootAdd struct {
-	AddMessageHash  string `gorm:"not null;column:add_message_hash;primaryKey"`
-	SubrootOffset   int64  `gorm:"not null;column:subroot_offset;primaryKey"`
-	Proofset        int64  `gorm:"not null;column:proofset"`
-	Root            string `gorm:"not null;column:root"`
-	AddMessageOk    *bool  `gorm:"column:add_message_ok"`
-	AddMessageIndex int64  `gorm:"not null;column:add_message_index"`
-	Subroot         string `gorm:"not null;column:subroot"`
-	SubrootSize     int64  `gorm:"not null;column:subroot_size"`
-	PDPPieceRef     int64  `gorm:"not null;column:pdp_pieceref"`
+	ProofsetID      int64  `gorm:"primaryKey"` // references pdp_proof_sets(id)
+	AddMessageHash  string `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
+	SubrootOffset   int64  `gorm:"primaryKey"`
+	Root            string `gorm:"not null"`
+	AddMessageOK    *bool
+	AddMessageIndex *int64
+	Subroot         string `gorm:"not null"`
+	SubrootSize     int64
+	PDPPieceRefID   *int64 // references pdp_piecerefs(id)
 }
 
 func (PDPProofsetRootAdd) TableName() string {
 	return "pdp_proofset_root_adds"
-}
-
-// PDPPieceMHToCommp represents the pdp_piece_mh_to_commp table.
-type PDPPieceMHToCommp struct {
-	Mhash []byte `gorm:"primaryKey;column:mhash"`
-	Size  int64  `gorm:"not null;column:size"`
-	Commp string `gorm:"not null;column:commp"`
-}
-
-// TableName specifies the table name for PDPPieceMHToCommp.
-func (PDPPieceMHToCommp) TableName() string {
-	return "pdp_piece_mh_to_commp"
 }
 
 // EthKey represents the eth_keys table.
@@ -289,7 +291,6 @@ func (MessageSendEthLock) TableName() string {
 // MessageWaitsEth represents the message_waits_eth table.
 type MessageWaitsEth struct {
 	SignedTxHash         string         `gorm:"primaryKey;column:signed_tx_hash;not null"`
-	WaiterMachineID      *int           `gorm:"column:waiter_machine_id"`
 	ConfirmedBlockNumber *int64         `gorm:"column:confirmed_block_number"`
 	ConfirmedTxHash      string         `gorm:"column:confirmed_tx_hash"`
 	ConfirmedTxData      datatypes.JSON `gorm:"column:confirmed_tx_data"`
@@ -300,4 +301,8 @@ type MessageWaitsEth struct {
 
 func (MessageWaitsEth) TableName() string {
 	return "message_waits_eth"
+}
+
+func Ptr[T any](v T) *T {
+	return &v
 }

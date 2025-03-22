@@ -15,8 +15,6 @@ import (
 	_ "gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
-
 	commcid "github.com/filecoin-project/go-fil-commcid"
 	commp "github.com/filecoin-project/go-fil-commp-hashhash"
 	"github.com/google/uuid"
@@ -24,6 +22,7 @@ import (
 	mhreg "github.com/multiformats/go-multihash/core"
 
 	"github.com/storacha/storage/pkg/pdp/service/types"
+	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
 const CustoreScheme = "custore"
@@ -132,7 +131,7 @@ func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piec
 	}
 
 	// Compare the computed piece CID with the expected one from the database
-	if upload.PieceCID != "" && pieceCIDComputed.String() != upload.PieceCID {
+	if *upload.PieceCID != "" && pieceCIDComputed.String() != *upload.PieceCID {
 		// Remove the stash file as the data is invalid
 		_ = p.storage.StashRemove(ctx, stashID)
 		return nil, fmt.Errorf("computer piece CID does not match expected piece CID")
