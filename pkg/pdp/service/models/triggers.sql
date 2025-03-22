@@ -1,3 +1,4 @@
+-- Create or replace all required functions first.
 CREATE OR REPLACE FUNCTION increment_proofset_refcount()
     RETURNS TRIGGER AS $$
 BEGIN
@@ -8,12 +9,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER pdp_proofset_root_insert
-    AFTER INSERT ON pdp_proofset_roots
-    FOR EACH ROW
-    WHEN (NEW.pdp_pieceref IS NOT NULL)
-EXECUTE FUNCTION increment_proofset_refcount();
-
 CREATE OR REPLACE FUNCTION decrement_proofset_refcount()
     RETURNS TRIGGER AS $$
 BEGIN
@@ -23,12 +18,6 @@ BEGIN
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER pdp_proofset_root_delete
-    AFTER DELETE ON pdp_proofset_roots
-    FOR EACH ROW
-    WHEN (OLD.pdp_pieceref IS NOT NULL)
-EXECUTE FUNCTION decrement_proofset_refcount();
 
 CREATE OR REPLACE FUNCTION adjust_proofset_refcount_on_update()
     RETURNS TRIGGER AS $$
@@ -49,11 +38,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER pdp_proofset_root_update
-    AFTER UPDATE ON pdp_proofset_roots
-    FOR EACH ROW
-EXECUTE FUNCTION adjust_proofset_refcount_on_update();
-
 CREATE OR REPLACE FUNCTION update_pdp_proofset_creates()
     RETURNS TRIGGER AS $$
 BEGIN
@@ -64,16 +48,12 @@ BEGIN
                      WHEN NEW.tx_status = 'confirmed' AND NEW.tx_success = TRUE THEN TRUE
                      ELSE ok
             END
-        WHERE create_message_hash = NEW.signed_tx_hash AND proofset_created = FALSE;
+        WHERE create_message_hash = NEW.signed_tx_hash
+          AND proofset_created = FALSE;
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER pdp_proofset_create_message_status_change
-    AFTER UPDATE OF tx_status, tx_success ON message_waits_eth
-    FOR EACH ROW
-EXECUTE PROCEDURE update_pdp_proofset_creates();
 
 CREATE OR REPLACE FUNCTION update_pdp_proofset_roots()
     RETURNS TRIGGER AS $$
@@ -91,8 +71,76 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER pdp_proofset_add_message_status_change
-    AFTER UPDATE OF tx_status, tx_success ON message_waits_eth
-    FOR EACH ROW
-EXECUTE PROCEDURE update_pdp_proofset_roots();
+-----------------------------------------------------------------------
+-- Now conditionally create each trigger only if it doesn't already exist
+-----------------------------------------------------------------------
+DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger t
+                     JOIN pg_class c ON t.tgrelid = c.oid
+            WHERE t.tgname = 'pdp_proofset_root_insert'
+              AND c.relname = 'pdp_proofset_roots'
+        ) THEN
+            CREATE TRIGGER pdp_proofset_root_insert
+                AFTER INSERT ON pdp_proofset_roots
+                FOR EACH ROW
+                WHEN (NEW.pdp_piece_ref_id IS NOT NULL)
+            EXECUTE FUNCTION increment_proofset_refcount();
+        END IF;
 
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger t
+                     JOIN pg_class c ON t.tgrelid = c.oid
+            WHERE t.tgname = 'pdp_proofset_root_delete'
+              AND c.relname = 'pdp_proofset_roots'
+        ) THEN
+            CREATE TRIGGER pdp_proofset_root_delete
+                AFTER DELETE ON pdp_proofset_roots
+                FOR EACH ROW
+                WHEN (OLD.pdp_piece_ref_id IS NOT NULL)
+            EXECUTE FUNCTION decrement_proofset_refcount();
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger t
+                     JOIN pg_class c ON t.tgrelid = c.oid
+            WHERE t.tgname = 'pdp_proofset_root_update'
+              AND c.relname = 'pdp_proofset_roots'
+        ) THEN
+            CREATE TRIGGER pdp_proofset_root_update
+                AFTER UPDATE ON pdp_proofset_roots
+                FOR EACH ROW
+            EXECUTE FUNCTION adjust_proofset_refcount_on_update();
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger t
+                     JOIN pg_class c ON t.tgrelid = c.oid
+            WHERE t.tgname = 'pdp_proofset_create_message_status_change'
+              AND c.relname = 'message_waits_eth'
+        ) THEN
+            CREATE TRIGGER pdp_proofset_create_message_status_change
+                AFTER UPDATE OF tx_status, tx_success ON message_waits_eth
+                FOR EACH ROW
+            EXECUTE PROCEDURE update_pdp_proofset_creates();
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger t
+                     JOIN pg_class c ON t.tgrelid = c.oid
+            WHERE t.tgname = 'pdp_proofset_add_message_status_change'
+              AND c.relname = 'message_waits_eth'
+        ) THEN
+            CREATE TRIGGER pdp_proofset_add_message_status_change
+                AFTER UPDATE OF tx_status, tx_success ON message_waits_eth
+                FOR EACH ROW
+            EXECUTE PROCEDURE update_pdp_proofset_roots();
+        END IF;
+    END
+$$;

@@ -60,7 +60,7 @@ func (t *PDPNotifyTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 	// Insert into pdp_piecerefs
 	ref := models.PDPPieceRef{
 		Service:  upload.Service,
-		PieceCID: upload.PieceCID,
+		PieceCID: *upload.PieceCID,
 		PieceRef: *upload.PieceRef,
 	}
 	err = t.db.WithContext(ctx).Create(&ref).Error

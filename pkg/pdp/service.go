@@ -8,6 +8,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/storacha/go-ucanto/ucan"
+
 	"github.com/storacha/storage/pkg/pdp/aggregator"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/pdp/pieceadder"

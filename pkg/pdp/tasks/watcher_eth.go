@@ -156,7 +156,6 @@ func (mw *MessageWatcherEth) update() {
 		err = mw.db.Model(&models.MessageWaitsEth{}).
 			Where("signed_tx_hash = ?", tx.SignedTxHash).
 			Updates(models.MessageWaitsEth{
-				WaiterMachineID:      nil,
 				ConfirmedBlockNumber: &confirmedBlockNumber,
 				ConfirmedTxHash:      receipt.TxHash.Hex(),
 				ConfirmedTxData:      txDataJSON,

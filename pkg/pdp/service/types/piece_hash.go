@@ -56,6 +56,7 @@ func (ph *PieceHash) CommP() (cid.Cid, bool, error) {
 
 	return cid.Undef, false, fmt.Errorf("hash function not recognized: %s", ph.Name)
 
+	// TODO would like to avoid using this mapping as I _think_ storacha only does the above
 	/*
 		var commpStr string
 		err = db.QueryRow(ctx, `
@@ -78,7 +79,7 @@ func (ph *PieceHash) CommP() (cid.Cid, bool, error) {
 	*/
 }
 
-func (ph *PieceHash) maybeStaticCommp() (cid.Cid, bool) {
+func (ph *PieceHash) MaybeStaticCommp() (cid.Cid, bool) {
 	mh, err := ph.Multihash()
 	if err != nil {
 		return cid.Undef, false

@@ -115,8 +115,8 @@ func NewProveTask(
 
 				// Insert a new task into pdp_prove_tasks
 				result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&models.PDPProveTask{
-					Proofset: todo.ID,
-					TaskID:   int64(id),
+					ProofsetID: todo.ID,
+					TaskID:     int64(id),
 				})
 				if result.Error != nil {
 					return false, fmt.Errorf("failed to insert into pdp_prove_tasks: %w", result.Error)
@@ -162,7 +162,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bo
 	if err := p.db.Where("task_id = ?", taskID).First(&proveTask).Error; err != nil {
 		return false, fmt.Errorf("failed to get task details: %w", err)
 	}
-	proofSetID := proveTask.Proofset
+	proofSetID := proveTask.ProofsetID
 
 	pdpContracts := contract.ContractAddresses()
 	pdpVerifierAddress := pdpContracts.PDPVerifier
@@ -648,8 +648,8 @@ func (p *ProveTask) cleanupDeletedRoots(ctx context.Context, proofSetID int64, p
 				return fmt.Errorf("failed to get piece ref for root %d: %w", removeID, err)
 			}
 
-			if err := tx.Delete(&models.ParkedPieceRef{}, proofsetRoot.PDPPieceRef).Error; err != nil {
-				return fmt.Errorf("failed to delete parked piece ref %d: %w", proofsetRoot.PDPPieceRef, err)
+			if err := tx.Delete(&models.ParkedPieceRef{}, proofsetRoot.PDPPieceRefID).Error; err != nil {
+				return fmt.Errorf("failed to delete parked piece ref %d: %w", proofsetRoot.PDPPieceRefID, err)
 			}
 
 			if err := tx.Where("proofset = ? AND root_id = ?", proofSetID, removeID).Delete(&models.PDPProofsetRoot{}).Error; err != nil {
