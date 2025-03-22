@@ -157,8 +157,8 @@ func insertProofSet(ctx context.Context, db *gorm.DB, createMsg string, proofSet
 		ID:                int64(proofSetId),
 		CreateMessageHash: createMsg,
 		Service:           service,
-		ProvingPeriod:     int64(provingPeriod),
-		ChallengeWindow:   int64(challengeWindow),
+		ProvingPeriod:     models.Ptr(int64(provingPeriod)),
+		ChallengeWindow:   models.Ptr(int64(challengeWindow)),
 	}
 	err := db.WithContext(ctx).Create(&proofset).Error
 	if err != nil {
