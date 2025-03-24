@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/storacha/storage/pkg/pdp/service/models"
 	"gorm.io/gorm"
+
+	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
 type ProofSetStatus struct {
