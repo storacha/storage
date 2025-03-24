@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path"
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/google/uuid"
@@ -48,7 +49,7 @@ func (p *PDPService) PreparePiece(ctx context.Context, req PiecePrepareRequest) 
 		return nil, fmt.Errorf("piece size exceeds the maximum allowed size")
 	}
 
-	pieceCid, havePieceCid, err := req.Check.CommP()
+	pieceCid, havePieceCid, err := req.Check.CommP(p.db)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +126,7 @@ func (p *PDPService) PreparePiece(ctx context.Context, req PiecePrepareRequest) 
 			return fmt.Errorf("failed to store upload request in database: %w", createErr)
 		}
 
+		uploadURL = path.Join("/pdp", "/piece/upload", uploadUUID.String())
 		created = true
 		return nil // Commit the transaction
 

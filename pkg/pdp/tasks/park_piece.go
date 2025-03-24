@@ -98,18 +98,8 @@ func (p *ParkPieceTask) pollPieceTasks(ctx context.Context) {
 func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
 	ctx := context.Background()
 
-	// Fetch piece data
-	var piecesData []struct {
-		PieceID         int64     `db:"id"`
-		PieceCreatedAt  time.Time `db:"created_at"`
-		PieceCID        string    `db:"piece_cid"`
-		Complete        bool      `db:"complete"`
-		PiecePaddedSize int64     `db:"piece_padded_size"`
-		PieceRawSize    int64     `db:"piece_raw_size"`
-	}
-
 	// Select the piece data using the task ID and longTerm flag
-	var piece models.ParkedPiece
+	var piece []models.ParkedPiece
 	err = p.db.WithContext(ctx).
 		Where("task_id = ? AND long_term = ?", taskID, p.longTerm).
 		First(&piece).Error
@@ -117,11 +107,11 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 		return false, fmt.Errorf("fetching piece data: %w", err)
 	}
 
-	if len(piecesData) == 0 {
+	if len(piece) == 0 {
 		return false, xerrors.Errorf("no piece data found for task_id: %d", taskID)
 	}
 
-	pieceData := piecesData[0]
+	pieceData := piece[0]
 
 	if pieceData.Complete {
 		log.Warnw("park piece task already complete", "task_id", taskID, "piece_cid", pieceData.PieceCID)
@@ -131,14 +121,14 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 	// Fetch reference data
 	var refs []models.ParkedPieceRef
 	err = p.db.WithContext(ctx).
-		Where("piece_id = ? AND data_url IS NOT NULL", piece.ID).
+		Where("piece_id = ? AND data_url IS NOT NULL", pieceData.ID).
 		Find(&refs).Error
 	if err != nil {
 		return false, fmt.Errorf("fetching reference data: %w", err)
 	}
 
 	if len(refs) == 0 {
-		return false, xerrors.Errorf("no refs found for piece_id: %d", pieceData.PieceID)
+		return false, xerrors.Errorf("no refs found for piece_id: %d", pieceData.ID)
 	}
 
 	var merr error
@@ -152,7 +142,7 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 			defer func() {
 				_ = sr.Close()
 			}()
-			c, err := cid.Decode(piece.PieceCID)
+			c, err := cid.Decode(pieceData.PieceCID)
 			if err != nil {
 				return false, fmt.Errorf("decoding cid: %w", err)
 			}
@@ -163,7 +153,7 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 			// Update the piece as complete after a successful write.
 			err = p.db.WithContext(ctx).
 				Model(&models.ParkedPiece{}).
-				Where("id = ?", piece.ID).
+				Where("id = ?", pieceData.ID).
 				Updates(map[string]interface{}{
 					"complete": true,
 					"task_id":  nil,
@@ -177,7 +167,7 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (don
 	}
 
 	// If no suitable data URL is found
-	return false, xerrors.Errorf("no suitable data URL found for piece_id %d: %w", pieceData.PieceID, merr)
+	return false, xerrors.Errorf("no suitable data URL found for piece_id %d: %w", pieceData.ID, merr)
 }
 
 func (p *ParkPieceTask) CanAccept(ids []scheduler.TaskID, engine *scheduler.TaskEngine) (*scheduler.TaskID, error) {

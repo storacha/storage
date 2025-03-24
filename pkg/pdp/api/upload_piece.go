@@ -7,10 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type PieceUploadRequest struct {
-	// Add fields for the upload
-	Data []byte `json:"data"`
-}
 type PieceUploadResponse struct {
 	UploadUUID string `json:"uploadUUID"`
 	Status     string `json:"status"`
@@ -29,12 +25,7 @@ func (p *PDP) handlePieceUpload(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "uploadUUID is invalid")
 	}
 
-	var req PieceUploadRequest
-	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, "Invalid request")
-	}
-
-	if _, err := p.Service.UploadPiece(ctx, uploadID, req.Data); err != nil {
+	if _, err := p.Service.UploadPiece(ctx, uploadID, c.Request().Body); err != nil {
 		return c.String(http.StatusBadRequest, "Failed to upload piece")
 	}
 

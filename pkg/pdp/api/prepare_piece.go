@@ -37,8 +37,8 @@ type PreparePieceResponse struct {
 
 var PieceSizeLimit = abi.PaddedPieceSize(proof.MaxMemtreeSize).Unpadded()
 
-// handlePiecePost -> POST /pdp/piece
-func (p *PDP) handlePiecePost(c echo.Context) error {
+// handlePreparePiece -> POST /pdp/piece
+func (p *PDP) handlePreparePiece(c echo.Context) error {
 	ctx := c.Request().Context()
 	var req PreparePieceRequest
 	if err := c.Bind(&req); err != nil {
@@ -68,5 +68,9 @@ func (p *PDP) handlePiecePost(c echo.Context) error {
 	if res.PieceCID != cid.Undef {
 		resp.PieceCID = res.PieceCID.String()
 	}
-	return c.JSON(http.StatusOK, resp)
+	if res.Created {
+		c.Response().Header().Set(echo.HeaderLocation, res.Location)
+		return c.JSON(http.StatusCreated, resp)
+	}
+	return c.JSON(http.StatusNoContent, resp)
 }

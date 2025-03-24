@@ -21,14 +21,14 @@ import (
 	"github.com/multiformats/go-multihash"
 	mhreg "github.com/multiformats/go-multihash/core"
 
-	"github.com/storacha/storage/pkg/pdp/service/types"
 	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/storage/pkg/pdp/service/types"
 )
 
 const CustoreScheme = "custore"
 
 // TODO piece could probably be a commp instead of byte array
-func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piece []byte) (interface{}, error) {
+func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piece io.Reader) (interface{}, error) {
 	// Lookup the expected pieceCID, notify_url, and piece_ref from the database using uploadUUID
 	var upload models.PDPPieceUpload
 	if err := p.db.First(&upload, "id = ?", uploadUUID.String()).Error; err != nil {
@@ -71,7 +71,7 @@ func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piec
 
 	// Function to write data into StashStore and calculate commP
 	writeFunc := func(f *os.File) error {
-		limitedReader := io.LimitReader(bytes.NewReader(piece), maxPieceSize+1) // +1 to detect exceeding the limit
+		limitedReader := io.LimitReader(piece, maxPieceSize+1) // +1 to detect exceeding the limit
 		multiWriter := io.MultiWriter(cp, f)
 		if vhash != nil {
 			multiWriter = io.MultiWriter(vhash, multiWriter)
@@ -131,7 +131,7 @@ func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piec
 	}
 
 	// Compare the computed piece CID with the expected one from the database
-	if *upload.PieceCID != "" && pieceCIDComputed.String() != *upload.PieceCID {
+	if upload.PieceCID != nil && pieceCIDComputed.String() != *upload.PieceCID {
 		// Remove the stash file as the data is invalid
 		_ = p.storage.StashRemove(ctx, stashID)
 		return nil, fmt.Errorf("computer piece CID does not match expected piece CID")

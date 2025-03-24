@@ -131,11 +131,11 @@ type PDPPieceUpload struct {
 	CheckHashCodec string      `gorm:"not null"`
 	CheckHash      []byte      `gorm:"not null"`
 	CheckSize      int64       `gorm:"not null"`
-	PieceCID       *string
-	NotifyURL      string    `gorm:"not null"`
-	NotifyTaskID   *int64    // references harmony_task(id)
-	PieceRef       *int64    // references parked_piece_refs(ref_id)
-	CreatedAt      time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
+	PieceCID       *string     `gorm:"column:piece_cid"`
+	NotifyURL      string      `gorm:"not null"`
+	NotifyTaskID   *int64      // references harmony_task(id)
+	PieceRef       *int64      // references parked_piece_refs(ref_id)
+	CreatedAt      time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPPieceUpload) TableName() string {
@@ -147,7 +147,7 @@ type PDPPieceRef struct {
 	ID               int64       `gorm:"primaryKey;autoIncrement"`
 	Service          string      `gorm:"not null"` // references pdp_services(service_label)
 	ServiceModel     *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
-	PieceCID         string      `gorm:"not null"`
+	PieceCID         string      `gorm:"not null;column:piece_cid"`
 	PieceRef         int64       // references parked_piece_refs(ref_id)
 	CreatedAt        time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
 	ProofsetRefcount int64       `gorm:"default:0;not null"`
