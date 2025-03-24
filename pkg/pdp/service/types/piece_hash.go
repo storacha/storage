@@ -2,11 +2,15 @@ package types
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
+	"gorm.io/gorm"
+
+	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
 // PieceSizeLimit in bytes
@@ -43,7 +47,7 @@ func (ph *PieceHash) Multihash() (multihash.Multihash, error) {
 	return multihash.EncodeName(hashBytes, ph.Name)
 }
 
-func (ph *PieceHash) CommP() (cid.Cid, bool, error) {
+func (ph *PieceHash) CommP(db *gorm.DB) (cid.Cid, bool, error) {
 	// commp, known, error
 	mh, err := ph.Multihash()
 	if err != nil {
@@ -54,29 +58,27 @@ func (ph *PieceHash) CommP() (cid.Cid, bool, error) {
 		return cid.NewCidV1(cid.FilCommitmentUnsealed, mh), true, nil
 	}
 
-	return cid.Undef, false, fmt.Errorf("hash function not recognized: %s", ph.Name)
-
 	// TODO would like to avoid using this mapping as I _think_ storacha only does the above
-	/*
-		var commpStr string
-		err = db.QueryRow(ctx, `
-			SELECT commp FROM pdp_piece_mh_to_commp WHERE mhash = $1 AND size = $2
-		`, mh, ph.Size).Scan(&commpStr)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				return cid.Undef, false, nil
-			}
-			return cid.Undef, false, fmt.Errorf("failed to query pdp_piece_mh_to_commp: %w", err)
+	var record models.PDPPieceMHToCommp
+	if err := db.
+		Where("mhash = ? AND size = ?", mh, ph.Size).
+		First(&record).
+		Error; err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// No matching record
+			return cid.Undef, false, nil
 		}
+		return cid.Undef, false, fmt.Errorf("failed to query pdp_piece_mh_to_commp: %w", err)
+	}
 
-		commpCid, err := cid.Parse(commpStr)
-		if err != nil {
-			return cid.Undef, false, fmt.Errorf("failed to parse commp CID: %w", err)
-		}
+	commpCid, err := cid.Parse(record.Commp)
+	if err != nil {
+		return cid.Undef, false, fmt.Errorf("failed to parse commp CID: %w", err)
+	}
 
-		return commpCid, true, nil
+	return commpCid, true, nil
 
-	*/
 }
 
 func (ph *PieceHash) MaybeStaticCommp() (cid.Cid, bool) {

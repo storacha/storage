@@ -1,6 +1,8 @@
 package api
 
 import (
+	"path"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/labstack/echo/v4"
 
@@ -9,12 +11,15 @@ import (
 
 var log = logging.Logger("pdp/api")
 
-const ()
+const (
+	PDPRoutePath     = "/pdp"
+	PRoofSetRoutPath = "/proof-sets"
+)
 
 func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
 	// /pdp/proof-sets
-	proofSets := e.Group("/pdp/proof-sets")
-	proofSets.POST("", p.handleCreateProofSet)
+	proofSets := e.Group(path.Join(PDPRoutePath, PRoofSetRoutPath))
+	proofSets.POST("/", p.handleCreateProofSet)
 	proofSets.GET("/created/:txHash", p.handleGetProofSetCreationStatus)
 
 	// /pdp/proof-sets/:proofSetID
@@ -25,17 +30,17 @@ func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
 	roots := proofSets.Group("/:proofSetID/roots")
 	roots.POST("", p.handleAddRootToProofSet)
 	roots.GET("/:rootID", p.handleGetProofSetRoot)
-	roots.DELETE("/:rootID", p.handleDeleteProofSetRoot)
+	roots.DELETE("/:rootID", p.handleDeleteRootFromProofSet)
 
 	// /pdp/ping
 	e.GET("/pdp/ping", p.handlePing)
 
 	// /pdp/piece
-	e.POST("/pdp/piece", p.handlePiecePost)
-	e.GET("/pdp/piece/", p.handleFindPiece)
-	e.PUT("/pdp/piece/upload/:uploadUUID", p.handlePieceUpload)
+	e.POST(path.Join(PDPRoutePath, "/piece"), p.handlePreparePiece)
+	e.PUT(path.Join(PDPRoutePath, "/piece/upload/:uploadUUID"), p.handlePieceUpload)
+	e.GET(path.Join(PDPRoutePath, "/piece"), p.handleFindPiece)
 }
 
 type PDP struct {
-	Service service.PDPService
+	Service *service.PDPService
 }

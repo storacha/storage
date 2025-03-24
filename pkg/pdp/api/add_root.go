@@ -35,10 +35,10 @@ func (p *PDP) handleAddRootToProofSet(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid request")
 	}
 
-	t := make([]service.AddRootRequest, len(req))
+	t := make([]service.AddRootRequest, 0, len(req))
 
 	for _, r := range req {
-		subroots := make([]string, len(r.Subroots))
+		subroots := make([]string, 0, len(r.Subroots))
 		for _, s := range r.Subroots {
 			subroots = append(subroots, s.SubrootCid)
 		}
