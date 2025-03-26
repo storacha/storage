@@ -90,6 +90,7 @@ func NewEngine(db *gorm.DB, impls []TaskInterface) (*TaskEngine, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &TaskEngine{
 		ctx:     ctx,
+		owner:   1,
 		cancel:  cancel,
 		db:      db,
 		taskMap: make(map[string]*taskTypeHandler, len(impls)),
@@ -172,7 +173,7 @@ func (e *TaskEngine) pollerTryAllWork() bool {
 		// Fetch tasks for this type that are unassigned.
 		// (Assuming unassigned tasks are filtered by name; add additional conditions if needed.)
 		if err := e.db.WithContext(e.ctx).
-			Where("name = ?", h.TaskTypeDetails.Name).
+			Where("name = ? AND owner_id IS NULL", h.TaskTypeDetails.Name).
 			Order("update_time").
 			Find(&tasks).Error; err != nil {
 			log.Errorf("Unable to read work for task type %s: %v", h.TaskTypeDetails.Name, err)
@@ -286,24 +287,58 @@ retryAddTask:
 // considerWork claims and executes tasks.
 // In this simplified version, it directly calls the task's Do() method.
 func (h *taskTypeHandler) considerWork(source string, taskIDs []TaskID, db *gorm.DB) bool {
-	wg := &sync.WaitGroup{}
+	acceptedAny := false
+
 	for _, id := range taskIDs {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			log.Infow("doing task", "name", h.TaskTypeDetails.Name, "id", id)
-			done, err := h.Do(id)
+		// Attempt to claim ownership of this task in the DB.
+		// If RowsAffected == 0, it means another thread or process already took it.
+		result := db.Model(&models.Task{}).
+			Where("id = ? AND owner_id IS NULL", id).
+			Updates(models.Task{
+				OwnerID:    &h.TaskEngine.owner, // or a constant, e.g. 1
+				UpdateTime: time.Now(),
+			})
+
+		if result.Error != nil {
+			log.Errorw("Could not claim task", "task_id", id, "error", result.Error)
+			continue
+		}
+		if result.RowsAffected == 0 {
+			// Already taken by someone else (or in race condition). Skip it.
+			log.Debugf("Task %d was already claimed; skipping", id)
+			continue
+		}
+
+		// Successfully claimed this task, so let’s run it in a goroutine:
+		acceptedAny = true
+		go func(taskID TaskID) {
+			log.Infow("Executing task", "name", h.TaskTypeDetails.Name, "id", taskID)
+
+			done, err := h.Do(taskID)
 			if err != nil {
-				log.Errorw("Error executing task", "task_id", id, "error", err)
+				log.Errorw("Error executing task", "task_id", taskID, "error", err)
 			}
+
+			// If done, remove from DB. Otherwise, release if you want to let it retry:
 			if done {
-				db.Delete(&models.Task{}, id)
-				log.Infow("Task completed", "task_id", id, "name", h.TaskTypeDetails.Name)
+				if err := db.Delete(&models.Task{}, taskID).Error; err != nil {
+					log.Errorw("Could not delete completed task", "task_id", taskID, "error", err)
+				} else {
+					log.Infow("Task completed", "task_id", taskID, "name", h.TaskTypeDetails.Name)
+				}
+			} else {
+				// TODO: in the event of a node failure we need to "un-own" tasks else
+				// active tasks during the failure will never be re-run.
+				if err := db.Model(&models.Task{}).
+					Where("id = ?", taskID).
+					Updates(models.Task{OwnerID: nil, UpdateTime: time.Now()}).Error; err != nil {
+					log.Errorw("Could not release task", "task_id", taskID, "error", err)
+				}
 			}
-		}()
+		}(id)
 	}
-	wg.Wait()
-	return len(taskIDs) > 0
+
+	return acceptedAny
 }
 
 var DoNotCommitErr = errors.New("do not commit")
