@@ -61,7 +61,7 @@ func NewPDPService(ctx context.Context, address common.Address, bs blobstore.Blo
 
 	stopFns = append(stopFns, closer)
 
-	eClient, err := ethclient.Dial("http://127.0.0.1:1234/rpc/v1")
+	eClient, err := ethclient.Dial("https://api.calibration.node.glif.io/rpc/v1")
 	if err != nil {
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}

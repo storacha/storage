@@ -171,7 +171,7 @@ func extractAndInsertRootsFromReceipt(ctx context.Context, db *gorm.DB, receipt 
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Fetch the entries from pdp_proofset_root_adds
 		var rootAddEntries []models.PDPProofsetRootAdd
-		err := tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.ProofsetID, rootAdd.AddMessageHash).
+		err := tx.Where("proofset_id = ? AND add_message_hash = ?", rootAdd.ProofsetID, rootAdd.AddMessageHash).
 			Order("add_message_index ASC, subroot_offset ASC").
 			Find(&rootAddEntries).Error
 		if err != nil {
@@ -205,7 +205,7 @@ func extractAndInsertRootsFromReceipt(ctx context.Context, db *gorm.DB, receipt 
 		}
 
 		// Delete from pdp_proofset_root_adds
-		err = tx.Where("proofset = ? AND add_message_hash = ?", rootAdd.PDPPieceRefID, rootAdd.AddMessageHash).
+		err = tx.Where("proofset_id = ? AND add_message_hash = ?", rootAdd.ProofsetID, rootAdd.AddMessageHash).
 			Delete(&models.PDPProofsetRootAdd{}).Error
 		if err != nil {
 			return fmt.Errorf("failed to delete from pdp_proofset_root_adds: %w", err)

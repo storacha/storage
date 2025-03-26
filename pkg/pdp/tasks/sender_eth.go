@@ -2,8 +2,10 @@ package tasks
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -150,19 +152,13 @@ func (s *SenderETH) Send(ctx context.Context, fromAddress common.Address, tx *ty
 	)
 
 	for {
-		var dbTx struct {
-			SignedHash  *string `db:"signed_hash"`
-			SendSuccess *bool   `db:"send_success"`
-			SendError   *string `db:"send_error"`
-		}
-
 		var row models.MessageSendsEth
 		err := s.db.Where("send_task_id = ?", sendTaskID).First(&row).Error
 		if err != nil {
 			return common.Hash{}, xerrors.Errorf("getting send status for task: %w", err)
 		}
 
-		if dbTx.SendSuccess == nil {
+		if row.SendSuccess == nil {
 			time.Sleep(pollInterval)
 			pollLoops++
 			pollInterval *= time.Duration(pollIntervalMul)
@@ -172,14 +168,14 @@ func (s *SenderETH) Send(ctx context.Context, fromAddress common.Address, tx *ty
 			continue
 		}
 
-		if dbTx.SignedHash == nil || dbTx.SendError == nil {
+		if row.SignedHash == nil || row.SendError == nil {
 			return common.Hash{}, xerrors.Errorf("unexpected null values in send status")
 		}
 
-		if !*dbTx.SendSuccess {
-			sendErr = xerrors.Errorf("send error: %s", *dbTx.SendError)
+		if !*row.SendSuccess {
+			sendErr = xerrors.Errorf("send error: %s", *row.SendError)
 		} else {
-			signedHash = common.HexToHash(*dbTx.SignedHash)
+			signedHash = common.HexToHash(*row.SignedHash)
 		}
 
 		break
@@ -198,7 +194,7 @@ type SendTaskETH struct {
 	db *gorm.DB
 }
 
-func (s *SendTaskETH) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (s *SendTaskETH) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.TODO()
 
 	// Get transaction from the database
@@ -219,9 +215,6 @@ func (s *SendTaskETH) Do(taskID scheduler.TaskID, stillOwned func() bool) (done 
 
 	// Acquire lock on from_address
 	for {
-		if !stillOwned() {
-			return false, xerrors.Errorf("lost ownership of task")
-		}
 
 		// Try to acquire lock
 		res := s.db.Clauses(clause.OnConflict{
@@ -361,7 +354,22 @@ func (s *SendTaskETH) signTransaction(ctx context.Context, fromAddress common.Ad
 		return nil, xerrors.Errorf("fetching private key from db: %w", err)
 	}
 
-	privateKey, err := crypto.ToECDSA(ethKey.PrivateKey)
+	hexPrivateKey := `6f149ce19fc08fab93b5a08ba2e1b1abce3ce08acf5eee25a6e14e8b8f262440`
+	hexPrivateKey = strings.TrimSpace(hexPrivateKey)
+	if hexPrivateKey == "" {
+		return nil, fmt.Errorf("private key cannot be empty")
+	}
+
+	// Remove any leading '0x' from the hex string
+	hexPrivateKey = strings.TrimPrefix(hexPrivateKey, "0x")
+	hexPrivateKey = strings.TrimPrefix(hexPrivateKey, "0X")
+
+	// Decode the hex private key
+	privateKeyBytes, err := hex.DecodeString(hexPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode private key: %v", err)
+	}
+	privateKey, err := crypto.ToECDSA(privateKeyBytes)
 	if err != nil {
 		return nil, xerrors.Errorf("converting private key: %w", err)
 	}

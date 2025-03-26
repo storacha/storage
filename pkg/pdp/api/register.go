@@ -19,7 +19,7 @@ const (
 func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
 	// /pdp/proof-sets
 	proofSets := e.Group(path.Join(PDPRoutePath, PRoofSetRoutPath))
-	proofSets.POST("/", p.handleCreateProofSet)
+	proofSets.POST("", p.handleCreateProofSet)
 	proofSets.GET("/created/:txHash", p.handleGetProofSetCreationStatus)
 
 	// /pdp/proof-sets/:proofSetID

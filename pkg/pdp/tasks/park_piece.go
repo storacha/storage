@@ -95,7 +95,7 @@ func (p *ParkPieceTask) pollPieceTasks(ctx context.Context) {
 	}
 }
 
-func (p *ParkPieceTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (p *ParkPieceTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.Background()
 
 	// Select the piece data using the task ID and longTerm flag

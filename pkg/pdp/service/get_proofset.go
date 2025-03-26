@@ -40,7 +40,7 @@ func (p *PDPService) ProofSet(ctx context.Context, id int64) (*ProofSet, error) 
 	// Retrieve the roots associated with the proof set.
 	var roots []models.PDPProofsetRoot
 	if err := p.db.WithContext(ctx).
-		Where("proofset = ?", id).
+		Where("proofset_id = ?", id).
 		Order("root_id, subroot_offset").
 		Find(&roots).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve proof set roots: %w", err)
