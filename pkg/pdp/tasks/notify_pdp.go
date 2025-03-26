@@ -26,7 +26,7 @@ func NewPDPNotifyTask(db *gorm.DB) *PDPNotifyTask {
 	return &PDPNotifyTask{db: db}
 }
 
-func (t *PDPNotifyTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (t *PDPNotifyTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.Background()
 
 	// Fetch the pdp_piece_uploads entry associated with the taskID
@@ -95,7 +95,7 @@ func (t *PDPNotifyTask) TypeDetails() scheduler.TaskTypeDetails {
 			return time.Duration(float64(5*time.Second) * math.Pow(2, float64(retries)))
 		},
 		// TODO need to implement aspects of a take that allow it to run on some frequency.
-		IAmBored: scheduler.Every(1*time.Minute, func(taskFunc scheduler.AddTaskFunc) error {
+		IAmBored: scheduler.Every(10*time.Second, func(taskFunc scheduler.AddTaskFunc) error {
 			return t.schedule(context.Background(), taskFunc)
 		}),
 	}

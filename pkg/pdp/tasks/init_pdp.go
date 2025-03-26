@@ -101,7 +101,7 @@ func (ipp *InitProvingPeriodTask) TypeDetails() scheduler.TaskTypeDetails {
 	}
 }
 
-func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.Background()
 
 	// Select the proof set where challenge_request_task_id = taskID
@@ -118,6 +118,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID, stillOwned func() 
 	} else if err != nil {
 		return false, fmt.Errorf("failed to select PDPProofSet: %w", err)
 	}
+	proofSetID = proofSet.ID
 
 	// Get the listener address for this proof set from the PDPVerifier contract
 	pdpVerifier, err := contract.NewPDPVerifier(contract.ContractAddresses().PDPVerifier, ipp.ethClient)
@@ -171,11 +172,6 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID, stillOwned func() 
 		nil,               // gasPrice (to be set by sender)
 		data,              // data
 	)
-
-	if !stillOwned() {
-		// Task was abandoned, don't send the transaction
-		return false, nil
-	}
 
 	fromAddress, _, err := pdpVerifier.GetProofSetOwner(nil, big.NewInt(proofSetID))
 	if err != nil {

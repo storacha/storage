@@ -39,7 +39,9 @@ func (p *PDPService) ProofSetStatus(ctx context.Context, txHash common.Hash) (*P
 		CreateMessageHash: proofSetCreate.CreateMessageHash,
 		ProofsetCreated:   proofSetCreate.ProofsetCreated,
 		Service:           proofSetCreate.Service,
-		OK:                *proofSetCreate.Ok,
+	}
+	if proofSetCreate.Ok != nil {
+		response.OK = *proofSetCreate.Ok
 	}
 
 	// Now get the tx_status from message_waits_eth
