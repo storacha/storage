@@ -172,7 +172,8 @@ func (PDPPieceMHToCommp) TableName() string {
 type PDPProofSet struct {
 	ID                        int64 `gorm:"primaryKey"` // big int
 	PrevChallengeRequestEpoch *int64
-	ChallengeRequestTaskID    *int64 // references harmony_task(id)
+	ChallengeRequestTaskID    *int64 `gorm:"column:challenge_request_task_id"`
+	ChallengeRequestTask      *Task  `gorm:"foreignKey:ChallengeRequestTaskID;references:ID;constraint:OnDelete:SET NULL"`
 	ChallengeRequestMsgHash   *string
 	ProvingPeriod             *int64
 	ChallengeWindow           *int64
