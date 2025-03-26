@@ -149,9 +149,7 @@ func NewPDPService(ctx context.Context, address common.Address, bs blobstore.Blo
 }
 
 func setupDatabase(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
+	db, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
 	}

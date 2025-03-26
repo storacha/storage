@@ -147,7 +147,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	if err != nil {
 		return false, fmt.Errorf("failed to get next challenge window start: %w", err)
 	}
-	init_prove_at = init_prove_at.Add(init_prove_at, challengeWindow.Div(challengeWindow, big.NewInt(2))) // Give a buffer of 1/2 challenge window epochs so that we are still within challenge window
+	prove_at_epoch := init_prove_at.Add(init_prove_at, challengeWindow.Div(challengeWindow, big.NewInt(2))) // Give a buffer of 1/2 challenge window epochs so that we are still within challenge window
 	// Instantiate the PDPVerifier contract
 	pdpContracts := contract.ContractAddresses()
 	pdpVeriferAddress := pdpContracts.PDPVerifier
@@ -158,7 +158,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 		return false, fmt.Errorf("failed to get PDPVerifier ABI: %w", err)
 	}
 
-	data, err := abiData.Pack("nextProvingPeriod", big.NewInt(proofSetID), init_prove_at, []byte{})
+	data, err := abiData.Pack("nextProvingPeriod", big.NewInt(proofSetID), prove_at_epoch, []byte{})
 	if err != nil {
 		return false, fmt.Errorf("failed to pack data: %w", err)
 	}

@@ -26,7 +26,7 @@ func (Machine) TableName() string {
 
 // Task represents the task table.
 type Task struct {
-	ID           int       `gorm:"primaryKey;autoIncrement;column:id"`
+	ID           int64     `gorm:"primaryKey;autoIncrement;column:id"`
 	InitiatedBy  *int      `gorm:"column:initiated_by;comment:The task ID whose completion occasioned this task"`
 	UpdateTime   time.Time `gorm:"not null;default:current_timestamp;column:update_time;comment:When it was last modified. not a heartbeat"`
 	PostedTime   time.Time `gorm:"not null;column:posted_time"`
@@ -35,6 +35,9 @@ type Task struct {
 	PreviousTask *int      `gorm:"column:previous_task"`
 	Name         string    `gorm:"size:16;not null;column:name;comment:The name of the task type"`
 	// Note: The "retries" field was commented out in the original schema.
+
+	// TODO consider adding this in when/if we allow more machines
+	// OwnerMachine *Machine  `gorm:"foreignKey:OwnerID;references:ID;constraint:OnDelete:SET NULL"` // matches "owner_id references machines(id) on delete set null"
 }
 
 func (Task) TableName() string {
@@ -43,7 +46,7 @@ func (Task) TableName() string {
 
 // TaskHistory represents the task_history table.
 type TaskHistory struct {
-	ID                     int       `gorm:"primaryKey;autoIncrement;column:id"`
+	ID                     int64     `gorm:"primaryKey;autoIncrement;column:id"`
 	TaskID                 int       `gorm:"not null;column:task_id"`
 	Name                   string    `gorm:"size:16;not null;column:name"`
 	Posted                 time.Time `gorm:"not null;column:posted"`
@@ -60,7 +63,7 @@ func (TaskHistory) TableName() string {
 
 // TaskFollow represents the task_follow table.
 type TaskFollow struct {
-	ID       int    `gorm:"primaryKey;autoIncrement;column:id"`
+	ID       int64  `gorm:"primaryKey;autoIncrement;column:id"`
 	OwnerID  int    `gorm:"not null;column:owner_id"`
 	ToType   string `gorm:"size:16;not null;column:to_type"`
 	FromType string `gorm:"size:16;not null;column:from_type"`
@@ -72,7 +75,7 @@ func (TaskFollow) TableName() string {
 
 // TaskImpl represents the task_impl table.
 type TaskImpl struct {
-	ID      int    `gorm:"primaryKey;autoIncrement;column:id"`
+	ID      int64  `gorm:"primaryKey;autoIncrement;column:id"`
 	OwnerID int    `gorm:"not null;column:owner_id"`
 	Name    string `gorm:"size:16;not null;column:name"`
 }
@@ -89,9 +92,14 @@ type ParkedPiece struct {
 	PiecePaddedSize int64     `gorm:"not null;column:piece_padded_size;uniqueIndex:idx_piece_cid_padded_longterm_cleanup"`
 	PieceRawSize    int64     `gorm:"not null;column:piece_raw_size"`
 	Complete        bool      `gorm:"not null;default:false;column:complete"`
-	TaskID          *int64    `gorm:"column:task_id"`
-	CleanupTaskID   *int64    `gorm:"column:cleanup_task_id;uniqueIndex:idx_piece_cid_padded_longterm_cleanup"`
-	LongTerm        bool      `gorm:"not null;default:false;column:long_term;uniqueIndex:idx_piece_cid_padded_longterm_cleanup"`
+
+	TaskID *int64 `gorm:"column:task_id"`
+	Task   *Task  `gorm:"foreignKey:TaskID;references:ID;constraint:OnDelete:SET NULL"` // "task_id references task(id) on delete set null"
+
+	CleanupTaskID *int64 `gorm:"column:cleanup_task_id;uniqueIndex:idx_piece_cid_padded_longterm_cleanup"`
+	CleanupTask   *Task  `gorm:"foreignKey:CleanupTaskID;references:ID;constraint:OnDelete:SET NULL"` // "cleanup_task_id references task(id) on delete set null"
+
+	LongTerm bool `gorm:"not null;default:false;column:long_term;uniqueIndex:idx_piece_cid_padded_longterm_cleanup"`
 }
 
 func (ParkedPiece) TableName() string {
@@ -100,8 +108,10 @@ func (ParkedPiece) TableName() string {
 
 // ParkedPieceRef represents the parked_piece_refs table.
 type ParkedPieceRef struct {
-	RefID       int64          `gorm:"primaryKey;autoIncrement;column:ref_id"`
-	PieceID     int64          `gorm:"not null;column:piece_id"`
+	RefID       int64        `gorm:"primaryKey;autoIncrement;column:ref_id"`
+	PieceID     int64        `gorm:"not null;column:piece_id"`
+	ParkedPiece *ParkedPiece `gorm:"foreignKey:PieceID;references:ID;constraint:OnDelete:CASCADE"` // "piece_id references parked_pieces(id) on delete cascade"
+
 	DataURL     string         `gorm:"column:data_url"`
 	DataHeaders datatypes.JSON `gorm:"not null;column:data_headers;default:'{}'"`
 	LongTerm    bool           `gorm:"not null;default:false;column:long_term"`
@@ -125,17 +135,20 @@ func (PDPService) TableName() string {
 
 // pdp_piece_uploads
 type PDPPieceUpload struct {
-	ID             string      `gorm:"primaryKey;type:uuid"` // or use a UUID type
-	Service        string      `gorm:"not null"`             // references pdp_services(service_label)
-	ServiceModel   *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
-	CheckHashCodec string      `gorm:"not null"`
-	CheckHash      []byte      `gorm:"not null"`
-	CheckSize      int64       `gorm:"not null"`
-	PieceCID       *string     `gorm:"column:piece_cid"`
-	NotifyURL      string      `gorm:"not null"`
-	NotifyTaskID   *int64      // references harmony_task(id)
-	PieceRef       *int64      // references parked_piece_refs(ref_id)
-	CreatedAt      time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
+	ID      string `gorm:"primaryKey;type:uuid"` // or use a UUID type
+	Service string `gorm:"not null"`             // references pdp_services(service_label)
+	//ServiceModel   *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"` // "service references pdp_services(service_label) on delete cascade"
+
+	CheckHashCodec string          `gorm:"not null"`
+	CheckHash      []byte          `gorm:"not null"`
+	CheckSize      int64           `gorm:"not null"`
+	PieceCID       *string         `gorm:"column:piece_cid"`
+	NotifyURL      string          `gorm:"not null"`
+	NotifyTaskID   *int64          // references task(id)
+	PieceRef       *int64          // references parked_piece_refs(ref_id)
+	ParkedPieceRef *ParkedPieceRef `gorm:"foreignKey:PieceRef;references:RefID;constraint:OnDelete:SET NULL"` // "piece_ref references parked_piece_refs(ref_id) on delete set null"
+
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPPieceUpload) TableName() string {
@@ -144,13 +157,16 @@ func (PDPPieceUpload) TableName() string {
 
 // pdp_piecerefs
 type PDPPieceRef struct {
-	ID               int64       `gorm:"primaryKey;autoIncrement"`
-	Service          string      `gorm:"not null"` // references pdp_services(service_label)
-	ServiceModel     *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
-	PieceCID         string      `gorm:"not null;column:piece_cid"`
-	PieceRef         int64       // references parked_piece_refs(ref_id)
-	CreatedAt        time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
-	ProofsetRefcount int64       `gorm:"default:0;not null"`
+	ID      int64  `gorm:"primaryKey;autoIncrement"`
+	Service string `gorm:"not null"` // references pdp_services(service_label)
+	//ServiceModel   *PDPService     `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
+
+	PieceCID       string          `gorm:"not null;column:piece_cid"`
+	PieceRef       int64           // references parked_piece_refs(ref_id)
+	ParkedPieceRef *ParkedPieceRef `gorm:"foreignKey:PieceRef;references:RefID;constraint:OnDelete:CASCADE"` // "piece_ref references parked_piece_refs(ref_id) on delete cascade"
+
+	CreatedAt        time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
+	ProofsetRefcount int64     `gorm:"default:0;not null"`
 }
 
 func (PDPPieceRef) TableName() string {
@@ -174,14 +190,15 @@ type PDPProofSet struct {
 	PrevChallengeRequestEpoch *int64
 	ChallengeRequestTaskID    *int64 `gorm:"column:challenge_request_task_id"`
 	ChallengeRequestTask      *Task  `gorm:"foreignKey:ChallengeRequestTaskID;references:ID;constraint:OnDelete:SET NULL"`
-	ChallengeRequestMsgHash   *string
-	ProvingPeriod             *int64
-	ChallengeWindow           *int64
-	ProveAtEpoch              *int64
-	InitReady                 bool        `gorm:"default:false;not null"`
-	CreateMessageHash         string      `gorm:"not null"`
-	Service                   string      `gorm:"not null"` // references pdp_services(service_label)
-	ServiceModel              *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:RESTRICT"`
+
+	ChallengeRequestMsgHash *string
+	ProvingPeriod           *int64
+	ChallengeWindow         *int64
+	ProveAtEpoch            *int64
+	InitReady               bool   `gorm:"default:false;not null"`
+	CreateMessageHash       string `gorm:"not null"`
+	Service                 string `gorm:"not null"` // references pdp_services(service_label)
+	// ServiceModel *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:RESTRICT"`
 }
 
 func (PDPProofSet) TableName() string {
@@ -192,6 +209,9 @@ func (PDPProofSet) TableName() string {
 type PDPProveTask struct {
 	ProofsetID int64 `gorm:"primaryKey"` // references pdp_proof_sets(id)
 	TaskID     int64 `gorm:"primaryKey"` // references harmony_task(id)
+
+	ProofSet  *PDPProofSet `gorm:"foreignKey:ProofsetID;references:ID;constraint:OnDelete:CASCADE"` // "proofset references pdp_proof_sets(id) on delete cascade"
+	ProveTask *Task        `gorm:"foreignKey:TaskID;references:ID;constraint:OnDelete:CASCADE"`     // "task_id references task(id) on delete cascade"
 }
 
 func (PDPProveTask) TableName() string {
@@ -200,12 +220,15 @@ func (PDPProveTask) TableName() string {
 
 // pdp_proofset_creates
 type PDPProofsetCreate struct {
-	CreateMessageHash string      `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
-	Ok                *bool       // NULL / TRUE / FALSE
-	ProofsetCreated   bool        `gorm:"default:false;not null"`
-	Service           string      `gorm:"not null"` // references pdp_services(service_label)
-	ServiceModel      *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
-	CreatedAt         time.Time   `gorm:"default:CURRENT_TIMESTAMP;not null"`
+	CreateMessageHash string           `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
+	MessageWait       *MessageWaitsEth `gorm:"foreignKey:CreateMessageHash;references:SignedTxHash;constraint:OnDelete:CASCADE"`
+
+	Ok              *bool  // NULL / TRUE / FALSE
+	ProofsetCreated bool   `gorm:"default:false;not null"`
+	Service         string `gorm:"not null"` // references pdp_services(service_label)
+	//ServiceModel    *PDPService `gorm:"foreignKey:Service;references:ServiceLabel;constraint:OnDelete:CASCADE"`
+
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP;not null"`
 }
 
 func (PDPProofsetCreate) TableName() string {
@@ -214,16 +237,23 @@ func (PDPProofsetCreate) TableName() string {
 
 // pdp_proofset_roots (composite PK)
 type PDPProofsetRoot struct {
-	ProofsetID       int64  `gorm:"primaryKey"` // references pdp_proof_sets(id)
-	RootID           int64  `gorm:"primaryKey"`
-	SubrootOffset    int64  `gorm:"primaryKey"`
-	Root             string `gorm:"not null"`
-	AddMessageHash   string `gorm:"not null"` // references message_waits_eth(signed_tx_hash)
+	ProofsetID int64        `gorm:"primaryKey"`                                                      // references pdp_proof_sets(id)
+	ProofSet   *PDPProofSet `gorm:"foreignKey:ProofsetID;references:ID;constraint:OnDelete:CASCADE"` // "proofset references pdp_proof_sets(id) on delete cascade"
+
+	RootID         int64            `gorm:"primaryKey"`
+	SubrootOffset  int64            `gorm:"primaryKey"`
+	Root           string           `gorm:"not null"`
+	AddMessageHash string           `gorm:"not null"`                                                                      // references message_waits_eth(signed_tx_hash)
+	AddMessageWait *MessageWaitsEth `gorm:"foreignKey:AddMessageHash;references:SignedTxHash;constraint:OnDelete:CASCADE"` // "add_message_hash references message_waits_eth(signed_tx_hash) on delete cascade"
+
 	AddMessageIndex  int64
 	Subroot          string `gorm:"not null"`
 	SubrootOffsetVal int64  // same as SubrootOffset, but for clarity if needed
 	SubrootSize      int64
-	PDPPieceRefID    *int64 // references pdp_piecerefs(id)
+
+	PDPPieceRefID *int64       // references pdp_piecerefs(id)
+	PDPPieceRef   *PDPPieceRef `gorm:"foreignKey:PDPPieceRefID;references:ID;constraint:OnDelete:SET NULL"` // "pdp_pieceref references pdp_piecerefs(id) on delete set null"
+
 }
 
 func (PDPProofsetRoot) TableName() string {
@@ -232,15 +262,21 @@ func (PDPProofsetRoot) TableName() string {
 
 // pdp_proofset_root_adds (composite PK)
 type PDPProofsetRootAdd struct {
-	ProofsetID      int64  `gorm:"primaryKey;column:proofset_id"` // references pdp_proof_sets(id)
-	AddMessageHash  string `gorm:"primaryKey"`                    // references message_waits_eth(signed_tx_hash)
+	ProofsetID int64        `gorm:"primaryKey;column:proofset_id"`                                   // references pdp_proof_sets(id)
+	ProofSet   *PDPProofSet `gorm:"foreignKey:ProofsetID;references:ID;constraint:OnDelete:CASCADE"` // "proofset references pdp_proof_sets(id) on delete cascade"
+
+	AddMessageHash string           `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
+	AddMessageWait *MessageWaitsEth `gorm:"foreignKey:AddMessageHash;references:SignedTxHash;constraint:OnDelete:CASCADE"`
+
 	SubrootOffset   int64  `gorm:"primaryKey"`
 	Root            string `gorm:"not null"`
 	AddMessageOK    *bool
 	AddMessageIndex *int64
 	Subroot         string `gorm:"not null"`
 	SubrootSize     int64
-	PDPPieceRefID   *int64 // references pdp_piecerefs(id)
+
+	PDPPieceRefID *int64       // references pdp_piecerefs(id)
+	PDPPieceRef   *PDPPieceRef `gorm:"foreignKey:PDPPieceRefID;references:ID;constraint:OnDelete:SET NULL"`
 }
 
 func (PDPProofsetRootAdd) TableName() string {
