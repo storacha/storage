@@ -246,6 +246,7 @@ func (c *Client) sendRequest(ctx context.Context, method string, url string, bod
 	}
 	// add authorization header
 	req.Header.Add("Authorization", c.authHeader)
+	req.Header.Add("Content-Type", "application/json")
 	// send request
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -263,6 +264,7 @@ func (c *Client) postJson(ctx context.Context, url string, params interface{}) (
 		}
 		body = bytes.NewReader(asBytes)
 	}
+
 	return c.sendRequest(ctx, http.MethodPost, url, body)
 }
 
