@@ -54,7 +54,7 @@ func Every[P, R any](passInterval time.Duration, cb func(P) R) func(P) R {
 
 // TaskInterface defines what a task must implement.
 type TaskInterface interface {
-	Do(taskID TaskID, stillOwned func() bool) (done bool, err error)
+	Do(taskID TaskID) (done bool, err error)
 	TypeDetails() TaskTypeDetails
 	Adder(AddTaskFunc)
 }
@@ -152,6 +152,12 @@ func (e *TaskEngine) poller() {
 	}
 }
 
+const (
+	WorkSourcePoller   = "poller"
+	WorkSourceRecover  = "recovered"
+	WorkSourceIAmBored = "bored"
+)
+
 // pollerTryAllWork looks for unassigned tasks in the DB and schedules them.
 func (e *TaskEngine) pollerTryAllWork() bool {
 	// Optional cleanup logic.
@@ -185,11 +191,35 @@ func (e *TaskEngine) pollerTryAllWork() bool {
 		}
 
 		if len(taskIDs) > 0 {
-			accepted := h.considerWork("poller", taskIDs)
+			accepted := h.considerWork(WorkSourcePoller, taskIDs, e.db)
 			if accepted {
 				return true
 			}
 			log.Warnf("Work not accepted for %d %s task(s)", len(taskIDs), h.TaskTypeDetails.Name)
+		}
+	}
+
+	// if no work was accepted, are we bored? Then find work in priority order.
+	for _, v := range e.handlers {
+		v := v
+		if v.TaskTypeDetails.IAmBored != nil {
+			var added []TaskID
+			err := v.TaskTypeDetails.IAmBored(func(extraInfo func(TaskID, *gorm.DB) (shouldCommit bool, seriousError error)) {
+				v.AddTask(func(tID TaskID, tx *gorm.DB) (shouldCommit bool, seriousError error) {
+					b, err := extraInfo(tID, tx)
+					if err == nil && shouldCommit {
+						added = append(added, tID)
+					}
+					return b, err
+				})
+			})
+			if err != nil {
+				log.Error("IAmBored failed: ", err)
+				continue
+			}
+			if added != nil { // tiny chance a fail could make these bogus, but considerWork should then fail.
+				v.considerWork(WorkSourceIAmBored, added, e.db)
+			}
 		}
 	}
 
@@ -220,15 +250,16 @@ retryAddTask:
 		tID = TaskID(task.ID)
 
 		// Call the extra callback to update additional info in the same transaction.
-		ok, err := extra(tID, tx)
+		shouldCommit, err := extra(tID, tx)
 		if err != nil {
 			return err
 		}
-		if !ok {
-			return fmt.Errorf("extra callback returned false")
+
+		if shouldCommit {
+			return nil
 		}
 
-		return nil
+		return DoNotCommitErr
 	})
 	if err != nil {
 		// If a unique constraint error is detected, assume the task already exists.
@@ -242,6 +273,10 @@ retryAddTask:
 			retryWait *= 2
 			goto retryAddTask
 		}
+
+		if errors.Is(err, DoNotCommitErr) {
+			return
+		}
 		log.Errorw("Could not add task. AddTask func failed", "error", err, "type", h.TaskTypeDetails.Name)
 		return
 	}
@@ -250,18 +285,28 @@ retryAddTask:
 
 // considerWork claims and executes tasks.
 // In this simplified version, it directly calls the task's Do() method.
-func (h *taskTypeHandler) considerWork(source string, taskIDs []TaskID) bool {
+func (h *taskTypeHandler) considerWork(source string, taskIDs []TaskID, db *gorm.DB) bool {
+	wg := &sync.WaitGroup{}
 	for _, id := range taskIDs {
-		done, err := h.Do(id, func() bool { return true })
-		if err != nil {
-			log.Errorw("Error executing task", "task_id", id, "error", err)
-		}
-		if done {
-			log.Infow("Task completed", "task_id", id)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.Infow("doing task", "name", h.TaskTypeDetails.Name, "id", id)
+			done, err := h.Do(id)
+			if err != nil {
+				log.Errorw("Error executing task", "task_id", id, "error", err)
+			}
+			if done {
+				db.Delete(&models.Task{}, id)
+				log.Infow("Task completed", "task_id", id, "name", h.TaskTypeDetails.Name)
+			}
+		}()
 	}
+	wg.Wait()
 	return len(taskIDs) > 0
 }
+
+var DoNotCommitErr = errors.New("do not commit")
 
 func IsUniqueConstraintError(err error) bool {
 	var pgErr *pgconn.PgError

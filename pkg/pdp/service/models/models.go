@@ -231,8 +231,8 @@ func (PDPProofsetRoot) TableName() string {
 
 // pdp_proofset_root_adds (composite PK)
 type PDPProofsetRootAdd struct {
-	ProofsetID      int64  `gorm:"primaryKey"` // references pdp_proof_sets(id)
-	AddMessageHash  string `gorm:"primaryKey"` // references message_waits_eth(signed_tx_hash)
+	ProofsetID      int64  `gorm:"primaryKey;column:proofset_id"` // references pdp_proof_sets(id)
+	AddMessageHash  string `gorm:"primaryKey"`                    // references message_waits_eth(signed_tx_hash)
 	SubrootOffset   int64  `gorm:"primaryKey"`
 	Root            string `gorm:"not null"`
 	AddMessageOK    *bool
@@ -267,10 +267,10 @@ type MessageSendsEth struct {
 	UnsignedHash string     `gorm:"not null;column:unsigned_hash"`
 	Nonce        *int64     `gorm:"column:nonce"`
 	SignedTx     []byte     `gorm:"column:signed_tx"`
-	SignedHash   string     `gorm:"column:signed_hash"`
+	SignedHash   *string    `gorm:"column:signed_hash"`
 	SendTime     *time.Time `gorm:"column:send_time"`
 	SendSuccess  *bool      `gorm:"column:send_success"`
-	SendError    string     `gorm:"column:send_error"`
+	SendError    *string    `gorm:"column:send_error"`
 }
 
 func (MessageSendsEth) TableName() string {
@@ -290,6 +290,7 @@ func (MessageSendEthLock) TableName() string {
 
 // MessageWaitsEth represents the message_waits_eth table.
 type MessageWaitsEth struct {
+	WaiterMachineID      *int64         `gorm:"column:waiter_machine_id"`
 	SignedTxHash         string         `gorm:"primaryKey;column:signed_tx_hash;not null"`
 	ConfirmedBlockNumber *int64         `gorm:"column:confirmed_block_number"`
 	ConfirmedTxHash      string         `gorm:"column:confirmed_tx_hash"`

@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION increment_proofset_refcount()
 BEGIN
     UPDATE pdp_piecerefs
     SET proofset_refcount = proofset_refcount + 1
-    WHERE id = NEW.pdp_pieceref;
+    WHERE id = NEW.pdp_piece_ref_id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION decrement_proofset_refcount()
 BEGIN
     UPDATE pdp_piecerefs
     SET proofset_refcount = proofset_refcount - 1
-    WHERE id = OLD.pdp_pieceref;
+    WHERE id = OLD.pdp_piece_ref_id;
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
@@ -22,16 +22,16 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION adjust_proofset_refcount_on_update()
     RETURNS TRIGGER AS $$
 BEGIN
-    IF OLD.pdp_pieceref IS DISTINCT FROM NEW.pdp_pieceref THEN
-        IF OLD.pdp_pieceref IS NOT NULL THEN
+    IF OLD.pdp_piece_ref_id IS DISTINCT FROM NEW.pdp_piece_ref_id THEN
+        IF OLD.pdp_piece_ref_id IS NOT NULL THEN
             UPDATE pdp_piecerefs
             SET proofset_refcount = proofset_refcount - 1
-            WHERE id = OLD.pdp_pieceref;
+            WHERE id = OLD.pdp_piece_ref_id;
         END IF;
-        IF NEW.pdp_pieceref IS NOT NULL THEN
+        IF NEW.pdp_piece_ref_id IS NOT NULL THEN
             UPDATE pdp_piecerefs
             SET proofset_refcount = proofset_refcount + 1
-            WHERE id = NEW.pdp_pieceref;
+            WHERE id = NEW.pdp_piece_ref_id;
         END IF;
     END IF;
     RETURN NEW;

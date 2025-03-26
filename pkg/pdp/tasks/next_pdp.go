@@ -88,7 +88,7 @@ func NewNextProvingPeriodTask(db *gorm.DB, ethClient *ethclient.Client, api Chai
 	return n, nil
 }
 
-func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.Background()
 	// Select the proof set where challenge_request_task_id equals taskID and prove_at_epoch is not NULL
 	var pdp models.PDPProofSet
@@ -151,12 +151,6 @@ func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID, stillOwned func() bo
 		nil,                // gasPrice (to be set by sender)
 		data,               // data
 	)
-
-	// TODO we'll want to remove this from the interface as work stealing DNE here.
-	if !stillOwned() {
-		// Task was abandoned, don't send the transaction
-		return false, nil
-	}
 
 	fromAddress, _, err := pdpVerifier.GetProofSetOwner(nil, big.NewInt(proofSetID))
 	if err != nil {

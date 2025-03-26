@@ -18,7 +18,12 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
-const MinConfidence = 6
+// TODO allow this to be tuned based on network and user preferences for risk.
+// original value from curio is 6, but a lower value is nice when testing againts calibration network
+
+// MinConfidence defines how many blocks must be applied before we accept the message as applied.
+// Synonymous with finality
+const MinConfidence = 2
 
 type MessageWatcherEth struct {
 	db  *gorm.DB
@@ -116,8 +121,6 @@ func (mw *MessageWatcherEth) update() {
 			return
 		}
 
-		// Transaction receipt found
-
 		// Check if the transaction has enough confirmations
 		confirmations := new(big.Int).Sub(bestBlockNumber, receipt.BlockNumber)
 		if confirmations.Cmp(big.NewInt(MinConfidence)) < 0 {
@@ -150,13 +153,13 @@ func (mw *MessageWatcherEth) update() {
 
 		txStatus := "confirmed"
 		txSuccess := receipt.Status == 1
-		confirmedBlockNumber := receipt.BlockNumber.Int64()
 
 		// Update the database
 		err = mw.db.Model(&models.MessageWaitsEth{}).
 			Where("signed_tx_hash = ?", tx.SignedTxHash).
 			Updates(models.MessageWaitsEth{
-				ConfirmedBlockNumber: &confirmedBlockNumber,
+				WaiterMachineID:      nil,
+				ConfirmedBlockNumber: models.Ptr(receipt.BlockNumber.Int64()),
 				ConfirmedTxHash:      receipt.TxHash.Hex(),
 				ConfirmedTxData:      txDataJSON,
 				TxStatus:             txStatus,

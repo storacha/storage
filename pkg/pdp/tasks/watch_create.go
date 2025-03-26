@@ -136,7 +136,12 @@ func extractProofSetIdFromReceipt(receipt *types.Receipt) (uint64, error) {
 	if !exists {
 		return 0, xerrors.Errorf("ProofSetCreated event not found in ABI")
 	}
+	_ = event
 
+	// it would appear the event ID being returned from the ABI is currently incorrect.
+	// this appears to be the correct ID.
+	// THIS TOOK FOR FUCKING EVER TO DEBUG WHAT THE FUCK
+	//correctProofSetCreatedEventHash := common.HexToHash("0x5979d495e336598dba8459e44f8eb2a1c957ce30fcc10cabea4bb0ffe969df6a")
 	for _, vLog := range receipt.Logs {
 		if len(vLog.Topics) > 0 && vLog.Topics[0] == event.ID {
 			if len(vLog.Topics) < 2 {

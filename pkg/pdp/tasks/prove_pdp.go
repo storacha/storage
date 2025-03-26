@@ -154,7 +154,7 @@ func NewProveTask(
 	return pt, nil
 }
 
-func (p *ProveTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bool, err error) {
+func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	ctx := context.Background()
 
 	// Retrieve proof set and challenge epoch for the task
@@ -260,11 +260,6 @@ func (p *ProveTask) Do(taskID scheduler.TaskID, stillOwned func() bool) (done bo
 		"proofFee 3x", proofFee,
 		"txEth", txEth,
 	)
-
-	if !stillOwned() {
-		// Task was abandoned, don't send the proofs
-		return false, nil
-	}
 
 	reason := "pdp-prove"
 	txHash, err := p.sender.Send(ctx, fromAddress, txEth, reason)
@@ -419,7 +414,7 @@ func (p *ProveTask) proveRoot(ctx context.Context, proofSetID int64, rootId int6
 	var subroots []subrootMeta
 	if err := p.db.Table("pdp_proofset_roots").
 		Select("root, subroot, subroot_offset, subroot_size").
-		Where("proofset = ? AND root_id = ?", proofSetID, rootId).
+		Where("proofset_id = ? AND root_id = ?", proofSetID, rootId).
 		Order("subroot_offset ASC").
 		Scan(&subroots).Error; err != nil {
 		return contract.PDPVerifierProof{}, fmt.Errorf("failed to get root and subroot: %w", err)
@@ -640,7 +635,7 @@ func (p *ProveTask) cleanupDeletedRoots(ctx context.Context, proofSetID int64, p
 	err = p.db.Transaction(func(tx *gorm.DB) error {
 		for _, removeID := range removals {
 			var proofsetRoot models.PDPProofsetRoot
-			if err := tx.Where("proofset = ? AND root_id = ?", proofSetID, removeID.Int64()).First(&proofsetRoot).Error; err != nil {
+			if err := tx.Where("proofset_id = ? AND root_id = ?", proofSetID, removeID.Int64()).First(&proofsetRoot).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					// Root already deleted, skip
 					continue
@@ -652,7 +647,7 @@ func (p *ProveTask) cleanupDeletedRoots(ctx context.Context, proofSetID int64, p
 				return fmt.Errorf("failed to delete parked piece ref %d: %w", proofsetRoot.PDPPieceRefID, err)
 			}
 
-			if err := tx.Where("proofset = ? AND root_id = ?", proofSetID, removeID).Delete(&models.PDPProofsetRoot{}).Error; err != nil {
+			if err := tx.Where("proofset_id = ? AND root_id = ?", proofSetID, removeID).Delete(&models.PDPProofsetRoot{}).Error; err != nil {
 				return fmt.Errorf("failed to delete root %d: %w", removeID, err)
 			}
 		}
