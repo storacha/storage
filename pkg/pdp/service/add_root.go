@@ -161,7 +161,9 @@ func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []Ad
 	// Prepare RootData array for Ethereum transaction
 	// Define a Struct that matches the Solidity RootData struct
 	type RootData struct {
-		Root    struct{ Data []byte }
+		Root struct {
+			Data []byte
+		}
 		RawSize *big.Int
 	}
 
