@@ -37,6 +37,10 @@ type PDPService struct {
 	stopFns []func()
 }
 
+func (p *PDPService) Storage() blobstore.Blobstore {
+	return p.blobstore
+}
+
 func (p *PDPService) Stop(ctx context.Context) error {
 	// TODO either use uber fx, or a multierror
 	for _, stopFn := range p.stopFns {
