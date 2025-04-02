@@ -14,6 +14,7 @@ var log = logging.Logger("pdp/api")
 const (
 	PDPRoutePath     = "/pdp"
 	PRoofSetRoutPath = "/proof-sets"
+	PiecePrefix      = "/piece"
 )
 
 func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
@@ -39,6 +40,9 @@ func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
 	e.POST(path.Join(PDPRoutePath, "/piece"), p.handlePreparePiece)
 	e.PUT(path.Join(PDPRoutePath, "/piece/upload/:uploadUUID"), p.handlePieceUpload)
 	e.GET(path.Join(PDPRoutePath, "/piece"), p.handleFindPiece)
+
+	// retrival
+	e.GET(path.Join(PiecePrefix, ":cid"), p.handleDownloadByPieceCid)
 }
 
 type PDP struct {
