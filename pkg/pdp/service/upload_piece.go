@@ -25,9 +25,6 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/types"
 )
 
-const CustoreScheme = "custore"
-
-// TODO piece could probably be a commp instead of byte array
 func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piece io.Reader) (interface{}, error) {
 	// Lookup the expected pieceCID, notify_url, and piece_ref from the database using uploadUUID
 	var upload models.PDPPieceUpload
