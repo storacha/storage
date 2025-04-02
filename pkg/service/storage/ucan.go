@@ -21,6 +21,7 @@ import (
 	fdm "github.com/storacha/go-ucanto/core/result/failure/datamodel"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
+
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
@@ -248,7 +249,6 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 							log.Errorf("publishing location commitment: %w", err)
 							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
-
 					*/
 
 					return blob.AcceptOk{Site: claim.Link(), PDP: pdpLink}, fx.NewEffects(fx.WithFork(forks...)), nil

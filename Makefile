@@ -8,7 +8,7 @@ all: build
 build: storage
 
 storage:
-	go build $(GOFLAGS) -o ./storage ./cmd/storage
+	go build $(GOFLAGS) -tags calibnet -o ./storage ./cmd/storage
 
 install:
 	go install ./cmd/storage
