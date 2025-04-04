@@ -2,11 +2,18 @@ package storage
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
 
 	logging "github.com/ipfs/go-log/v2"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"github.com/storacha/go-libstoracha/capabilities/assert"
 	"github.com/storacha/go-libstoracha/capabilities/blob"
 	"github.com/storacha/go-libstoracha/capabilities/pdp"
+	"github.com/storacha/go-libstoracha/capabilities/replica"
 	"github.com/storacha/go-libstoracha/capabilities/types"
+	"github.com/storacha/go-ucanto/core/dag/blockstore"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/receipt"
@@ -16,13 +23,15 @@ import (
 	fdm "github.com/storacha/go-ucanto/core/result/failure/datamodel"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
+
+	"github.com/storacha/storage/pkg/pdp/replicator"
 )
 
 var log = logging.Logger("storage")
 
 const maxUploadSize = 127 * (1 << 25)
 
-func NewUCANServer(storageService Service, options ...server.Option) (server.ServerView, error) {
+func NewUCANServer(storageService Service, replicatorService Replicator, options ...server.Option) (server.ServerView, error) {
 	options = append(
 		options,
 		server.WithServiceMethod(
@@ -51,10 +60,9 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					// FIXME: use a real context, requires changes to server
 					ctx := context.TODO()
 					resp, err := blobAllocate(ctx, storageService, &BlobAllocateRequest{
-						Space:           cap.Nb().Space,
-						Blob:            cap.Nb().Blob,
-						AllocationCause: cap.Nb().Cause,
-						InvocationCause: inv.Link(),
+						Space: cap.Nb().Space,
+						Blob:  cap.Nb().Blob,
+						Cause: cap.Nb().Cause,
 					})
 					if err != nil {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
@@ -87,7 +95,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 
 					// FIXME: use a real context, requires changes to server
 					ctx := context.TODO()
-					resp, err := blobAccept(ctx, storageService, &BlobAcceptRequest{
+					resp, err := BlobAccept(ctx, storageService, &BlobAcceptRequest{
 						Space: cap.Nb().Space,
 						Blob:  cap.Nb().Blob,
 						Put:   cap.Nb().Put,
@@ -110,7 +118,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 								Piece: *resp.Piece,
 							}, delegation.WithNoExpiration())
 						if err != nil {
-							log.Errorf("creating piece accept invocation: %w", err)
+							log.Error("creating piece accept invocation", "error", err)
 							return blob.AcceptOk{}, nil, failure.FromError(err)
 						}
 						pieceAcceptLink := pieceAccept.Link()
@@ -169,6 +177,92 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 							return pdp.InfoOk{}, nil, failure.FromFailureModel(err)
 						},
 					)
+				},
+			),
+		),
+		server.WithServiceMethod(
+			replica.AllocateAbility,
+			server.Provide(
+				replica.Allocate,
+				func(cap ucan.Capability[replica.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (replica.AllocateOK, fx.Effects, error) {
+					//
+					// UCAN Validation
+					//
+
+					// only service principal can perform an allocation
+					if cap.With() != iCtx.ID().DID().String() {
+						return replica.AllocateOK{}, nil, NewUnsupportedCapabilityError(cap)
+					}
+
+					//
+					// end UCAN Validation
+					//
+
+					// create the transfer invocation: an fx of the allocate invocation receipt.
+					trnsfInv, err := replica.Transfer.Invoke(
+						storageService.ID(),
+						storageService.ID(),
+						storageService.ID().DID().GoString(),
+						replica.TransferCaveats{
+							Space:    cap.Nb().Space,
+							Blob:     cap.Nb().Blob,
+							Location: cap.Nb().Location,
+							Cause:    inv.Link(),
+						},
+					)
+					if err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(err)
+					}
+
+					// read the location claim from this invocation to obtain the DID of the URL
+					// to replicate from on the primary storage node.
+					br, err := blockstore.NewBlockReader(blockstore.WithBlocksIterator(inv.Blocks()))
+					if err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(err)
+					}
+					claim, err := delegation.NewDelegationView(cidlink.Link{Cid: cap.Nb().Location}, br)
+					if err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(err)
+					}
+
+					// TODO since there is a slice of capabilities here we need to validate the 0th is the correct one
+					// unsure what `With()` should be compared with for a capability.
+					lc, err := assert.LocationCaveatsReader.Read(claim.Capabilities()[0].Nb())
+					if err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(err)
+					}
+
+					if len(lc.Location) < 1 {
+						return replica.AllocateOK{}, nil, failure.FromError(fmt.Errorf("location missing from location claim"))
+					}
+
+					// TODO: which one do we pick if > 1?
+					replicaAddress := lc.Location[0]
+
+					// FIXME: use a real context, requires changes to server
+					ctx := context.TODO()
+					allocateResp, err := blobAllocate(ctx, storageService, &BlobAllocateRequest{
+						Space: cap.Nb().Space,
+						Blob:  cap.Nb().Blob,
+						Cause: inv.Link(),
+					})
+					if err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(err)
+					}
+
+					// will run replication async, sending the receipt of the transfer invocation
+					// to the upload service.
+					if err := replicatorService.Enqueue(ctx, &replicator.Task{
+						Space:      cap.Nb().Space,
+						Blob:       cap.Nb().Blob,
+						Source:     replicaAddress,
+						Sink:       allocateResp.Address.URL,
+						Invocation: trnsfInv,
+					}); err != nil {
+						return replica.AllocateOK{}, nil, failure.FromError(fmt.Errorf("failed to enqueue replication task: %w", err))
+					}
+
+					return replica.AllocateOK{Size: allocateResp.Size}, fx.NewEffects(fx.WithFork(fx.FromInvocation(trnsfInv))), nil
 				},
 			),
 		),

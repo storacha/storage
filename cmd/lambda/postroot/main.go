@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	ucanserver "github.com/storacha/go-ucanto/server"
+
 	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/pkg/aws"
 	"github.com/storacha/storage/pkg/principalresolver"
@@ -25,7 +26,9 @@ func makeHandler(cfg aws.Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	server, err := storage.NewUCANServer(service, ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey))
+	// TODO don't pass nil here, an option would be nice, but the new method does have access to options
+	// we might need to refactor this code a bit
+	server, err := storage.NewUCANServer(service, nil, ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey))
 	if err != nil {
 		return nil, err
 	}

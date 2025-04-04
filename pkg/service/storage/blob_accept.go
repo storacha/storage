@@ -12,9 +12,14 @@ import (
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
+	"github.com/storacha/go-ucanto/principal"
 
 	"github.com/storacha/storage/pkg/internal/digestutil"
+	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/service/blobs"
+	"github.com/storacha/storage/pkg/service/claims"
 	"github.com/storacha/storage/pkg/store"
+	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
 type BlobAcceptRequest struct {
@@ -29,7 +34,20 @@ type BlobAcceptResponse struct {
 	Piece *piece.PieceLink
 }
 
-func blobAccept(ctx context.Context, service Service, req *BlobAcceptRequest) (*BlobAcceptResponse, error) {
+type BlobAcceptService interface {
+	// ID is the storage service identity, used to sign UCAN invocations and receipts.
+	ID() principal.Signer
+	// PDP handles PDP aggregation
+	PDP() pdp.PDP
+	// Blobs provides access to the blobs service.
+	Blobs() blobs.Blobs
+	// Claims provides access to the claims service.
+	Claims() claims.Claims
+	// Receipts provides access to receipts
+	Receipts() receiptstore.ReceiptStore
+}
+
+func BlobAccept(ctx context.Context, service BlobAcceptService, req *BlobAcceptRequest) (*BlobAcceptResponse, error) {
 	log := log.With("blob", digestutil.Format(req.Blob.Digest))
 	log.Infof("%s %s", blob.AcceptAbility, req.Space)
 

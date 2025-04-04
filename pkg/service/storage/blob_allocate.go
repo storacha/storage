@@ -18,10 +18,9 @@ import (
 )
 
 type BlobAllocateRequest struct {
-	Space           did.DID
-	Blob            blob.Blob
-	AllocationCause ucan.Link
-	InvocationCause ucan.Link
+	Space did.DID
+	Blob  blob.Blob
+	Cause ucan.Link
 }
 
 type BlobAllocateResponse struct {
@@ -127,7 +126,7 @@ func blobAllocate(
 		Blob:    allocation.Blob(req.Blob),
 		Expires: expiresAt,
 		// REVIEW: is this the correct cause? The invocation link rather than the allocate caveats cause field?
-		Cause: req.InvocationCause,
+		Cause: req.Cause,
 	})
 	if err != nil {
 		log.Errorw("putting allocation", "error", err)
