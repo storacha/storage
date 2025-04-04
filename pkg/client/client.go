@@ -57,7 +57,7 @@ func (s *Client) BlobAllocate(space did.DID, digest multihash.Multihash, size ui
 		s.cfg.StorageNodeID.DID().String(),
 		blob.AllocateCaveats{
 			Space: space,
-			Blob: blob.Blob{
+			Blob: types.Blob{
 				Digest: digest,
 				Size:   size,
 			},
@@ -106,7 +106,7 @@ func (s *Client) BlobAccept(space did.DID, digest multihash.Multihash, size uint
 		s.cfg.StorageNodeID.DID().String(),
 		blob.AcceptCaveats{
 			Space: space,
-			Blob: blob.Blob{
+			Blob: types.Blob{
 				Digest: digest,
 				Size:   size,
 			},

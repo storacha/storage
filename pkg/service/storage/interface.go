@@ -1,10 +1,13 @@
 package storage
 
 import (
+	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/principal"
+
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/service/claims"
+	"github.com/storacha/storage/pkg/service/replicator"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
@@ -19,4 +22,8 @@ type Service interface {
 	Claims() claims.Claims
 	// Receipts provides access to receipts
 	Receipts() receiptstore.ReceiptStore
+	// Replicator provides access to the replication service
+	Replicator() replicator.Replicator
+	// UploadService provides access to an upload service connection
+	UploadConnection() client.Connection
 }
