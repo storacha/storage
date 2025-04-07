@@ -20,15 +20,20 @@ import (
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/storacha/storage/pkg/internal/testutil"
 )
 
 func TestServer(t *testing.T) {
 	ctx := context.Background()
 	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
 	require.NoError(t, err)
-	t.Cleanup(func() { svc.Close(ctx) })
+	err = svc.Startup()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		svc.Close(ctx)
+	})
 
 	srv, err := NewUCANServer(svc)
 	require.NoError(t, err)
