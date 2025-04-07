@@ -3,8 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 
 	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
@@ -24,14 +22,15 @@ import (
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
 
-	"github.com/storacha/storage/pkg/pdp/replicator"
+	"github.com/storacha/storage/pkg/service/capabilities"
+	"github.com/storacha/storage/pkg/service/replicator"
 )
 
 var log = logging.Logger("storage")
 
 const maxUploadSize = 127 * (1 << 25)
 
-func NewUCANServer(storageService Service, replicatorService Replicator, options ...server.Option) (server.ServerView, error) {
+func NewUCANServer(storageService Service, options ...server.Option) (server.ServerView, error) {
 	options = append(
 		options,
 		server.WithServiceMethod(
@@ -59,7 +58,8 @@ func NewUCANServer(storageService Service, replicatorService Replicator, options
 
 					// FIXME: use a real context, requires changes to server
 					ctx := context.TODO()
-					resp, err := blobAllocate(ctx, storageService, &BlobAllocateRequest{
+
+					resp, err := storageService.Capabilities().BlobAllocate(ctx, &capabilities.BlobAllocateRequest{
 						Space: cap.Nb().Space,
 						Blob:  cap.Nb().Blob,
 						Cause: cap.Nb().Cause,
@@ -95,7 +95,7 @@ func NewUCANServer(storageService Service, replicatorService Replicator, options
 
 					// FIXME: use a real context, requires changes to server
 					ctx := context.TODO()
-					resp, err := BlobAccept(ctx, storageService, &BlobAcceptRequest{
+					resp, err := storageService.Capabilities().BlobAccept(ctx, &capabilities.BlobAcceptRequest{
 						Space: cap.Nb().Space,
 						Blob:  cap.Nb().Blob,
 						Put:   cap.Nb().Put,
@@ -241,7 +241,7 @@ func NewUCANServer(storageService Service, replicatorService Replicator, options
 
 					// FIXME: use a real context, requires changes to server
 					ctx := context.TODO()
-					allocateResp, err := blobAllocate(ctx, storageService, &BlobAllocateRequest{
+					allocateResp, err := storageService.Capabilities().BlobAllocate(ctx, &capabilities.BlobAllocateRequest{
 						Space: cap.Nb().Space,
 						Blob:  cap.Nb().Blob,
 						Cause: inv.Link(),
@@ -252,7 +252,7 @@ func NewUCANServer(storageService Service, replicatorService Replicator, options
 
 					// will run replication async, sending the receipt of the transfer invocation
 					// to the upload service.
-					if err := replicatorService.Enqueue(ctx, &replicator.Task{
+					if err := storageService.Replicator().Replicate(ctx, &replicator.Task{
 						Space:      cap.Nb().Space,
 						Blob:       cap.Nb().Blob,
 						Source:     replicaAddress,

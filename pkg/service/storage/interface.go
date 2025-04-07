@@ -6,9 +6,10 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 
 	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/pdp/replicator"
 	"github.com/storacha/storage/pkg/service/blobs"
+	"github.com/storacha/storage/pkg/service/capabilities"
 	"github.com/storacha/storage/pkg/service/claims"
+	"github.com/storacha/storage/pkg/service/replicator"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
@@ -23,6 +24,10 @@ type Service interface {
 	Claims() claims.Claims
 	// Receipts provides access to receipts
 	Receipts() receiptstore.ReceiptStore
+	// Replicator providers access to the replication service
+	Replicator() replicator.Replicator
+
+	Capabilities() capabilities.Capabilities
 }
 
 type Replicator interface {
