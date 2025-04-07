@@ -192,7 +192,11 @@ func (r *Service) replicate(ctx context.Context, task Task) error {
 		Site: acceptResp.Claim.Link(),
 		PDP:  pdpLink,
 	})
-	rcpt, err := receipt.Issue(r.id, ok, ran.FromInvocation(task.Invocation))
+	var opts []receipt.Option
+	if len(forks) > 1 {
+		opts = append(opts, receipt.WithFork(forks...))
+	}
+	rcpt, err := receipt.Issue(r.id, ok, ran.FromInvocation(task.Invocation), opts...)
 	if err != nil {
 		return fmt.Errorf("issuing receipt: %w", err)
 	}
