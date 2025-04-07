@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	logging "github.com/ipfs/go-log/v2"
-	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/capabilities/assert"
 	"github.com/storacha/go-libstoracha/capabilities/blob"
 	"github.com/storacha/go-libstoracha/capabilities/pdp"
@@ -62,7 +61,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					resp, err := storageService.Capabilities().BlobAllocate(ctx, &capabilities.BlobAllocateRequest{
 						Space: cap.Nb().Space,
 						Blob:  cap.Nb().Blob,
-						Cause: cap.Nb().Cause,
+						Cause: inv.Link(),
 					})
 					if err != nil {
 						return blob.AllocateOk{}, nil, failure.FromError(err)
@@ -184,14 +183,14 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 			replica.AllocateAbility,
 			server.Provide(
 				replica.Allocate,
-				func(cap ucan.Capability[replica.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (replica.AllocateOK, fx.Effects, error) {
+				func(cap ucan.Capability[replica.AllocateCaveats], inv invocation.Invocation, iCtx server.InvocationContext) (replica.AllocateOk, fx.Effects, error) {
 					//
 					// UCAN Validation
 					//
 
 					// only service principal can perform an allocation
 					if cap.With() != iCtx.ID().DID().String() {
-						return replica.AllocateOK{}, nil, NewUnsupportedCapabilityError(cap)
+						return replica.AllocateOk{}, nil, NewUnsupportedCapabilityError(cap)
 					}
 
 					//
@@ -211,29 +210,29 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						},
 					)
 					if err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(err)
+						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
 
 					// read the location claim from this invocation to obtain the DID of the URL
 					// to replicate from on the primary storage node.
 					br, err := blockstore.NewBlockReader(blockstore.WithBlocksIterator(inv.Blocks()))
 					if err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(err)
+						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
-					claim, err := delegation.NewDelegationView(cidlink.Link{Cid: cap.Nb().Location}, br)
+					claim, err := delegation.NewDelegationView(cap.Nb().Location, br)
 					if err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(err)
+						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
 
 					// TODO since there is a slice of capabilities here we need to validate the 0th is the correct one
 					// unsure what `With()` should be compared with for a capability.
 					lc, err := assert.LocationCaveatsReader.Read(claim.Capabilities()[0].Nb())
 					if err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(err)
+						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
 
 					if len(lc.Location) < 1 {
-						return replica.AllocateOK{}, nil, failure.FromError(fmt.Errorf("location missing from location claim"))
+						return replica.AllocateOk{}, nil, failure.FromError(fmt.Errorf("location missing from location claim"))
 					}
 
 					// TODO: which one do we pick if > 1?
@@ -247,7 +246,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						Cause: inv.Link(),
 					})
 					if err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(err)
+						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
 
 					// will run replication async, sending the receipt of the transfer invocation
@@ -259,10 +258,10 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						Sink:       allocateResp.Address.URL,
 						Invocation: trnsfInv,
 					}); err != nil {
-						return replica.AllocateOK{}, nil, failure.FromError(fmt.Errorf("failed to enqueue replication task: %w", err))
+						return replica.AllocateOk{}, nil, failure.FromError(fmt.Errorf("failed to enqueue replication task: %w", err))
 					}
 
-					return replica.AllocateOK{Size: allocateResp.Size}, fx.NewEffects(fx.WithFork(fx.FromInvocation(trnsfInv))), nil
+					return replica.AllocateOk{Size: allocateResp.Size}, fx.NewEffects(fx.WithFork(fx.FromInvocation(trnsfInv))), nil
 				},
 			),
 		),

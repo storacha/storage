@@ -26,9 +26,7 @@ func makeHandler(cfg aws.Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	// TODO don't pass nil here, an option would be nice, but the new method does have access to options
-	// we might need to refactor this code a bit
-	server, err := storage.NewUCANServer(service, nil, ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey))
+	server, err := storage.NewUCANServer(service, ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey))
 	if err != nil {
 		return nil, err
 	}

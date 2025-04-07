@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"context"
-
 	"github.com/storacha/go-ucanto/principal"
 
 	"github.com/storacha/storage/pkg/pdp"
@@ -24,12 +22,8 @@ type Service interface {
 	Claims() claims.Claims
 	// Receipts provides access to receipts
 	Receipts() receiptstore.ReceiptStore
-	// Replicator providers access to the replication service
+	// Replicator provides access to the replication service
 	Replicator() replicator.Replicator
-
+	// Capabilities provides access to capabilities
 	Capabilities() capabilities.Capabilities
-}
-
-type Replicator interface {
-	Enqueue(ctx context.Context, task *replicator.Task) error
 }

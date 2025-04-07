@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -21,7 +20,6 @@ import (
 
 type PieceFinder interface {
 	FindPiece(ctx context.Context, digest multihash.Multihash, size uint64) (piece.PieceLink, error)
-	GetPiece(ctx context.Context, pieceCID string) (io.ReadCloser, error)
 	URLForPiece(piece.PieceLink) url.URL
 }
 
@@ -31,10 +29,6 @@ type CurioFinder struct {
 	client      curio.PDPClient
 	maxAttempts int
 	retryDelay  time.Duration
-}
-
-func (a *CurioFinder) GetPiece(ctx context.Context, pieceCID string) (io.ReadCloser, error) {
-	return a.client.GetPiece(ctx, pieceCID)
 }
 
 type Option func(cf *CurioFinder)

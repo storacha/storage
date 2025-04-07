@@ -27,7 +27,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/storacha/go-libstoracha v0.0.1
+	github.com/storacha/go-libstoracha v0.0.2-0.20250407210913-4a5d8c75c24c
 	github.com/storacha/go-ucanto v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
@@ -130,6 +130,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-
-replace github.com/storacha/go-libstoracha => ../go-libstoracha

@@ -36,8 +36,3 @@ type BlobAcceptResponse struct {
 	// only present when using PDP
 	Piece *piece.PieceLink
 }
-
-type Blob interface {
-	Accept(context.Context, *BlobAcceptRequest) (*BlobAcceptResponse, error)
-	Allocate(context.Context, *BlobAllocateRequest) (*BlobAllocateResponse, error)
-}
