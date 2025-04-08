@@ -35,7 +35,7 @@ var log = logging.Logger("replicator")
 
 var (
 	UploadServiceDID, _ = did.Parse("did:web:upload.storacha.network")
-	UploadServiceURL, _ = url.Parse("https://upload.storacha.network")
+	UploadServiceURL, _ = url.Parse("http://127.0.0.1:8080/upload-service")
 )
 
 type Task struct {
@@ -88,7 +88,6 @@ func New(
 		jobqueue.WithErrorHandler(func(err error) {
 			log.Errorf("error while handling replication request: %s", err)
 		}),
-		jobqueue.WithBuffer(10),
 	)
 
 	repl.queue = replicationQueue
@@ -110,7 +109,7 @@ func (r *Service) Stop(ctx context.Context) error {
 	return r.queue.Shutdown(ctx)
 }
 
-func (r *Service) replicate(ctx context.Context, task Task) error {
+func (r *Service) replicate(ctx context.Context, task *Task) error {
 	// pull the data from the source
 	replicaResp, err := http.Get(task.Source.String())
 	if err != nil {
@@ -149,7 +148,6 @@ func (r *Service) replicate(ctx context.Context, task Task) error {
 		return fmt.Errorf("%s response body: %s: %w", topErr, resData, err)
 	}
 
-	// TODO this is a really gross way to have a dep, but can refactor later
 	acceptResp, err := r.capabilities.BlobAccept(ctx, &capabilities.BlobAcceptRequest{
 		Space: task.Space,
 		Blob:  task.Blob,

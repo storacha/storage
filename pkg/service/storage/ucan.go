@@ -212,6 +212,14 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					if err != nil {
 						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
+					for block, err := range inv.Blocks() {
+						if err != nil {
+							return replica.AllocateOk{}, nil, fmt.Errorf("iterating replica allocate invocation blocks: %w", err)
+						}
+						if err := trnsfInv.Attach(block); err != nil {
+							return replica.AllocateOk{}, nil, fmt.Errorf("failed to replica allocate invocation block (%s) to transfer invocation: %w", block.Link().String(), err)
+						}
+					}
 
 					// read the location claim from this invocation to obtain the DID of the URL
 					// to replicate from on the primary storage node.
