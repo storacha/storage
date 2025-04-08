@@ -237,7 +237,7 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating capabilities service: %w", err)
 	}
 
-	repl, err := replicator.New(c.id, capi, receiptStore)
+	repl, err := replicator.New(c.id, capi, receiptStore, c.uploadService)
 	if err != nil {
 		return nil, fmt.Errorf("creating replicator service: %w", err)
 	}

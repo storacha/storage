@@ -335,215 +335,212 @@ func TestServer(t *testing.T) {
 	})
 }
 
+// This test verifies that the UCAN server correctly constructs, signs, and executes the replica
+// allocation process, and that the simulated endpoints correctly emulate the expected interactions.
+// It simulates an HTTP Server with the following properties:
+//    - A lightweight HTTP server is spun up on port 8080 to simulate external endpoints.
+//    - The `/get` endpoint simulates the source node by returning the original blob data: The node data is being replicated from
+//    - The `/put` endpoint fakes the replica node, accepting data and storing it via the service. Essentially, "this" node.
+//    - The `/upload-service` endpoint emulates the upload service by decoding a CAR payload and
+//      generating a transfer receipt message, mimicking post-upload processing.
+//	    - TODO: we need better assertions on the TransferReceipt
+//
 func TestReplicaAllocate(t *testing.T) {
-	presigned, err := url.Parse("http://127.0.0.1:8080/put")
+	// Test setup parameters.
+	space := testutil.RandomDID(t)
+	expectedSize := uint64(rand.IntN(32) + 1)
+	expectedData := testutil.RandomBytes(t, int(expectedSize))
+	expectedDigest := testutil.Must(multihash.Sum(expectedData, multihash.SHA2_256, -1))(t)
+	replicas := 8
+	serverAddr := ":8080"
+	sourcePath, sinkPath, uploadServicePath := "get", "put", "upload-service"
+
+	// Helper to create URLs.
+	makeURL := func(path string) *url.URL {
+		return testutil.Must(url.Parse(fmt.Sprintf("http://127.0.0.1%s/%s", serverAddr, path)))(t)
+	}
+	locationURL := makeURL(sourcePath)
+	uploadServiceURL := makeURL(uploadServicePath)
+	presignedURL := makeURL(sinkPath)
+	fakeBlobPresigner := &FakePresigned{uploadURL: *presignedURL}
+
+	// Set up service.
+	svc, err := New(
+		WithIdentity(testutil.Alice),
+		WithLogLevel("*", "warn"),
+		WithBlobsPresigner(fakeBlobPresigner),
+		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
+	)
 	require.NoError(t, err)
-	ctx := context.Background()
-	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"), WithBlobsPresigner(&FakePresigned{uploadURL: *presigned}))
-	require.NoError(t, err)
-	err = svc.Startup()
-	require.NoError(t, err)
+	require.NoError(t, svc.Startup())
+
+	// Create a cancellable context and start the fake HTTP server.
+	// If this context times out before the final assertion, we fail the test.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	fakeServer, transferOkChan := startTestHTTPServer(ctx, t, expectedDigest, expectedData, svc, serverAddr, sourcePath, sinkPath, uploadServicePath)
 	t.Cleanup(func() {
+		fakeServer.Close()
 		svc.Close(ctx)
 	})
 
 	srv, err := NewUCANServer(svc)
 	require.NoError(t, err)
-
 	conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
 
-	prf := delegation.FromDelegation(
-		testutil.Must(
-			delegation.Delegate(
-				testutil.Alice,
-				testutil.Service,
-				[]ucan.Capability[ucan.CaveatBuilder]{
-					ucan.NewCapability(
-						blob.AllocateAbility,
-						testutil.Alice.DID().String(),
-						ucan.CaveatBuilder(ok.Unit{}),
-					),
-					ucan.NewCapability(
-						blob.AcceptAbility,
-						testutil.Alice.DID().String(),
-						ucan.CaveatBuilder(ok.Unit{}),
-					),
-					ucan.NewCapability(
-						replica.AllocateAbility,
-						testutil.Alice.DID().String(),
-						ucan.CaveatBuilder(ok.Unit{}),
-					),
-				},
-			),
-		)(t),
+	// Build UCAN delegation for required capabilities.
+	caps := []ucan.Capability[ucan.CaveatBuilder]{
+		ucan.NewCapability(replica.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
+		// these are required to fulfill the replica Allocate Ability.
+		ucan.NewCapability(blob.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
+		ucan.NewCapability(blob.AcceptAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
+	}
+	prf := delegation.FromDelegation(testutil.Must(delegation.Delegate(testutil.Alice, testutil.Service, caps))(t))
+
+	// A location commitment indicating where the blob MUST be fetched from.
+	// The locationURL points at our TestHTTPServer
+	lcd, err := assert.Location.Delegate(
+		testutil.Alice,
+		testutil.Alice.DID(),
+		testutil.Alice.DID().String(),
+		assert.LocationCaveats{
+			Space:    space,
+			Content:  types.FromHash(expectedDigest),
+			Location: []url.URL{*locationURL},
+			Range: &assert.Range{
+				Offset: 1,
+				Length: &expectedSize,
+			},
+		},
+		delegation.WithProof(prf),
 	)
+	require.NoError(t, err)
 
-	t.Run("replica/allocate", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		space := testutil.RandomDID(t)
-		size := uint64(rand.IntN(32) + 1)
-		data := testutil.RandomBytes(t, int(size))
-		digest := testutil.Must(multihash.Sum(data, multihash.SHA2_256, -1))(t)
-		replicas := 8
-		location := testutil.Must(url.Parse("http://localhost:8080/get"))(t)
-		fakeServer, transferOkChan := startTestHTTPServer(ctx, t, digest, data, svc)
-
-		t.Cleanup(func() {
-			defer cancel()
-			fakeServer.Close()
-		})
-
-		lcd, err := assert.Location.Delegate(
-			testutil.Alice,
-			testutil.Alice.DID(),
-			testutil.Alice.DID().String(),
-			assert.LocationCaveats{
-				Space:    space,
-				Content:  types.FromHash(digest),
-				Location: []url.URL{*location},
-				Range: &assert.Range{
-					Offset: 1,
-					Length: &size,
-				},
+	// Invoke blob replication.
+	bri, err := blob.Replicate.Invoke(
+		testutil.Alice,
+		testutil.Alice.DID(),
+		testutil.Alice.DID().String(),
+		blob.ReplicateCaveats{
+			Blob: blob.Blob{
+				Digest: expectedDigest,
+				Size:   expectedSize,
 			},
-			delegation.WithProof(prf),
-		)
+			Replicas: replicas,
+			Location: lcd.Root().Link(),
+		},
+	)
+	require.NoError(t, err)
+	// attach the location claim to the blob replicate invocation
+	for block, err := range lcd.Blocks() {
 		require.NoError(t, err)
+		require.NoError(t, bri.Attach(block))
+	}
 
-		// TODO should this be a delegation?
-		bri, err := blob.Replicate.Invoke(
-			testutil.Alice,
-			testutil.Alice.DID(),
-			testutil.Alice.DID().String(),
-			blob.ReplicateCaveats{
-				Blob: blob.Blob{
-					Digest: digest,
-					Size:   size,
-				},
-				Replicas: replicas,
-				Location: lcd.Root().Link(),
-			},
-		)
+	// Invoke replica allocation - what we are testing(!!!)
+	rbi, err := replica.Allocate.Invoke(
+		testutil.Alice,
+		testutil.Alice.DID(),
+		testutil.Alice.DID().String(),
+		replica.AllocateCaveats{
+			Space:    space,
+			Blob:     blob.Blob{Digest: expectedDigest, Size: expectedSize},
+			Location: lcd.Root().Link(),
+			Cause:    bri.Root().Link(),
+		},
+	)
+	require.NoError(t, err)
+	// now attach the blob replicate invocation, and its corresponding location claim
+	for block, err := range bri.Blocks() {
 		require.NoError(t, err)
+		require.NoError(t, rbi.Attach(block))
+	}
 
-		for block, ierr := range lcd.Blocks() {
-			require.NoError(t, ierr)
-			err := bri.Attach(block)
-			require.NoError(t, err)
-		}
+	// Execute invocation
+	res, err := client.Execute([]invocation.Invocation{rbi}, conn)
+	require.NoError(t, err)
 
-		rbi, err := replica.Allocate.Invoke(
-			testutil.Alice,
-			testutil.Alice.DID(),
-			testutil.Alice.DID().String(),
-			replica.AllocateCaveats{
-				Space: space,
-				Blob: blob.Blob{
-					Digest: digest,
-					Size:   size,
-				},
-				Location: lcd.Root().Link(),
-				Cause:    bri.Root().Link(),
-			},
-		)
-		require.NoError(t, err)
+	// assert the size of the allocation matches our expected size.
+	reader, err := receipt.NewReceiptReaderFromTypes[replica.AllocateOk, fdm.FailureModel](
+		replica.AllocateOkType(), fdm.FailureType(), types.Converters...,
+	)
+	require.NoError(t, err)
+	rcptLink, ok := res.Get(rbi.Link())
+	require.True(t, ok)
+	rcpt, err := reader.Read(rcptLink, res.Blocks())
+	require.NoError(t, err)
+	alloc, err := result.Unwrap(result.MapError(rcpt.Out(), failure.FromFailureModel))
+	require.NoError(t, err)
+	require.Equal(t, expectedSize, alloc.Size)
 
-		for block, ierr := range bri.Blocks() {
-			require.NoError(t, ierr)
-			err := rbi.Attach(block)
-			require.NoError(t, err)
-		}
-
-		res, err := client.Execute([]invocation.Invocation{rbi}, conn)
-		require.NoError(t, err)
-
-		reader, err := receipt.NewReceiptReaderFromTypes[replica.AllocateOk, fdm.FailureModel](replica.AllocateOkType(), fdm.FailureType(), types.Converters...)
-		require.NoError(t, err)
-
-		rcptLink, ok := res.Get(rbi.Link())
-		require.True(t, ok)
-
-		rcpt, err := reader.Read(rcptLink, res.Blocks())
-		require.NoError(t, err)
-
-		alloc, err := result.Unwrap(result.MapError(rcpt.Out(), failure.FromFailureModel))
-		require.NoError(t, err)
-		require.Equal(t, size, alloc.Size)
-
-		select {
-		case <-ctx.Done():
-			t.Fatal(ctx.Err(), "test did not produce transfer receipt in time")
-		case transferOkMsg := <-transferOkChan:
-			// TODO: better assertions on the UCAN chain, should assert on the content of the value of transferOk.Site.
-			require.NotNil(t, transferOkMsg)
-		}
-	})
-
+	// Wait for transfer receipt message, we wait at most 10 seconds (context timeout), or fail.
+	select {
+	case <-ctx.Done():
+		t.Fatal(ctx.Err(), "test did not produce transfer receipt in time")
+	case transferOkMsg := <-transferOkChan:
+		require.NotNil(t, transferOkMsg)
+	}
 }
 
-func startTestHTTPServer(ctx context.Context, t *testing.T, digest multihash.Multihash, serveData []byte, svc Service) (*http.Server, <-chan message.AgentMessage) {
-	// Create a channel to send the agentMessage.
+// startTestHTTPServer starts a simple HTTP server with configurable endpoints.
+func startTestHTTPServer(
+	ctx context.Context,
+	t *testing.T,
+	digest multihash.Multihash,
+	serveData []byte,
+	svc Service,
+	addr, sourcePath, sinkPath, uploadServicePath string,
+) (*http.Server, <-chan message.AgentMessage) {
 	agentCh := make(chan message.AgentMessage, 1)
-
-	// Create a simple multiplexer with a basic handler.
 	mux := http.NewServeMux()
-	// method serving as the original node we are replicating from
-	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(serveData)
+
+	// Endpoint to serve data.
+	mux.HandleFunc(fmt.Sprintf("/%s", sourcePath), func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(serveData)
 	})
-	mux.HandleFunc("/put", func(w http.ResponseWriter, r *http.Request) {
-		err := svc.Blobs().Store().Put(ctx, digest, uint64(len(serveData)), bytes.NewReader(serveData))
-		require.NoError(t, err)
-		w.Write(serveData)
+	// Endpoint to store data on the replica.
+	mux.HandleFunc(fmt.Sprintf("/%s", sinkPath), func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, svc.Blobs().Store().Put(ctx, digest, uint64(len(serveData)), bytes.NewReader(serveData)))
+		_, _ = w.Write(serveData)
 	})
-	mux.HandleFunc("/upload-service", func(w http.ResponseWriter, r *http.Request) {
+	// Endpoint to simulate the upload service.
+	mux.HandleFunc(fmt.Sprintf("/%s", uploadServicePath), func(w http.ResponseWriter, r *http.Request) {
 		roots, blocks, err := car.Decode(r.Body)
 		require.NoError(t, err)
 		bstore, err := blockstore.NewBlockReader(blockstore.WithBlocksIterator(blocks))
 		require.NoError(t, err)
 		agentMessage, err := message.NewMessage(roots, bstore)
 		require.NoError(t, err)
-
-		// Write the agentMessage to our channel.
 		agentCh <- agentMessage
 	})
 
-	// Configure the HTTP server.
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    addr,
 		Handler: mux,
 	}
 
-	// Start the server in a separate goroutine.
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			t.Fatalf("HTTP server ListenAndServe failed: %v", err)
 		}
 	}()
-
-	// Wait briefly to ensure the server has started.
 	time.Sleep(50 * time.Millisecond)
-
-	// Ensure the server is closed when the test ends.
 	t.Cleanup(func() {
-		if err := server.Close(); err != nil {
-			t.Logf("Error closing server: %v", err)
-		}
+		require.NoError(t, server.Close())
 	})
-
-	// Return the server and the channel for later assertions.
 	return server, agentCh
 }
 
+// FakePresigned is a stub for upload URL presigning.
 type FakePresigned struct {
 	uploadURL url.URL
 }
 
-func (f *FakePresigned) SignUploadURL(ctx context.Context, digest multihash.Multihash, size uint64, ttl uint64) (url.URL, http.Header, error) {
+func (f *FakePresigned) SignUploadURL(ctx context.Context, digest multihash.Multihash, size, ttl uint64) (url.URL, http.Header, error) {
 	return f.uploadURL, nil, nil
 }
 
 func (f *FakePresigned) VerifyUploadURL(ctx context.Context, url url.URL, headers http.Header) (url.URL, http.Header, error) {
-	//TODO implement me
+	// TODO: implement when needed.
 	panic("implement me")
 }

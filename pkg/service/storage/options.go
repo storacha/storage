@@ -12,6 +12,7 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
+
 	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/presigner"
@@ -48,6 +49,7 @@ type config struct {
 	announceURLs          []url.URL
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
+	uploadService         client.Connection
 }
 
 type Option func(*config) error
@@ -209,6 +211,20 @@ func WithPublisherIndexingServiceConfig(serviceDID ucan.Principal, serviceURL ur
 			return err
 		}
 		c.indexingService = conn
+		return nil
+	}
+}
+
+// WithUploadServiceConfig configures UCAN service invocation details
+// for communicating with the upload service.
+func WithUploadServiceConfig(serviceDID ucan.Principal, serviceURL url.URL) Option {
+	return func(c *config) error {
+		channel := http.NewHTTPChannel(&serviceURL)
+		conn, err := client.NewConnection(serviceDID, channel)
+		if err != nil {
+			return err
+		}
+		c.uploadService = conn
 		return nil
 	}
 }

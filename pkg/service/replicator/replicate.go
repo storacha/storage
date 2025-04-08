@@ -22,7 +22,6 @@ import (
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
-	http2 "github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
 
 	cap_pdp "github.com/storacha/go-libstoracha/capabilities/pdp"
@@ -32,11 +31,6 @@ import (
 )
 
 var log = logging.Logger("replicator")
-
-var (
-	UploadServiceDID, _ = did.Parse("did:web:upload.storacha.network")
-	UploadServiceURL, _ = url.Parse("http://127.0.0.1:8080/upload-service")
-)
 
 type Task struct {
 	// bucket to associate with blob
@@ -65,22 +59,17 @@ type Service struct {
 }
 
 func New(
-	i principal.Signer,
-	c capabilities.Capabilities,
-	r receiptstore.ReceiptStore,
+	signer principal.Signer,
+	caps capabilities.Capabilities,
+	rctStore receiptstore.ReceiptStore,
+	uploadService client.Connection,
 ) (*Service, error) {
-	// create a client for the upload-service
-	channel := http2.NewHTTPChannel(UploadServiceURL)
-	conn, err := client.NewConnection(UploadServiceDID, channel)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to upload service: %w", err)
-	}
 
 	repl := &Service{
-		uploadService: conn,
-		id:            i,
-		capabilities:  c,
-		receipts:      r,
+		uploadService: uploadService,
+		id:            signer,
+		capabilities:  caps,
+		receipts:      rctStore,
 	}
 
 	replicationQueue := jobqueue.NewJobQueue[*Task](
@@ -172,7 +161,7 @@ func (r *Service) replicate(ctx context.Context, task *Task) error {
 		pieceAccept, err := cap_pdp.Accept.Invoke(
 			r.id,
 			// TODO validate this is the correct audience
-			UploadServiceDID,
+			r.uploadService.ID().DID(),
 			r.id.DID().String(),
 			cap_pdp.AcceptCaveats{
 				Piece: *acceptResp.Piece,
