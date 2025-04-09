@@ -339,216 +339,175 @@ func TestServer(t *testing.T) {
 	})
 }
 
-// This test verifies that the UCAN server correctly constructs, signs, and executes the replica
-// allocation process, and that the simulated endpoints correctly emulate the expected interactions.
-// It simulates an HTTP Server with the following properties:
-//    - A lightweight HTTP server is spun up on port 8080 to simulate external endpoints.
-//    - The `/get` endpoint simulates the source node by returning the original blob data: The node data is being replicated from
-//    - The `/put` endpoint fakes the replica node, accepting data and storing it via the service. Essentially, "this" node.
-//    - The `/upload-service` endpoint emulates the upload service by decoding a CAR payload and
-//      generating a transfer receipt message, mimicking post-upload processing.
+// TestReplicaAllocateTransfer validates the full replica allocation flow in the UCAN server,
+// ensuring that invocations are correctly constructed and executed, and that the simulated endpoints
+// interact as expected. A lightweight HTTP server (on port 8080) is used to simulate external endpoints:
+//   - "/get": Represents the source node that returns the original blob data.
+//   - "/put": Emulates the replica node that accepts and stores the blob.
+//   - "/upload-service": Acts as the upload service by decoding a CAR payload and triggering a transfer receipt.
 //
+// This test covers three scenarios:
+//   1. **NoExistingAllocationNoData:** No previous allocation or stored data exists, so the full blob is transferred.
+//   2. **ExistingAllocationNoData:** An allocation record is present (indicating reserved space) but the blob data is not yet stored,
+//      resulting in no additional data, but involving a transfer
+//   3. **ExistingAllocationAndData:** Both an allocation record and the blob data are already present; although a transfer receipt is still produced,
+//      no redundant data transfer should occur.
 func TestReplicaAllocateTransfer(t *testing.T) {
-	// Test setup parameters.
-	expectedSpace := testutil.RandomDID(t)
-	expectedSize := uint64(rand.IntN(32) + 1)
-	expectedData := testutil.RandomBytes(t, int(expectedSize))
-	expectedDigest := testutil.Must(multihash.Sum(expectedData, multihash.SHA2_256, -1))(t)
-	replicas := 8
-	serverAddr := ":8080"
-	sourcePath, sinkPath, uploadServicePath := "get", "put", "upload-service"
-
-	// Helper to create URLs.
-	makeURL := func(path string) *url.URL {
-		return testutil.Must(url.Parse(fmt.Sprintf("http://127.0.0.1%s/%s", serverAddr, path)))(t)
-	}
-	locationURL := makeURL(sourcePath)
-	uploadServiceURL := makeURL(uploadServicePath)
-	presignedURL := makeURL(sinkPath)
-	fakeBlobPresigner := &FakePresigned{uploadURL: *presignedURL}
-
-	// Set up service.
-	svc, err := New(
-		WithIdentity(testutil.Alice),
-		WithLogLevel("*", "warn"),
-		WithBlobsPresigner(fakeBlobPresigner),
-		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
-	)
-	require.NoError(t, err)
-	require.NoError(t, svc.Startup())
-
-	// Create a cancellable context and start the fake HTTP server.
-	// If this context times out before the final assertion, we fail the test.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	fakeServer, transferOkChan := startTestHTTPServer(ctx, t, expectedDigest, expectedData, svc, serverAddr, sourcePath, sinkPath, uploadServicePath)
-	t.Cleanup(func() {
-		fakeServer.Close()
-		svc.Close(ctx)
-	})
-
-	srv, err := NewUCANServer(svc)
-	require.NoError(t, err)
-	conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
-
-	// Build UCAN delegation for required capabilities.
-	caps := []ucan.Capability[ucan.CaveatBuilder]{
-		ucan.NewCapability(replica.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-		// these are required to fulfill the replica Allocate Ability.
-		ucan.NewCapability(blob.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-		ucan.NewCapability(blob.AcceptAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-	}
-	prf := delegation.FromDelegation(testutil.Must(delegation.Delegate(testutil.Alice, testutil.Service, caps))(t))
-
-	// A location commitment indicating where the blob MUST be fetched from.
-	// The locationURL points at our TestHTTPServer
-	expectedLocationClaimCaveats := assert.LocationCaveats{
-		Space:    expectedSpace,
-		Content:  types.FromHash(expectedDigest),
-		Location: []url.URL{*locationURL},
-		Range: &assert.Range{
-			Offset: 1,
-			Length: &expectedSize,
+	testCases := []struct {
+		name                  string
+		hasExistingAllocation bool
+		hasExistingData       bool
+		expectedTransferSize  uint64
+	}{
+		{
+			name:                  "NoExistingAllocationNoData",
+			hasExistingAllocation: false,
+			hasExistingData:       false,
+		},
+		{
+			name:                  "ExistingAllocationNoData",
+			hasExistingAllocation: true,
+			hasExistingData:       false,
+		},
+		{
+			name:                  "ExistingAllocationAndData",
+			hasExistingAllocation: true,
+			hasExistingData:       true,
 		},
 	}
-	lcd, err := assert.Location.Delegate(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedLocationClaimCaveats,
-		delegation.WithProof(prf),
-	)
-	require.NoError(t, err)
 
-	// Invoke blob replication.
-	expectedReplicaCaveats := blob.ReplicateCaveats{
-		Blob: blob.Blob{
-			Digest: expectedDigest,
-			Size:   expectedSize,
-		},
-		Replicas: replicas,
-		Location: lcd.Root().Link(),
-	}
-	bri, err := blob.Replicate.Invoke(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedReplicaCaveats,
-	)
-	require.NoError(t, err)
-	// attach the location claim to the blob replicate invocation
-	for block, err := range lcd.Blocks() {
-		require.NoError(t, err)
-		require.NoError(t, bri.Attach(block))
-	}
+	for _, tc := range testCases {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			// we expect each test to run in 10 seconds or less.
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	// Invoke replica allocation - what we are testing(!!!)
-	expectedAllocateCaveats := replica.AllocateCaveats{
-		Space:    expectedSpace,
-		Blob:     blob.Blob{Digest: expectedDigest, Size: expectedSize},
-		Location: lcd.Root().Link(),
-		Cause:    bri.Root().Link(),
-	}
-	rbi, err := replica.Allocate.Invoke(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedAllocateCaveats,
-	)
-	require.NoError(t, err)
-	// now attach the blob replicate invocation, and its corresponding location claim
-	for block, err := range bri.Blocks() {
-		require.NoError(t, err)
-		require.NoError(t, rbi.Attach(block))
-	}
+			// Common setup: random DID, random data, etc.
+			expectedSpace := testutil.RandomDID(t)
+			expectedSize := uint64(rand.IntN(32) + 1)
+			expectedData := testutil.RandomBytes(t, int(expectedSize))
+			expectedDigest := testutil.Must(
+				multihash.Sum(expectedData, multihash.SHA2_256, -1),
+			)(t)
+			replicas := 1
+			serverAddr := ":8080"
+			sourcePath, sinkPath, uploadServicePath := "get", "put", "upload-service"
 
-	// Execute invocation
-	res, err := client.Execute([]invocation.Invocation{rbi}, conn)
-	require.NoError(t, err)
+			// Spin up storage service, using injected values for testing.
+			locationURL, uploadServiceURL, fakeBlobPresigner := setupURLs(t, serverAddr, sourcePath, sinkPath, uploadServicePath)
+			svc := setupService(t, fakeBlobPresigner, uploadServiceURL)
+			fakeServer, transferOkChan := startTestHTTPServer(
+				ctx, t, expectedDigest, expectedData, svc,
+				serverAddr, sourcePath, sinkPath, uploadServicePath,
+			)
+			t.Cleanup(func() {
+				fakeServer.Close()
+				svc.Close(ctx)
+				cancel()
+			})
 
-	// assert the size of the allocation matches our expected size.
-	reader, err := receipt.NewReceiptReaderFromTypes[replica.AllocateOk, fdm.FailureModel](
-		replica.AllocateOkType(), fdm.FailureType(), types.Converters...,
-	)
-	require.NoError(t, err)
-	rcptLink, ok := res.Get(rbi.Link())
-	require.True(t, ok)
-	rcpt, err := reader.Read(rcptLink, res.Blocks())
-	require.NoError(t, err)
-	alloc, err := result.Unwrap(result.MapError(rcpt.Out(), failure.FromFailureModel))
-	require.NoError(t, err)
-	require.Equal(t, expectedSize, alloc.Size)
+			// Build UCAN server & connection
+			srv, err := NewUCANServer(svc)
+			require.NoError(t, err)
+			conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
 
-	// Wait for transfer receipt message, we wait at most 10 seconds (context timeout), or fail.
-	select {
-	case <-ctx.Done():
-		t.Fatal(ctx.Err(), "test did not produce transfer receipt in time")
-	case transferOkMsg := <-transferOkChan:
-		// sanity
-		require.NotNil(t, transferOkMsg)
+			// Build UCAN delegation + location claim + replicate invocation
+			// required ability's for blob replicate
+			prf := buildDelegationProof(t)
+			// location claim and blob replicate invocation, simulating an upload-service
+			lcd, expectedLocationCaveats := buildLocationClaim(t, prf, expectedSpace, expectedDigest, locationURL, expectedSize)
+			bri, expectedReplicaCaveats := buildReplicateInvocation(
+				t, lcd, expectedDigest, expectedSize, replicas,
+			)
 
-		// expect one invocation and one receipt
-		require.Len(t, transferOkMsg.Invocations(), 1)
-		require.Len(t, transferOkMsg.Receipts(), 1)
+			// Condition: If existing allocation, store an existing allocation
+			// coverage when an allocation has been made but not transfered.
+			if tc.hasExistingAllocation {
+				require.NoError(t, svc.Blobs().Allocations().Put(ctx, allocation.Allocation{
+					Space: expectedSpace,
+					Blob: allocation.Blob{
+						Digest: expectedDigest,
+						Size:   expectedSize,
+					},
+					Expires: uint64(time.Now().Add(time.Hour).UTC().Unix()),
+					Cause:   bri.Link(),
+				}))
+			}
 
-		transferInvocationCid := testutil.Must(cid.Parse(transferOkMsg.Invocations()[0].String()))(t)
-		reader := testutil.Must(blockstore.NewBlockReader(blockstore.WithBlocksIterator(transferOkMsg.Blocks())))(t)
+			// Condition: If existing data, store it in the blob store
+			// covers when an allocation and replica already exist, meaning no transfer required.
+			// though we still expect a transfer receipt.
+			if tc.hasExistingData {
+				require.NoError(t, svc.blobs.Store().Put(
+					ctx, expectedDigest, expectedSize, bytes.NewReader(expectedData),
+				))
+			}
 
-		// read the transfer invocation
-		transferCav := mustGetInvocationCaveats[replica.TransferCaveats](t, reader, cidlink.Link{Cid: transferInvocationCid}, replica.TransferCaveatsReader.Read)
-		// assert on transfer fields
-		require.Equal(t, expectedSize, transferCav.Blob.Size)
-		require.Equal(t, expectedDigest, transferCav.Blob.Digest)
-		require.Equal(t, expectedSpace, transferCav.Space)
+			// Build + execute the actual replica.Allocate invocation.
+			// simulating an upload service sending the invocation to the storage node.
+			rbi, expectedAllocateCaveats := buildAllocateInvocation(
+				t, bri, lcd, expectedSpace, expectedDigest, expectedSize,
+			)
+			res, err := client.Execute([]invocation.Invocation{rbi}, conn)
+			require.NoError(t, err)
 
-		// transfer location is the initial location from blob replicate request
-		locationCav := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferCav.Location, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedLocationClaimCaveats, locationCav)
+			// The final assertion on the returned allocation size.
+			// With an existing allocation or existing data, the new allocated
+			// size is 0, otherwise it’s expectedSize.
+			var wantSize uint64
+			if !tc.hasExistingAllocation && !tc.hasExistingData {
+				wantSize = expectedSize
+			}
+			// read the receipt for the blob allocate, asserting its size is expected value.
+			alloc := mustReadAllocationReceipt(t, rbi, res)
+			require.EqualValues(t, wantSize, alloc.Size)
 
-		// transfer cause is the replica allocate cause
-		replicaAllocateCav := mustGetInvocationCaveats[replica.AllocateCaveats](t, reader, transferCav.Cause, replica.AllocateCaveatsReader.Read)
-		require.Equal(t, expectedAllocateCaveats, replicaAllocateCav)
+			// "Wait" for the transfer invocation to produce a receipt
+			// simulating the upload-service getting a receipt from this storage node.
+			transferOkMsg := mustWaitForTransferMsg(t, ctx, transferOkChan)
+			// expect one invocation and one receipt
+			require.Len(t, transferOkMsg.Invocations(), 1)
+			require.Len(t, transferOkMsg.Receipts(), 1)
 
-		// replica allocate caused by blob replicate
-		blobReplicateInv := mustGetInvocationCaveats[blob.ReplicateCaveats](t, reader, replicaAllocateCav.Cause, blob.ReplicateCaveatsReader.Read)
-		require.Equal(t, expectedReplicaCaveats, blobReplicateInv)
-
-		// read the receipt of the transfer invocation asserting the location caveats of Site contain expected values.
-		transferReceiptReader := testutil.Must(receipt.NewReceiptReaderFromTypes[replica.TransferOk, fdm.FailureModel](replica.TransferOkType(), fdm.FailureType(), types.Converters...))(t)
-		transferReceiptCid := testutil.Must(cid.Parse(transferOkMsg.Receipts()[0].String()))(t)
-		transferReceipt := testutil.Must(transferReceiptReader.Read(cidlink.Link{Cid: transferReceiptCid}, reader.Iterator()))(t)
-		transferOk := testutil.Must(result.Unwrap(result.MapError(transferReceipt.Out(), failure.FromFailureModel)))(t)
-		require.Nil(t, transferOk.PDP)
-		locationCavRct := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferOk.Site, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedSpace, locationCavRct.Space)
-		require.Equal(t, expectedDigest, locationCavRct.Content.Hash())
-		require.Len(t, locationCavRct.Location, 1)
-		require.Equal(t, fmt.Sprintf("/blob/z%s", expectedDigest.B58String()), locationCavRct.Location[0].Path)
-
+			// Full read + assertion on the transfer invocation and its ucan chain
+			mustAssertTransferInvocation(
+				t,
+				transferOkMsg,
+				expectedDigest,
+				wantSize,
+				expectedSpace,
+				expectedLocationCaveats,
+				expectedAllocateCaveats,
+				expectedReplicaCaveats,
+			)
+		})
 	}
 }
 
-func TestReplicaAllocateTransferWithExistingAllocation(t *testing.T) {
-	// Test setup parameters.
-	expectedSpace := testutil.RandomDID(t)
-	expectedSize := uint64(rand.IntN(32) + 1)
-	expectedTransferSize := uint64(0)
-	expectedData := testutil.RandomBytes(t, int(expectedSize))
-	expectedDigest := testutil.Must(multihash.Sum(expectedData, multihash.SHA2_256, -1))(t)
-	replicas := 8
-	serverAddr := ":8080"
-	sourcePath, sinkPath, uploadServicePath := "get", "put", "upload-service"
-
-	// Helper to create URLs.
+// Sets up the pre-signed URLs + returns them for use in testing
+func setupURLs(
+	t *testing.T,
+	serverAddr string,
+	sourcePath, sinkPath, uploadServicePath string,
+) (*url.URL, *url.URL, *FakePresigned) {
 	makeURL := func(path string) *url.URL {
-		return testutil.Must(url.Parse(fmt.Sprintf("http://127.0.0.1%s/%s", serverAddr, path)))(t)
+		return testutil.Must(
+			url.Parse(fmt.Sprintf("http://127.0.0.1%s/%s", serverAddr, path)),
+		)(t)
 	}
 	locationURL := makeURL(sourcePath)
 	uploadServiceURL := makeURL(uploadServicePath)
 	presignedURL := makeURL(sinkPath)
 	fakeBlobPresigner := &FakePresigned{uploadURL: *presignedURL}
+	return locationURL, uploadServiceURL, fakeBlobPresigner
+}
 
-	// Set up service.
+// Creates + starts your main service
+func setupService(
+	t *testing.T,
+	fakeBlobPresigner *FakePresigned,
+	uploadServiceURL *url.URL,
+) *StorageService {
 	svc, err := New(
 		WithIdentity(testutil.Alice),
 		WithLogLevel("*", "warn"),
@@ -557,55 +516,60 @@ func TestReplicaAllocateTransferWithExistingAllocation(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NoError(t, svc.Startup())
+	return svc
+}
 
-	// Create a cancellable context and start the fake HTTP server.
-	// If this context times out before the final assertion, we fail the test.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	fakeServer, transferOkChan := startTestHTTPServer(ctx, t, expectedDigest, expectedData, svc, serverAddr, sourcePath, sinkPath, uploadServicePath)
-	t.Cleanup(func() {
-		fakeServer.Close()
-		svc.Close(ctx)
-	})
-
-	srv, err := NewUCANServer(svc)
-	require.NoError(t, err)
-	conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
-
-	// Build UCAN delegation for required capabilities.
+// Builds the UCAN delegation proof needed for replicate + allocate
+func buildDelegationProof(t *testing.T) delegation.Delegation {
 	caps := []ucan.Capability[ucan.CaveatBuilder]{
 		ucan.NewCapability(replica.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-		// these are required to fulfill the replica Allocate Ability.
 		ucan.NewCapability(blob.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
 		ucan.NewCapability(blob.AcceptAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
 	}
-	prf := delegation.FromDelegation(testutil.Must(delegation.Delegate(testutil.Alice, testutil.Service, caps))(t))
+	d := testutil.Must(
+		delegation.Delegate(testutil.Alice, testutil.Service, caps),
+	)(t)
+	return d
+}
 
-	// A location commitment indicating where the blob MUST be fetched from.
-	// The locationURL points at our TestHTTPServer
-	expectedLocationClaimCaveats := assert.LocationCaveats{
-		Space:    expectedSpace,
-		Content:  types.FromHash(expectedDigest),
+// Builds the location claim
+func buildLocationClaim(
+	t *testing.T,
+	prf delegation.Delegation,
+	space did.DID,
+	digest multihash.Multihash,
+	locationURL *url.URL,
+	size uint64,
+) (delegation.Delegation, assert.LocationCaveats) {
+	locCav := assert.LocationCaveats{
+		Space:    space,
+		Content:  types.FromHash(digest),
 		Location: []url.URL{*locationURL},
-		Range: &assert.Range{
-			Offset: 1,
-			Length: &expectedSize,
-		},
+		Range:    &assert.Range{Offset: 1, Length: &size},
 	}
 	lcd, err := assert.Location.Delegate(
 		testutil.Alice,
 		testutil.Alice.DID(),
 		testutil.Alice.DID().String(),
-		expectedLocationClaimCaveats,
-		delegation.WithProof(prf),
+		locCav,
+		delegation.WithProof(delegation.FromDelegation(prf)),
 	)
 	require.NoError(t, err)
+	return lcd, locCav
+}
 
-	// Invoke blob replication.
+// Builds the replicate invocation + attaches location claim
+func buildReplicateInvocation(
+	t *testing.T,
+	lcd delegation.Delegation,
+	digest multihash.Multihash,
+	size uint64,
+	replicas int,
+) (invocation.Invocation, blob.ReplicateCaveats) {
 	expectedReplicaCaveats := blob.ReplicateCaveats{
 		Blob: blob.Blob{
-			Digest: expectedDigest,
-			Size:   expectedSize,
+			Digest: digest,
+			Size:   size,
 		},
 		Replicas: replicas,
 		Location: lcd.Root().Link(),
@@ -617,29 +581,27 @@ func TestReplicaAllocateTransferWithExistingAllocation(t *testing.T) {
 		expectedReplicaCaveats,
 	)
 	require.NoError(t, err)
-	// attach the location claim to the blob replicate invocation
+
+	// attach location claim blocks
 	for block, err := range lcd.Blocks() {
 		require.NoError(t, err)
 		require.NoError(t, bri.Attach(block))
 	}
+	return bri, expectedReplicaCaveats
+}
 
-	// Add an allocation for this data indicating space has already been allocated
-	// for it, but a transfer is still required.
-	err = svc.Blobs().Allocations().Put(ctx, allocation.Allocation{
-		Space: expectedSpace,
-		Blob: allocation.Blob{
-			Digest: expectedDigest,
-			Size:   expectedSize,
-		},
-		Expires: uint64(time.Now().Add(time.Hour).UTC().Unix()),
-		Cause:   bri.Link(),
-	})
-	require.NoError(t, err)
-
-	// Invoke replica allocation - what we are testing(!!!)
+// Builds the replica allocate invocation + attaches replicate blocks
+func buildAllocateInvocation(
+	t *testing.T,
+	bri invocation.Invocation,
+	lcd delegation.Delegation,
+	space did.DID,
+	digest multihash.Multihash,
+	size uint64,
+) (invocation.Invocation, replica.AllocateCaveats) {
 	expectedAllocateCaveats := replica.AllocateCaveats{
-		Space:    expectedSpace,
-		Blob:     blob.Blob{Digest: expectedDigest, Size: expectedSize},
+		Space:    space,
+		Blob:     blob.Blob{Digest: digest, Size: size},
 		Location: lcd.Root().Link(),
 		Cause:    bri.Root().Link(),
 	}
@@ -650,273 +612,127 @@ func TestReplicaAllocateTransferWithExistingAllocation(t *testing.T) {
 		expectedAllocateCaveats,
 	)
 	require.NoError(t, err)
-	// now attach the blob replicate invocation, and its corresponding location claim
+
+	// attach replicate invocation blocks
 	for block, err := range bri.Blocks() {
 		require.NoError(t, err)
 		require.NoError(t, rbi.Attach(block))
 	}
+	return rbi, expectedAllocateCaveats
+}
 
-	// Execute invocation
-	res, err := client.Execute([]invocation.Invocation{rbi}, conn)
-	require.NoError(t, err)
-
-	// assert the size of the allocation matches our expected size.
+// Unwrap and read the receipt that returns the replica.AllocateOk
+func mustReadAllocationReceipt(
+	t *testing.T,
+	rbi invocation.Invocation,
+	res client.ExecutionResponse,
+) replica.AllocateOk {
 	reader, err := receipt.NewReceiptReaderFromTypes[replica.AllocateOk, fdm.FailureModel](
 		replica.AllocateOkType(), fdm.FailureType(), types.Converters...,
 	)
 	require.NoError(t, err)
+
 	rcptLink, ok := res.Get(rbi.Link())
 	require.True(t, ok)
+
 	rcpt, err := reader.Read(rcptLink, res.Blocks())
 	require.NoError(t, err)
+
 	alloc, err := result.Unwrap(result.MapError(rcpt.Out(), failure.FromFailureModel))
 	require.NoError(t, err)
-	require.EqualValues(t, expectedTransferSize, alloc.Size)
+	return alloc
+}
 
-	// Wait for transfer receipt message, we wait at most 10 seconds (context timeout), or fail.
+// Wait for the transfer message from the test HTTP server
+func mustWaitForTransferMsg(
+	t *testing.T,
+	ctx context.Context,
+	ch <-chan message.AgentMessage,
+) message.AgentMessage {
 	select {
 	case <-ctx.Done():
-		t.Fatal(ctx.Err(), "test did not produce transfer receipt in time")
-	case transferOkMsg := <-transferOkChan:
-		// sanity
+		t.Fatal("test did not produce transfer receipt in time: ", ctx.Err())
+		return nil
+	case transferOkMsg := <-ch:
 		require.NotNil(t, transferOkMsg)
-
-		// expect one invocation and one receipt
-		require.Len(t, transferOkMsg.Invocations(), 1)
-		require.Len(t, transferOkMsg.Receipts(), 1)
-
-		transferInvocationCid := testutil.Must(cid.Parse(transferOkMsg.Invocations()[0].String()))(t)
-		reader := testutil.Must(blockstore.NewBlockReader(blockstore.WithBlocksIterator(transferOkMsg.Blocks())))(t)
-
-		// read the transfer invocation
-		transferCav := mustGetInvocationCaveats[replica.TransferCaveats](t, reader, cidlink.Link{Cid: transferInvocationCid}, replica.TransferCaveatsReader.Read)
-		// assert on transfer fields
-		require.EqualValues(t, expectedTransferSize, transferCav.Blob.Size)
-		require.Equal(t, expectedDigest, transferCav.Blob.Digest)
-		require.Equal(t, expectedSpace, transferCav.Space)
-
-		// transfer location is the initial location from blob replicate request
-		locationCav := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferCav.Location, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedLocationClaimCaveats, locationCav)
-
-		// transfer cause is the replica allocate cause
-		replicaAllocateCav := mustGetInvocationCaveats[replica.AllocateCaveats](t, reader, transferCav.Cause, replica.AllocateCaveatsReader.Read)
-		require.Equal(t, expectedAllocateCaveats, replicaAllocateCav)
-
-		// replica allocate caused by blob replicate
-		blobReplicateInv := mustGetInvocationCaveats[blob.ReplicateCaveats](t, reader, replicaAllocateCav.Cause, blob.ReplicateCaveatsReader.Read)
-		require.Equal(t, expectedReplicaCaveats, blobReplicateInv)
-
-		// read the receipt of the transfer invocation asserting the location caveats of Site contain expected values.
-		transferReceiptReader := testutil.Must(receipt.NewReceiptReaderFromTypes[replica.TransferOk, fdm.FailureModel](replica.TransferOkType(), fdm.FailureType(), types.Converters...))(t)
-		transferReceiptCid := testutil.Must(cid.Parse(transferOkMsg.Receipts()[0].String()))(t)
-		transferReceipt := testutil.Must(transferReceiptReader.Read(cidlink.Link{Cid: transferReceiptCid}, reader.Iterator()))(t)
-		transferOk := testutil.Must(result.Unwrap(result.MapError(transferReceipt.Out(), failure.FromFailureModel)))(t)
-		require.Nil(t, transferOk.PDP)
-		locationCavRct := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferOk.Site, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedSpace, locationCavRct.Space)
-		require.Equal(t, expectedDigest, locationCavRct.Content.Hash())
-		require.Len(t, locationCavRct.Location, 1)
-		require.Equal(t, fmt.Sprintf("/blob/z%s", expectedDigest.B58String()), locationCavRct.Location[0].Path)
-
+		return transferOkMsg
 	}
 }
 
-func TestReplicaAllocateWithExistingAllocationAndReceieved(t *testing.T) {
-	// Test setup parameters.
-	expectedSpace := testutil.RandomDID(t)
-	expectedSize := uint64(rand.IntN(32) + 1)
-	expectedTransferSize := uint64(0)
-	expectedData := testutil.RandomBytes(t, int(expectedSize))
-	expectedDigest := testutil.Must(multihash.Sum(expectedData, multihash.SHA2_256, -1))(t)
-	replicas := 8
-	serverAddr := ":8080"
-	sourcePath, sinkPath, uploadServicePath := "get", "put", "upload-service"
+// Reads the final “transfer invocation” and asserts its fields, and chain of invocations
+func mustAssertTransferInvocation(
+	t *testing.T,
+	transferOkMsg message.AgentMessage,
+	expectedDigest multihash.Multihash,
+	expectedSize uint64,
+	expectedSpace did.DID,
+	expectedLocationCav assert.LocationCaveats,
+	expectedAllocateCav replica.AllocateCaveats,
+	expectedReplicaCav blob.ReplicateCaveats,
+) {
+	// sanity check
+	require.NotNil(t, transferOkMsg)
 
-	// Helper to create URLs.
-	makeURL := func(path string) *url.URL {
-		return testutil.Must(url.Parse(fmt.Sprintf("http://127.0.0.1%s/%s", serverAddr, path)))(t)
-	}
-	locationURL := makeURL(sourcePath)
-	uploadServiceURL := makeURL(uploadServicePath)
-	presignedURL := makeURL(sinkPath)
-	fakeBlobPresigner := &FakePresigned{uploadURL: *presignedURL}
+	// create a reader for the transfer invocation chain.
+	transferInvocationCid := testutil.Must(
+		cid.Parse(transferOkMsg.Invocations()[0].String()),
+	)(t)
+	reader := testutil.Must(
+		blockstore.NewBlockReader(blockstore.WithBlocksIterator(transferOkMsg.Blocks())),
+	)(t)
 
-	// Set up service.
-	svc, err := New(
-		WithIdentity(testutil.Alice),
-		WithLogLevel("*", "warn"),
-		WithBlobsPresigner(fakeBlobPresigner),
-		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
+	// get the transfer caveats and assert they match expected values
+	transferCav := mustGetInvocationCaveats[replica.TransferCaveats](
+		t, reader, cidlink.Link{Cid: transferInvocationCid},
+		replica.TransferCaveatsReader.Read,
 	)
-	require.NoError(t, err)
-	require.NoError(t, svc.Startup())
+	require.EqualValues(t, expectedSize, transferCav.Blob.Size)
+	require.Equal(t, expectedDigest, transferCav.Blob.Digest)
+	require.Equal(t, expectedSpace, transferCav.Space)
 
-	// Create a cancellable context and start the fake HTTP server.
-	// If this context times out before the final assertion, we fail the test.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Hour)
-	defer cancel()
-	fakeServer, transferOkChan := startTestHTTPServer(ctx, t, expectedDigest, expectedData, svc, serverAddr, sourcePath, sinkPath, uploadServicePath)
-	t.Cleanup(func() {
-		fakeServer.Close()
-		svc.Close(ctx)
-	})
-
-	srv, err := NewUCANServer(svc)
-	require.NoError(t, err)
-	conn := testutil.Must(client.NewConnection(testutil.Service, srv))(t)
-
-	// Build UCAN delegation for required capabilities.
-	caps := []ucan.Capability[ucan.CaveatBuilder]{
-		ucan.NewCapability(replica.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-		// these are required to fulfill the replica Allocate Ability.
-		ucan.NewCapability(blob.AllocateAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-		ucan.NewCapability(blob.AcceptAbility, testutil.Alice.DID().String(), ucan.CaveatBuilder(ok.Unit{})),
-	}
-	prf := delegation.FromDelegation(testutil.Must(delegation.Delegate(testutil.Alice, testutil.Service, caps))(t))
-
-	// A location commitment indicating where the blob MUST be fetched from.
-	// The locationURL points at our TestHTTPServer
-	expectedLocationClaimCaveats := assert.LocationCaveats{
-		Space:    expectedSpace,
-		Content:  types.FromHash(expectedDigest),
-		Location: []url.URL{*locationURL},
-		Range: &assert.Range{
-			Offset: 1,
-			Length: &expectedSize,
-		},
-	}
-	lcd, err := assert.Location.Delegate(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedLocationClaimCaveats,
-		delegation.WithProof(prf),
+	// extract the location claim from the transfer invocation
+	locationCav := mustGetInvocationCaveats[assert.LocationCaveats](
+		t, reader, transferCav.Location, assert.LocationCaveatsReader.Read,
 	)
-	require.NoError(t, err)
+	require.Equal(t, expectedLocationCav, locationCav)
 
-	// Invoke blob replication.
-	expectedReplicaCaveats := blob.ReplicateCaveats{
-		Blob: blob.Blob{
-			Digest: expectedDigest,
-			Size:   expectedSize,
-		},
-		Replicas: replicas,
-		Location: lcd.Root().Link(),
-	}
-	bri, err := blob.Replicate.Invoke(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedReplicaCaveats,
+	// verify cause -> points back to replica allocate
+	replicaAllocateCav := mustGetInvocationCaveats[replica.AllocateCaveats](
+		t, reader, transferCav.Cause, replica.AllocateCaveatsReader.Read,
 	)
-	require.NoError(t, err)
-	// attach the location claim to the blob replicate invocation
-	for block, err := range lcd.Blocks() {
-		require.NoError(t, err)
-		require.NoError(t, bri.Attach(block))
-	}
+	require.Equal(t, expectedAllocateCav, replicaAllocateCav)
 
-	// Add an allocation for this data indicating space has already been allocated
-	// for it, but a transfer is still required.
-	err = svc.Blobs().Allocations().Put(ctx, allocation.Allocation{
-		Space: expectedSpace,
-		Blob: allocation.Blob{
-			Digest: expectedDigest,
-			Size:   expectedSize,
-		},
-		Expires: uint64(time.Now().Add(time.Hour).UTC().Unix()),
-		Cause:   bri.Link(),
-	})
-	require.NoError(t, err)
-	// additionally, include the piece in the store to indicate it's been receieved
-	err = svc.blobs.Store().Put(ctx, expectedDigest, expectedSize, bytes.NewReader(expectedData))
-	require.NoError(t, err)
-
-	// Invoke replica allocation - what we are testing(!!!)
-	expectedAllocateCaveats := replica.AllocateCaveats{
-		Space:    expectedSpace,
-		Blob:     blob.Blob{Digest: expectedDigest, Size: expectedSize},
-		Location: lcd.Root().Link(),
-		Cause:    bri.Root().Link(),
-	}
-	rbi, err := replica.Allocate.Invoke(
-		testutil.Alice,
-		testutil.Alice.DID(),
-		testutil.Alice.DID().String(),
-		expectedAllocateCaveats,
+	// verify replica allocate cause is blob replicate
+	blobReplicateCav := mustGetInvocationCaveats[blob.ReplicateCaveats](
+		t, reader, replicaAllocateCav.Cause, blob.ReplicateCaveatsReader.Read,
 	)
-	require.NoError(t, err)
-	// now attach the blob replicate invocation, and its corresponding location claim
-	for block, err := range bri.Blocks() {
-		require.NoError(t, err)
-		require.NoError(t, rbi.Attach(block))
-	}
+	require.Equal(t, expectedReplicaCav, blobReplicateCav)
 
-	// Execute invocation
-	res, err := client.Execute([]invocation.Invocation{rbi}, conn)
-	require.NoError(t, err)
+	// read the transfer receipt
+	transferReceiptCid := testutil.Must(
+		cid.Parse(transferOkMsg.Receipts()[0].String()),
+	)(t)
+	transferReceiptReader := testutil.Must(
+		receipt.NewReceiptReaderFromTypes[replica.TransferOk, fdm.FailureModel](
+			replica.TransferOkType(), fdm.FailureType(), types.Converters...,
+		),
+	)(t)
+	transferReceipt := testutil.Must(
+		transferReceiptReader.Read(cidlink.Link{Cid: transferReceiptCid}, reader.Iterator()),
+	)(t)
+	transferOk := testutil.Must(
+		result.Unwrap(result.MapError(transferReceipt.Out(), failure.FromFailureModel)),
+	)(t)
 
-	// assert the size of the allocation matches our expected size.
-	reader, err := receipt.NewReceiptReaderFromTypes[replica.AllocateOk, fdm.FailureModel](
-		replica.AllocateOkType(), fdm.FailureType(), types.Converters...,
-	)
-	require.NoError(t, err)
-	rcptLink, ok := res.Get(rbi.Link())
-	require.True(t, ok)
-	rcpt, err := reader.Read(rcptLink, res.Blocks())
-	require.NoError(t, err)
-	alloc, err := result.Unwrap(result.MapError(rcpt.Out(), failure.FromFailureModel))
-	require.NoError(t, err)
-	require.EqualValues(t, expectedTransferSize, alloc.Size)
+	// PDP isn't enabled in this test setup, so no PDP proof expected.
+	require.Nil(t, transferOk.PDP)
 
-	// Wait for transfer receipt message, we wait at most 10 seconds (context timeout), or fail.
-	select {
-	case <-ctx.Done():
-		t.Fatal(ctx.Err(), "test did not produce transfer receipt in time")
-	case transferOkMsg := <-transferOkChan:
-		// sanity
-		require.NotNil(t, transferOkMsg)
-
-		// expect one invocation and one receipt
-		require.Len(t, transferOkMsg.Invocations(), 1)
-		require.Len(t, transferOkMsg.Receipts(), 1)
-
-		transferInvocationCid := testutil.Must(cid.Parse(transferOkMsg.Invocations()[0].String()))(t)
-		reader := testutil.Must(blockstore.NewBlockReader(blockstore.WithBlocksIterator(transferOkMsg.Blocks())))(t)
-
-		// read the transfer invocation
-		transferCav := mustGetInvocationCaveats[replica.TransferCaveats](t, reader, cidlink.Link{Cid: transferInvocationCid}, replica.TransferCaveatsReader.Read)
-		// assert on transfer fields
-		require.EqualValues(t, expectedTransferSize, transferCav.Blob.Size)
-		require.Equal(t, expectedDigest, transferCav.Blob.Digest)
-		require.Equal(t, expectedSpace, transferCav.Space)
-
-		// transfer location is the initial location from blob replicate request
-		locationCav := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferCav.Location, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedLocationClaimCaveats, locationCav)
-
-		// transfer cause is the replica allocate cause
-		replicaAllocateCav := mustGetInvocationCaveats[replica.AllocateCaveats](t, reader, transferCav.Cause, replica.AllocateCaveatsReader.Read)
-		require.Equal(t, expectedAllocateCaveats, replicaAllocateCav)
-
-		// replica allocate caused by blob replicate
-		blobReplicateInv := mustGetInvocationCaveats[blob.ReplicateCaveats](t, reader, replicaAllocateCav.Cause, blob.ReplicateCaveatsReader.Read)
-		require.Equal(t, expectedReplicaCaveats, blobReplicateInv)
-
-		// read the receipt of the transfer invocation asserting the location caveats of Site contain expected values.
-		transferReceiptReader := testutil.Must(receipt.NewReceiptReaderFromTypes[replica.TransferOk, fdm.FailureModel](replica.TransferOkType(), fdm.FailureType(), types.Converters...))(t)
-		transferReceiptCid := testutil.Must(cid.Parse(transferOkMsg.Receipts()[0].String()))(t)
-		transferReceipt := testutil.Must(transferReceiptReader.Read(cidlink.Link{Cid: transferReceiptCid}, reader.Iterator()))(t)
-		transferOk := testutil.Must(result.Unwrap(result.MapError(transferReceipt.Out(), failure.FromFailureModel)))(t)
-		require.Nil(t, transferOk.PDP)
-		locationCavRct := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferOk.Site, assert.LocationCaveatsReader.Read)
-		require.Equal(t, expectedSpace, locationCavRct.Space)
-		require.Equal(t, expectedDigest, locationCavRct.Content.Hash())
-		require.Len(t, locationCavRct.Location, 1)
-		require.Equal(t, fmt.Sprintf("/blob/z%s", expectedDigest.B58String()), locationCavRct.Location[0].Path)
-
-	}
+	// read the receipt of the transfer invocation asserting the location caveats of Site contain expected values.
+	locationCavRct := mustGetInvocationCaveats[assert.LocationCaveats](t, reader, transferOk.Site, assert.LocationCaveatsReader.Read)
+	require.Equal(t, expectedSpace, locationCavRct.Space)
+	require.Equal(t, expectedDigest, locationCavRct.Content.Hash())
+	require.Len(t, locationCavRct.Location, 1)
+	require.Equal(t, fmt.Sprintf("/blob/z%s", expectedDigest.B58String()), locationCavRct.Location[0].Path)
 }
 
 func mustGetInvocationCaveats[T ipld.Builder](t *testing.T, reader blockstore.BlockReader, inv ucan.Link, invReader func(any) (T, failure.Failure)) T {
@@ -975,6 +791,7 @@ func startTestHTTPServer(
 }
 
 // FakePresigned is a stub for upload URL presigning.
+// TODO turn this into a mock
 type FakePresigned struct {
 	uploadURL url.URL
 }
