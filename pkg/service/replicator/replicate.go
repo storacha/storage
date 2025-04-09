@@ -40,7 +40,7 @@ type Task struct {
 	// the location to replicate the blob from
 	Source url.URL
 	// the location to replicate the blob to
-	Sink url.URL
+	Sink *url.URL
 	// invocation responsible for spawning this replication
 	// should be a replica/transfer invocation
 	Invocation invocation.Invocation
@@ -99,42 +99,44 @@ func (r *Service) Stop(ctx context.Context) error {
 }
 
 func (r *Service) replicate(ctx context.Context, task *Task) error {
-	// pull the data from the source
-	replicaResp, err := http.Get(task.Source.String())
-	if err != nil {
-		return fmt.Errorf("http get replication source (%s) failed: %w", task.Source.String(), err)
-	}
-
-	// stream the source to the sink
-	req, err := http.NewRequest(http.MethodPut, task.Sink.String(), replicaResp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to create replication sink request: %w", err)
-	}
-	req.Header = replicaResp.Header
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf(
-			"failed http PUT to replicate blob %s from %s to %s failed: %w",
-			task.Blob.Digest,
-			task.Source.String(),
-			task.Sink.String(),
-			err,
-		)
-	}
-	// verify status codes
-	if res.StatusCode >= 300 || res.StatusCode < 200 {
-		topErr := fmt.Errorf(
-			"unsuccessful http PUT to replicate blob %s from %s to %s status code %d",
-			task.Blob.Digest,
-			task.Source.String(),
-			task.Sink.String(),
-			res.StatusCode,
-		)
-		resData, err := io.ReadAll(res.Body)
+	// pull the data from the source if required
+	if task.Sink != nil {
+		replicaResp, err := http.Get(task.Source.String())
 		if err != nil {
-			return fmt.Errorf("%s failed to read replication sink response body: %w", topErr, err)
+			return fmt.Errorf("http get replication source (%s) failed: %w", task.Source.String(), err)
 		}
-		return fmt.Errorf("%s response body: %s: %w", topErr, resData, err)
+
+		// stream the source to the sink
+		req, err := http.NewRequest(http.MethodPut, task.Sink.String(), replicaResp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to create replication sink request: %w", err)
+		}
+		req.Header = replicaResp.Header
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf(
+				"failed http PUT to replicate blob %s from %s to %s failed: %w",
+				task.Blob.Digest,
+				task.Source.String(),
+				task.Sink.String(),
+				err,
+			)
+		}
+		// verify status codes
+		if res.StatusCode >= 300 || res.StatusCode < 200 {
+			topErr := fmt.Errorf(
+				"unsuccessful http PUT to replicate blob %s from %s to %s status code %d",
+				task.Blob.Digest,
+				task.Source.String(),
+				task.Sink.String(),
+				res.StatusCode,
+			)
+			resData, err := io.ReadAll(res.Body)
+			if err != nil {
+				return fmt.Errorf("%s failed to read replication sink response body: %w", topErr, err)
+			}
+			return fmt.Errorf("%s response body: %s: %w", topErr, resData, err)
+		}
 	}
 
 	acceptResp, err := r.capabilities.BlobAccept(ctx, &capabilities.BlobAcceptRequest{
@@ -180,7 +182,7 @@ func (r *Service) replicate(ctx context.Context, task *Task) error {
 		PDP:  pdpLink,
 	})
 	var opts []receipt.Option
-	if len(forks) > 1 {
+	if len(forks) > 0 {
 		opts = append(opts, receipt.WithFork(forks...))
 	}
 	rcpt, err := receipt.Issue(r.id, ok, ran.FromInvocation(task.Invocation), opts...)
