@@ -253,7 +253,7 @@ func (r *Worker[T]) receiveAndRun(ctx context.Context, wg *sync.WaitGroup) {
 
 		deleteCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		// TODO(forrest): we don't want to retry failures here, this should be rare, but worth fixing.
+		// TODO(forrest): we don't want to retry failures here if delete fails, this should be rare, but worth fixing.
 		if err := r.queue.Delete(deleteCtx, m.ID); err != nil {
 			r.log.Errorw("Error deleting job from queue, it will be retried", "error", err)
 		}
