@@ -58,7 +58,12 @@ resource "aws_instance" "pdp_node" {
   user_data = local.cloud_init
 
   tags = {
-    Name = var.app
+    "Environment" = terraform.workspace
+    "ManagedBy"   = "OpenTofu"
+    Owner         = "storacha"
+    Team          = "Storacha Engineering"
+    Organization  = "Storacha"
+    Project       = var.app
   }
 
   root_block_device {
