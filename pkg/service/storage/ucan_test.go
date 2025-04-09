@@ -347,11 +347,11 @@ func TestServer(t *testing.T) {
 //   - "/upload-service": Acts as the upload service by decoding a CAR payload and triggering a transfer receipt.
 //
 // This test covers three scenarios:
-//   1. **NoExistingAllocationNoData:** No previous allocation or stored data exists, so the full blob is transferred.
-//   2. **ExistingAllocationNoData:** An allocation record is present (indicating reserved space) but the blob data is not yet stored,
-//      resulting in no additional data, but involving a transfer
-//   3. **ExistingAllocationAndData:** Both an allocation record and the blob data are already present; although a transfer receipt is still produced,
-//      no redundant data transfer should occur.
+//  1. **NoExistingAllocationNoData:** No previous allocation or stored data exists, so the full blob is transferred.
+//  2. **ExistingAllocationNoData:** An allocation record is present (indicating reserved space) but the blob data is not yet stored,
+//     resulting in no additional data, but involving a transfer
+//  3. **ExistingAllocationAndData:** Both an allocation record and the blob data are already present; although a transfer receipt is still produced,
+//     no redundant data transfer should occur.
 func TestReplicaAllocateTransfer(t *testing.T) {
 	testCases := []struct {
 		name                  string
@@ -778,12 +778,14 @@ func startTestHTTPServer(
 		Handler: mux,
 	}
 
+	var listenErr error
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Fatalf("HTTP server ListenAndServe failed: %v", err)
+		if err := server.ListenAndServe(); err != nil {
+			listenErr = err
 		}
 	}()
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
+	require.NoError(t, listenErr)
 	t.Cleanup(func() {
 		require.NoError(t, server.Close())
 	})
