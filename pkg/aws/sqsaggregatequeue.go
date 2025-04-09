@@ -10,6 +10,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+
 	"github.com/storacha/storage/pkg/pdp/aggregator"
 )
 
@@ -32,8 +33,8 @@ func NewSQSAggregateQueue(cfg aws.Config, queurURL string) *SQSAggregateQueue {
 	}
 }
 
-// Queue implements blobindexlookup.CachingQueue.
-func (s *SQSAggregateQueue) Queue(ctx context.Context, link datamodel.Link) error {
+// Enqueue implements blobindexlookup.CachingQueue.
+func (s *SQSAggregateQueue) Enqueue(ctx context.Context, _ string, link datamodel.Link) error {
 
 	messageJSON, err := json.Marshal(LinkMessage{Link: link.String()})
 	if err != nil {
@@ -49,8 +50,7 @@ func (s *SQSAggregateQueue) Queue(ctx context.Context, link datamodel.Link) erro
 	return nil
 }
 
-var _ aggregator.QueueSubmissionFn = (&SQSAggregateQueue{}).Queue
-var _ aggregator.QueuePieceAcceptFn = (&SQSAggregateQueue{}).Queue
+var _ aggregator.LinkQueue = (*SQSAggregateQueue)(nil)
 
 // DecodeLinkMessage extracts a link from an SQS queue messagebody
 func DecodeLinkMessage(messageBody string) (datamodel.Link, error) {
