@@ -41,12 +41,6 @@ const (
 	PieceAcceptTask    = "piece_accept"
 )
 
-const queueBuffer = 16
-
-func handleError(err error) {
-	log.Errorf(err.Error())
-}
-
 // LocalAggregator is a local aggregator running directly on the storage node
 // when run w/o cloud infra
 type LocalAggregator struct {
