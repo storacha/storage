@@ -7,33 +7,38 @@ import (
 
 	"github.com/ipld/go-ipld-prime/datamodel"
 	"github.com/storacha/go-libstoracha/piece/piece"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/storacha/storage/internal/mocks"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/storacha/storage/pkg/pdp/aggregator"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
+
+type fakeQueue struct {
+	submittedLinks []datamodel.Link
+}
+
+func (f *fakeQueue) Enqueue(ctx context.Context, _ string, link datamodel.Link) error {
+	f.submittedLinks = append(f.submittedLinks, link)
+	return nil
+}
 
 func setupPieceAggregatorDependencies(
 	ctrl *gomock.Controller,
-	submittedLinks *[]datamodel.Link,
 ) (
 	*mocks.MockInProgressWorkspace,
 	*mocks.MockKVStore[datamodel.Link, aggregate.Aggregate],
-	aggregator.QueueSubmissionFn,
+	*fakeQueue,
 	*mocks.MockBufferedAggregator,
 ) {
 	workspaceMock := mocks.NewMockInProgressWorkspace(ctrl)
 	storeMock := mocks.NewMockKVStore[datamodel.Link, aggregate.Aggregate](ctrl)
 	baMock := mocks.NewMockBufferedAggregator(ctrl)
-	queueSubmissionMock := func(ctx context.Context, aggregateLink datamodel.Link) error {
-		*submittedLinks = append(*submittedLinks, aggregateLink)
-		return nil
-	}
 
-	return workspaceMock, storeMock, queueSubmissionMock, baMock
+	return workspaceMock, storeMock, &fakeQueue{submittedLinks: make([]datamodel.Link, 0)}, baMock
 }
 
 const (
@@ -45,8 +50,7 @@ func TestPieceAggregator_StoreAndSubmit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	var submittedLinks []datamodel.Link
-	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl, &submittedLinks)
+	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl)
 
 	pa := aggregator.NewPieceAggregator(workspaceMock, storeMock, queueSubMock, aggregator.WithAggregator(baMock))
 	// the below makes assertion that when three aggregates are returned by the aggregator of the piece-aggregator
@@ -68,7 +72,7 @@ func TestPieceAggregator_StoreAndSubmit(t *testing.T) {
 	err := pa.AggregatePieces(ctx, expectedPieces)
 	require.NoError(t, err)
 
-	require.Len(t, submittedLinks, len(expectedAggregates))
+	require.Len(t, queueSubMock.submittedLinks, len(expectedAggregates))
 }
 
 func TestPieceAggregator_GetBufferError(t *testing.T) {
@@ -76,8 +80,7 @@ func TestPieceAggregator_GetBufferError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	var submittedLinks []datamodel.Link
-	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl, &submittedLinks)
+	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl)
 
 	pa := aggregator.NewPieceAggregator(workspaceMock, storeMock, queueSubMock, aggregator.WithAggregator(baMock))
 	workspaceMock.EXPECT().GetBuffer(ctx).Return(fns.Buffer{}, fmt.Errorf("get buffer error"))
@@ -85,7 +88,7 @@ func TestPieceAggregator_GetBufferError(t *testing.T) {
 	err := pa.AggregatePieces(ctx, nil)
 	require.Error(t, err)
 
-	require.Len(t, submittedLinks, 0)
+	require.Len(t, queueSubMock.submittedLinks, 0)
 }
 
 func TestPieceAggregator_PutBufferError(t *testing.T) {
@@ -93,8 +96,7 @@ func TestPieceAggregator_PutBufferError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	var submittedLinks []datamodel.Link
-	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl, &submittedLinks)
+	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl)
 
 	pa := aggregator.NewPieceAggregator(workspaceMock, storeMock, queueSubMock, aggregator.WithAggregator(baMock))
 	p1 := testutil.CreatePiece(t, MB)
@@ -111,7 +113,7 @@ func TestPieceAggregator_PutBufferError(t *testing.T) {
 	err := pa.AggregatePieces(ctx, expectedPieces)
 	require.Error(t, err)
 
-	require.Len(t, submittedLinks, 0)
+	require.Len(t, queueSubMock.submittedLinks, 0)
 }
 
 func TestPieceAggregator_AggregatePieceError(t *testing.T) {
@@ -119,8 +121,7 @@ func TestPieceAggregator_AggregatePieceError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	var submittedLinks []datamodel.Link
-	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl, &submittedLinks)
+	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl)
 
 	pa := aggregator.NewPieceAggregator(workspaceMock, storeMock, queueSubMock, aggregator.WithAggregator(baMock))
 	p1 := testutil.CreatePiece(t, MB)
@@ -135,7 +136,7 @@ func TestPieceAggregator_AggregatePieceError(t *testing.T) {
 	err := pa.AggregatePieces(ctx, expectedPieces)
 	require.Error(t, err)
 
-	require.Len(t, submittedLinks, 0)
+	require.Len(t, queueSubMock.submittedLinks, 0)
 }
 
 func TestPieceAggregator_StorePutError(t *testing.T) {
@@ -143,8 +144,7 @@ func TestPieceAggregator_StorePutError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	var submittedLinks []datamodel.Link
-	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl, &submittedLinks)
+	workspaceMock, storeMock, queueSubMock, baMock := setupPieceAggregatorDependencies(ctrl)
 
 	pa := aggregator.NewPieceAggregator(workspaceMock, storeMock, queueSubMock, aggregator.WithAggregator(baMock))
 	p1 := testutil.CreatePiece(t, MB)
@@ -162,5 +162,5 @@ func TestPieceAggregator_StorePutError(t *testing.T) {
 	err := pa.AggregatePieces(ctx, expectedPieces)
 	require.Error(t, err)
 
-	require.Len(t, submittedLinks, 0)
+	require.Len(t, queueSubMock.submittedLinks, 0)
 }
