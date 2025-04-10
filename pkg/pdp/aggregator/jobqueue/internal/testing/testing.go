@@ -14,8 +14,9 @@ import (
 	"testing"
 
 	_ "github.com/ncruces/go-sqlite3"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 	"github.com/stretchr/testify/require"
+
+	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 )
 
 //go:embed schema.sql
@@ -23,7 +24,7 @@ var schema string
 
 func NewInMemoryDB(t testing.TB) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?_journal=WAL&_timeout=5000&_fk=true")
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
