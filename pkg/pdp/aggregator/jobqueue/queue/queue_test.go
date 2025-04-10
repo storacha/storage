@@ -275,7 +275,7 @@ func TestQueue_ReceiveAndWait(t *testing.T) {
 
 func TestSetup(t *testing.T) {
 	t.Run("creates the database table", func(t *testing.T) {
-		db, err := sql.Open("sqlite3", "file::memory:?_journal=WAL&_timeout=5000&_fk=true")
+		db, err := sql.Open("sqlite3", ":memory:")
 		if err != nil {
 			t.Fatal(err)
 		}
