@@ -16,9 +16,9 @@ import (
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/ipld/hash/sha256"
 	"github.com/storacha/go-ucanto/did"
-	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/storage/pkg/client"
 	"github.com/urfave/cli/v2"
+
+	"github.com/storacha/storage/pkg/client"
 )
 
 var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 requires a size to be present")
@@ -159,9 +159,9 @@ var ClientCmd = &cli.Command{
 }
 
 func getClient(cCtx *cli.Context) (*client.Client, error) {
-	id, err := ed25519.Parse(cCtx.String("client-key"))
+	id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
 	if err != nil {
-		return nil, fmt.Errorf("parsing private key: %w", err)
+		return nil, err
 	}
 	proofFile, err := os.Open(cCtx.String("proof"))
 	if err != nil {
