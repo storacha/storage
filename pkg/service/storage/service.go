@@ -14,10 +14,13 @@ import (
 	"github.com/storacha/go-libstoracha/metadata"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
+
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/service/blobs"
+	"github.com/storacha/storage/pkg/service/capabilities"
 	"github.com/storacha/storage/pkg/service/claims"
+	"github.com/storacha/storage/pkg/service/replicator"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/delegationstore"
 	"github.com/storacha/storage/pkg/store/receiptstore"
@@ -29,9 +32,19 @@ type StorageService struct {
 	claims       claims.Claims
 	pdp          pdp.PDP
 	receiptStore receiptstore.ReceiptStore
+	replicator   replicator.Replicator
+	capabilities capabilities.Capabilities
 	startFuncs   []func() error
 	closeFuncs   []func(ctx context.Context) error
 	io.Closer
+}
+
+func (s *StorageService) Replicator() replicator.Replicator {
+	return s.replicator
+}
+
+func (s *StorageService) Capabilities() capabilities.Capabilities {
+	return s.capabilities
 }
 
 func (s *StorageService) Blobs() blobs.Blobs {
@@ -219,6 +232,19 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating claim service: %w", err)
 	}
 
+	capi, err := capabilities.New(c.id, blobs, claims, pdpImpl)
+	if err != nil {
+		return nil, fmt.Errorf("creating capabilities service: %w", err)
+	}
+
+	repl, err := replicator.New(c.id, capi, receiptStore, c.uploadService)
+	if err != nil {
+		return nil, fmt.Errorf("creating replicator service: %w", err)
+	}
+
+	startFuncs = append(startFuncs, repl.Start)
+	closeFuncs = append(closeFuncs, repl.Stop)
+
 	return &StorageService{
 		id:           c.id,
 		blobs:        blobs,
@@ -227,5 +253,7 @@ func New(opts ...Option) (*StorageService, error) {
 		startFuncs:   startFuncs,
 		receiptStore: receiptStore,
 		pdp:          pdpImpl,
+		replicator:   repl,
+		capabilities: capi,
 	}, nil
 }
