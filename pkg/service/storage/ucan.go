@@ -96,8 +96,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return blob.AcceptOk{}, nil, failure.FromError(err)
 					}
 
-					var forks []fx.Effect
-					forks = append(forks, fx.FromInvocation(resp.Claim))
+					forks := []fx.Effect{fx.FromInvocation(resp.Claim)}
 
 					var pdpLink *ucan.Link
 					if resp.Piece != nil {
