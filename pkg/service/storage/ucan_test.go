@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -34,13 +35,22 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/stretchr/testify/require"
 
+	"github.com/storacha/storage/lib/jobqueue"
+	"github.com/storacha/storage/lib/jobqueue/queue"
 	"github.com/storacha/storage/pkg/internal/testutil"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
 )
 
 func TestServer(t *testing.T) {
 	ctx := context.Background()
-	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
+
+	// NB: set the database up once for the test cases
+	db, err := jobqueue.NewInMemoryDB()
+	require.NoError(t, err)
+	err = queue.Setup(ctx, db)
+	require.NoError(t, err)
+
+	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"), WithDB(db))
 	require.NoError(t, err)
 	err = svc.Startup(ctx)
 	require.NoError(t, err)
@@ -354,6 +364,13 @@ func TestServer(t *testing.T) {
 //  3. **ExistingAllocationAndData:** Both an allocation record and the blob data are already present; although a transfer receipt is still produced,
 //     no redundant data transfer should occur.
 func TestReplicaAllocateTransfer(t *testing.T) {
+	// NB: set the database up once for the test cases
+	ctx := context.Background()
+	db, err := jobqueue.NewInMemoryDB()
+	require.NoError(t, err)
+	err = queue.Setup(ctx, db)
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name                  string
 		hasExistingAllocation bool
@@ -381,7 +398,7 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			// we expect each test to run in 10 seconds or less.
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
 			// Common setup: random DID, random data, etc.
 			expectedSpace := testutil.RandomDID(t)
@@ -396,7 +413,7 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 
 			// Spin up storage service, using injected values for testing.
 			locationURL, uploadServiceURL, fakeBlobPresigner := setupURLs(t, serverAddr, sourcePath, sinkPath, uploadServicePath)
-			svc := setupService(t, ctx, fakeBlobPresigner, uploadServiceURL)
+			svc := setupService(t, ctx, fakeBlobPresigner, uploadServiceURL, db)
 			fakeServer, transferOkChan := startTestHTTPServer(
 				ctx, t, expectedDigest, expectedData, svc,
 				serverAddr, sourcePath, sinkPath, uploadServicePath,
@@ -509,12 +526,14 @@ func setupService(
 	ctx context.Context,
 	fakeBlobPresigner *FakePresigned,
 	uploadServiceURL *url.URL,
+	db *sql.DB,
 ) *StorageService {
 	svc, err := New(
 		WithIdentity(testutil.Alice),
 		WithLogLevel("*", "warn"),
 		WithBlobsPresigner(fakeBlobPresigner),
 		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
+		WithDB(db),
 	)
 	require.NoError(t, err)
 	require.NoError(t, svc.Startup(ctx))
