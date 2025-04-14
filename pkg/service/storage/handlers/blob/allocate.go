@@ -1,4 +1,4 @@
-package storage
+package blob
 
 import (
 	"context"
@@ -8,37 +8,43 @@ import (
 	"net/url"
 	"time"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-libstoracha/capabilities/blob"
+	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
 
 	"github.com/storacha/storage/pkg/internal/digestutil"
+	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/store"
 	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
 )
 
-type BlobAllocateRequest struct {
-	Space           did.DID
-	Blob            blob.Blob
-	AllocationCause ucan.Link
-	InvocationCause ucan.Link
+var log = logging.Logger("storage/handlers/blob")
+
+type AllocateService interface {
+	PDP() pdp.PDP
+	Blobs() blobs.Blobs
 }
 
-type BlobAllocateResponse struct {
+type AllocateRequest struct {
+	Space did.DID
+	Blob  types.Blob
+	Cause ucan.Link
+}
+
+type AllocateResponse struct {
 	Size    uint64
 	Address *blob.Address
 }
 
-func blobAllocate(
-	ctx context.Context,
-	service Service,
-	req *BlobAllocateRequest,
-) (*BlobAllocateResponse, error) {
+func Allocate(ctx context.Context, s AllocateService, req *AllocateRequest) (*AllocateResponse, error) {
 	log := log.With("blob", digestutil.Format(req.Blob.Digest))
 	log.Infof("%s space: %s", blob.AllocateAbility, req.Space)
 
 	// check if we already have an allocation for the blob in this space
-	allocs, err := service.Blobs().Allocations().List(ctx, req.Blob.Digest)
+	allocs, err := s.Blobs().Allocations().List(ctx, req.Blob.Digest)
 	if err != nil {
 		log.Errorw("getting allocations", "error", err)
 		return nil, fmt.Errorf("getting allocations: %w", err)
@@ -55,10 +61,10 @@ func blobAllocate(
 	received := false
 	// check if we received the blob (only possible if we have an allocation)
 	if len(allocs) > 0 {
-		if service.PDP() != nil {
-			_, err = service.PDP().PieceFinder().FindPiece(ctx, req.Blob.Digest, req.Blob.Size)
+		if s.PDP() != nil {
+			_, err = s.PDP().PieceFinder().FindPiece(ctx, req.Blob.Digest, req.Blob.Size)
 		} else {
-			_, err = service.Blobs().Store().Get(ctx, req.Blob.Digest)
+			_, err = s.Blobs().Store().Get(ctx, req.Blob.Digest)
 		}
 		if err == nil {
 			received = true
@@ -81,7 +87,7 @@ func blobAllocate(
 	// nothing to do
 	if allocated && received {
 		log.Info("blob already received")
-		return &BlobAllocateResponse{
+		return &AllocateResponse{
 			Size: size,
 			// NB: blob already receieved, therefor no address is needed for upload.
 			Address: nil,
@@ -97,16 +103,16 @@ func blobAllocate(
 	if !received {
 		var uploadURL url.URL
 		headers := http.Header{}
-		if service.PDP() == nil {
+		if s.PDP() == nil {
 			// use standard blob upload
-			uploadURL, headers, err = service.Blobs().Presigner().SignUploadURL(ctx, req.Blob.Digest, req.Blob.Size, expiresIn)
+			uploadURL, headers, err = s.Blobs().Presigner().SignUploadURL(ctx, req.Blob.Digest, req.Blob.Size, expiresIn)
 			if err != nil {
 				log.Errorw("signing upload URL", "error", err)
 				return nil, fmt.Errorf("signing upload URL: %w", err)
 			}
 		} else {
 			// use pdp service upload
-			urlP, err := service.PDP().PieceAdder().AddPiece(ctx, req.Blob.Digest, req.Blob.Size)
+			urlP, err := s.PDP().PieceAdder().AddPiece(ctx, req.Blob.Digest, req.Blob.Size)
 			if err != nil {
 				log.Errorw("adding to pdp service", "error", err)
 				return nil, fmt.Errorf("adding to pdp service: %w", err)
@@ -122,19 +128,18 @@ func blobAllocate(
 
 	// even if a previous allocation was made in this space, we create
 	// another for the new invocation.
-	err = service.Blobs().Allocations().Put(ctx, allocation.Allocation{
+	err = s.Blobs().Allocations().Put(ctx, allocation.Allocation{
 		Space:   req.Space,
 		Blob:    allocation.Blob(req.Blob),
 		Expires: expiresAt,
-		// REVIEW: is this the correct cause? The invocation link rather than the allocate caveats cause field?
-		Cause: req.InvocationCause,
+		Cause:   req.Cause,
 	})
 	if err != nil {
 		log.Errorw("putting allocation", "error", err)
 		return nil, fmt.Errorf("putting allocation: %w", err)
 	}
 
-	a, err := service.Blobs().Allocations().List(ctx, req.Blob.Digest)
+	a, err := s.Blobs().Allocations().List(ctx, req.Blob.Digest)
 	if err != nil {
 		log.Errorw("listing allocation after put", "error", err)
 		return nil, fmt.Errorf("listing allocation after put: %w", err)
@@ -145,8 +150,9 @@ func blobAllocate(
 	}
 	log.Info("successfully read allocation after write")
 
-	return &BlobAllocateResponse{
+	return &AllocateResponse{
 		Size:    size,
 		Address: address,
 	}, nil
+
 }

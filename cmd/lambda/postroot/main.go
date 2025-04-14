@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	ucanserver "github.com/storacha/go-ucanto/server"
+
 	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/pkg/aws"
 	"github.com/storacha/storage/pkg/principalresolver"

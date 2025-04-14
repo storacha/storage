@@ -21,13 +21,14 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
+	"github.com/urfave/cli/v2"
+
 	"github.com/storacha/storage/cmd/enum"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
 	"github.com/storacha/storage/pkg/service/storage"
 	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/urfave/cli/v2"
 )
 
 var StartCmd = &cli.Command{
@@ -201,6 +202,24 @@ var StartCmd = &cli.Command{
 			indexingServiceURL = *u
 		}
 
+		uploadServiceDID := presets.UploadServiceDID
+		if os.Getenv("STORAGE_UPLOAD_SERVICE_DID") != "" {
+			d, err := did.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_DID"))
+			if err != nil {
+				return fmt.Errorf("parsing indexing service DID: %w", err)
+			}
+			uploadServiceDID = d
+		}
+
+		uploadServiceURL := *presets.UploadServiceURL
+		if os.Getenv("STORAGE_UPLOAD_SERVICE_URL") != "" {
+			u, err := url.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_URL"))
+			if err != nil {
+				return fmt.Errorf("parsing indexing service URL: %w", err)
+			}
+			uploadServiceURL = *u
+		}
+
 		var indexingServiceProofs delegation.Proofs
 		if cCtx.String("indexing-service-proof") != "" {
 			dlg, err := delegation.Parse(cCtx.String("indexing-service-proof"))
@@ -218,6 +237,7 @@ var StartCmd = &cli.Command{
 			storage.WithPublisherDatastore(publisherDs),
 			storage.WithPublicURL(*pubURL),
 			storage.WithPublisherDirectAnnounce(announceURL),
+			storage.WithUploadServiceConfig(uploadServiceDID, uploadServiceURL),
 			storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 			storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 			storage.WithReceiptDatastore(receiptDs),

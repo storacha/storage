@@ -12,26 +12,41 @@ import (
 	"github.com/ipni/go-libipni/maurl"
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-libstoracha/metadata"
+	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/principal"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
+	ucanhttp "github.com/storacha/go-ucanto/transport/http"
+
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/service/blobs"
 	"github.com/storacha/storage/pkg/service/claims"
+	"github.com/storacha/storage/pkg/service/replicator"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/delegationstore"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
 
 type StorageService struct {
-	id           principal.Signer
-	blobs        blobs.Blobs
-	claims       claims.Claims
-	pdp          pdp.PDP
-	receiptStore receiptstore.ReceiptStore
-	startFuncs   []func() error
-	closeFuncs   []func(ctx context.Context) error
+	id            principal.Signer
+	blobs         blobs.Blobs
+	claims        claims.Claims
+	pdp           pdp.PDP
+	receiptStore  receiptstore.ReceiptStore
+	replicator    replicator.Replicator
+	uploadService client.Connection
+	startFuncs    []func() error
+	closeFuncs    []func(ctx context.Context) error
 	io.Closer
+}
+
+func (s *StorageService) Replicator() replicator.Replicator {
+	return s.replicator
+}
+
+func (s *StorageService) UploadConnection() client.Connection {
+	return s.uploadService
 }
 
 func (s *StorageService) Blobs() blobs.Blobs {
@@ -195,6 +210,19 @@ func New(opts ...Option) (*StorageService, error) {
 			pdpImpl = pdpService
 		}
 	}
+
+	var uploadServiceConnection client.Connection
+	if c.uploadService == nil {
+		channel := ucanhttp.NewHTTPChannel(presets.UploadServiceURL)
+		conn, err := client.NewConnection(presets.UploadServiceDID, channel)
+		if err != nil {
+			return nil, fmt.Errorf("creating upload service connection: %w", err)
+		}
+		uploadServiceConnection = conn
+	} else {
+		uploadServiceConnection = c.uploadService
+	}
+
 	blobs, err := blobs.New(blobOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("creating blob service: %w", err)
@@ -219,13 +247,23 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating claim service: %w", err)
 	}
 
+	repl, err := replicator.New(id, pdpImpl, blobs, claims, receiptStore, uploadServiceConnection)
+	if err != nil {
+		return nil, fmt.Errorf("creating replicator service: %w", err)
+	}
+
+	startFuncs = append(startFuncs, repl.Start)
+	closeFuncs = append(closeFuncs, repl.Stop)
+
 	return &StorageService{
-		id:           c.id,
-		blobs:        blobs,
-		claims:       claims,
-		closeFuncs:   closeFuncs,
-		startFuncs:   startFuncs,
-		receiptStore: receiptStore,
-		pdp:          pdpImpl,
+		id:            c.id,
+		blobs:         blobs,
+		claims:        claims,
+		closeFuncs:    closeFuncs,
+		startFuncs:    startFuncs,
+		receiptStore:  receiptStore,
+		pdp:           pdpImpl,
+		replicator:    repl,
+		uploadService: uploadServiceConnection,
 	}, nil
 }
