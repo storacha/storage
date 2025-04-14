@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
+
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
 
@@ -125,24 +126,8 @@ func (j *JobQueue[T]) Enqueue(ctx context.Context, name string, msg T) error {
 	return j.worker.Enqueue(ctx, name, msg)
 }
 
-func NewDB(ctx context.Context, path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_journal_mode=WAL", path))
-	if err != nil {
-		return nil, fmt.Errorf("failed to open memory database: %w", err)
-	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	// isntall the schema
-	if err := queue.Setup(ctx, db); err != nil {
-		return nil, fmt.Errorf("failed to setup memory database: %w", err)
-	}
-
-	return db, nil
-}
-
 func NewInMemoryDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open memory database: %w", err)
 	}
