@@ -101,7 +101,7 @@ func TestQueue_Receive(t *testing.T) {
 
 		m := &queue.Message{
 			Body:  []byte("yo"),
-			Delay: 2 * time.Millisecond,
+			Delay: time.Second,
 		}
 
 		err := q.Send(context.Background(), *m)
@@ -111,7 +111,7 @@ func TestQueue_Receive(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, m)
 
-		time.Sleep(2 * time.Millisecond)
+		time.Sleep(time.Second)
 
 		m, err = q.Receive(context.Background())
 		require.NoError(t, err)
