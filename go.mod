@@ -27,8 +27,8 @@ require (
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/storacha/go-libstoracha v0.0.2
 	github.com/ncruces/go-sqlite3 v0.24.1
+	github.com/storacha/go-libstoracha v0.0.2
 	github.com/storacha/go-ucanto v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
