@@ -24,7 +24,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/cmd/enum"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
+	"github.com/storacha/storage/lib/jobqueue"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -138,6 +138,14 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
+		jobQueueDir, err := mkdirp(dataDir, "jobqueue")
+		if err != nil {
+			return err
+		}
+		jobQueueDb, err := jobqueue.NewDB(path.Join(jobQueueDir, "jobqueue.db"))
+		if err != nil {
+			return err
+		}
 
 		var pdpConfig *storage.PDPConfig
 		curioURLStr := cCtx.String("curio-url")
@@ -158,16 +166,11 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
-			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
-			pdpDB, err := jobqueue.NewInMemoryDB()
-			if err != nil {
-				return err
-			}
 			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
 				ProofSet:      uint64(proofSet),
-				Database:      pdpDB,
+				Database:      jobQueueDb,
 			}
 		}
 
@@ -248,6 +251,7 @@ var StartCmd = &cli.Command{
 			storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 			storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 			storage.WithReceiptDatastore(receiptDs),
+			storage.WithDB(jobQueueDb),
 		}
 		if pdpConfig != nil {
 			opts = append(opts, storage.WithPDPConfig(*pdpConfig))

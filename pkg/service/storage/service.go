@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ import (
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanhttp "github.com/storacha/go-ucanto/transport/http"
 
+	"github.com/storacha/storage/lib/jobqueue"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/presets"
@@ -226,6 +228,17 @@ func New(opts ...Option) (*StorageService, error) {
 		uploadServiceConnection = c.uploadService
 	}
 
+	var db *sql.DB
+	var err error
+	if c.db == nil {
+		db, err = jobqueue.NewInMemoryDB()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		db = c.db
+	}
+
 	blobs, err := blobs.New(blobOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("creating blob service: %w", err)
@@ -250,7 +263,7 @@ func New(opts ...Option) (*StorageService, error) {
 		return nil, fmt.Errorf("creating claim service: %w", err)
 	}
 
-	repl, err := replicator.New(id, pdpImpl, blobs, claims, receiptStore, uploadServiceConnection)
+	repl, err := replicator.New(id, pdpImpl, blobs, claims, receiptStore, uploadServiceConnection, db)
 	if err != nil {
 		return nil, fmt.Errorf("creating replicator service: %w", err)
 	}

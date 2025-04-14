@@ -10,10 +10,9 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
-
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/storacha/storage/lib/jobqueue/queue"
+	"github.com/storacha/storage/lib/jobqueue/serializer"
+	"github.com/storacha/storage/lib/jobqueue/worker"
 )
 
 type Service[T any] interface {
@@ -115,7 +114,7 @@ func New[T any](name string, db *sql.DB, ser serializer.Serializer[T], opts ...O
 }
 
 func (j *JobQueue[T]) Start(ctx context.Context) {
-	j.worker.Start(ctx)
+	go j.worker.Start(ctx)
 }
 
 func (j *JobQueue[T]) Register(name string, fn func(context.Context, T) error) error {
@@ -124,6 +123,15 @@ func (j *JobQueue[T]) Register(name string, fn func(context.Context, T) error) e
 
 func (j *JobQueue[T]) Enqueue(ctx context.Context, name string, msg T) error {
 	return j.worker.Enqueue(ctx, name, msg)
+}
+
+func NewDB(name string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?mode=rwc", name))
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+
 }
 
 func NewInMemoryDB() (*sql.DB, error) {

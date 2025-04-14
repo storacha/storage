@@ -16,11 +16,12 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
-	internalsql "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/sql"
-	internaltesting "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/testing"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
 	"github.com/stretchr/testify/require"
+
+	internalsql "github.com/storacha/storage/lib/jobqueue/internal/sql"
+	internaltesting "github.com/storacha/storage/lib/jobqueue/internal/testing"
+	"github.com/storacha/storage/lib/jobqueue/queue"
+	"github.com/storacha/storage/lib/jobqueue/worker"
 )
 
 func TestRunner_Register(t *testing.T) {
