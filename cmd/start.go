@@ -24,6 +24,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/cmd/enum"
+	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -157,10 +158,16 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
+			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
+			pdpDB, err := jobqueue.NewInMemoryDB()
+			if err != nil {
+				return err
+			}
 			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
 				ProofSet:      uint64(proofSet),
+				Database:      pdpDB,
 			}
 		}
 
@@ -249,7 +256,7 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return fmt.Errorf("creating service instance: %w", err)
 		}
-		err = svc.Startup()
+		err = svc.Startup(cCtx.Context)
 		if err != nil {
 			return fmt.Errorf("starting service: %w", err)
 		}

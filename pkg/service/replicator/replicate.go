@@ -75,7 +75,7 @@ func (r *Service) Replicate(ctx context.Context, task *replicahandler.TransferRe
 	return r.queue.Queue(ctx, task)
 }
 
-func (r *Service) Start() error {
+func (r *Service) Start(_ context.Context) error {
 	r.queue.Startup()
 	return nil
 }

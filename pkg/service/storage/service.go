@@ -36,7 +36,7 @@ type StorageService struct {
 	receiptStore  receiptstore.ReceiptStore
 	replicator    replicator.Replicator
 	uploadService client.Connection
-	startFuncs    []func() error
+	startFuncs    []func(ctx context.Context) error
 	closeFuncs    []func(ctx context.Context) error
 	io.Closer
 }
@@ -69,12 +69,12 @@ func (s *StorageService) Receipts() receiptstore.ReceiptStore {
 	return s.receiptStore
 }
 
-func (s *StorageService) Startup() error {
+func (s *StorageService) Startup(ctx context.Context) error {
 	var err error
 	for _, startFunc := range s.startFuncs {
-		err = errors.Join(startFunc())
+		err = errors.Join(startFunc(ctx))
 	}
-	s.startFuncs = []func() error{}
+	s.startFuncs = []func(ctx context.Context) error{}
 	return err
 }
 
@@ -110,7 +110,7 @@ func New(opts ...Option) (*StorageService, error) {
 	log.Infof("Server ID: %s", id.DID())
 
 	var closeFuncs []func(context.Context) error
-	var startFuncs []func() error
+	var startFuncs []func(ctx context.Context) error
 
 	blobOpts := []blobs.Option{}
 
@@ -204,7 +204,10 @@ func New(opts ...Option) (*StorageService, error) {
 		pdpImpl = c.pdp.PDPService
 		if pdpImpl == nil {
 			client := curio.New(http.DefaultClient, c.pdp.CurioEndpoint, curioAuth)
-			pdpService := pdp.NewLocal(c.pdp.PDPDatastore, client, c.pdp.ProofSet, id, receiptStore)
+			pdpService, err := pdp.NewLocal(c.pdp.PDPDatastore, c.pdp.Database, client, c.pdp.ProofSet, id, receiptStore)
+			if err != nil {
+				return nil, fmt.Errorf("creating pdp service: %w", err)
+			}
 			closeFuncs = append(closeFuncs, pdpService.Shutdown)
 			startFuncs = append(startFuncs, pdpService.Startup)
 			pdpImpl = pdpService

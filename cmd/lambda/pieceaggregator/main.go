@@ -11,6 +11,7 @@ import (
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/go-libstoracha/piece/piece"
+
 	"github.com/storacha/storage/cmd/lambda"
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/aws"
@@ -24,7 +25,7 @@ func makeHandler(cfg aws.Config) (lambda.SQSEventHandler, error) {
 		aws.NewS3Store(cfg.Config, cfg.AggregatesBucket, cfg.AggregatesPrefix),
 		aggregate.AggregateType(), types.Converters...)
 	aggregateSubmitterQueue := aws.NewSQSAggregateQueue(cfg.Config, cfg.SQSPDPAggregateSubmitterURL)
-	pieceAggregator := aggregator.NewPieceAggregator(inProgressWorkspace, aggregateStore, aggregateSubmitterQueue.Queue)
+	pieceAggregator := aggregator.NewPieceAggregator(inProgressWorkspace, aggregateStore, aggregateSubmitterQueue)
 
 	return func(ctx context.Context, sqsEvent events.SQSEvent) error {
 		// process messages in parallel

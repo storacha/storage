@@ -42,7 +42,7 @@ func TestServer(t *testing.T) {
 	ctx := context.Background()
 	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
 	require.NoError(t, err)
-	err = svc.Startup()
+	err = svc.Startup(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		svc.Close(ctx)
@@ -396,7 +396,7 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 
 			// Spin up storage service, using injected values for testing.
 			locationURL, uploadServiceURL, fakeBlobPresigner := setupURLs(t, serverAddr, sourcePath, sinkPath, uploadServicePath)
-			svc := setupService(t, fakeBlobPresigner, uploadServiceURL)
+			svc := setupService(t, ctx, fakeBlobPresigner, uploadServiceURL)
 			fakeServer, transferOkChan := startTestHTTPServer(
 				ctx, t, expectedDigest, expectedData, svc,
 				serverAddr, sourcePath, sinkPath, uploadServicePath,
@@ -506,6 +506,7 @@ func setupURLs(
 // Creates + starts your main service
 func setupService(
 	t *testing.T,
+	ctx context.Context,
 	fakeBlobPresigner *FakePresigned,
 	uploadServiceURL *url.URL,
 ) *StorageService {
@@ -516,7 +517,7 @@ func setupService(
 		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
 	)
 	require.NoError(t, err)
-	require.NoError(t, svc.Startup())
+	require.NoError(t, svc.Startup(ctx))
 	return svc
 }
 
