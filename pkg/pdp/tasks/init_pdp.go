@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"math/big"
 
+	logging "github.com/ipfs/go-log/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-
 	"github.com/filecoin-project/go-state-types/abi"
 	chaintypes "github.com/filecoin-project/lotus/chain/types"
 
@@ -23,6 +22,8 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
+var log = logging.Logger("pdp/tasks")
+
 // TODO determine if this is a requirement.
 // based on curio it appears this is needed for task summary details via the RPC.
 // var _ = scheduler.Reg(&InitProvingPeriodTask{})
@@ -30,7 +31,7 @@ var _ scheduler.TaskInterface = &InitProvingPeriodTask{}
 
 type InitProvingPeriodTask struct {
 	db        *gorm.DB
-	ethClient *ethclient.Client
+	ethClient bind.ContractBackend
 	sender    ethereum.Sender
 
 	chain ChainAPI
@@ -43,7 +44,7 @@ type ChainAPI interface {
 	StateGetRandomnessDigestFromBeacon(ctx context.Context, randEpoch abi.ChainEpoch, tsk chaintypes.TipSetKey) (abi.Randomness, error) //perm:read
 }
 
-func NewInitProvingPeriodTask(db *gorm.DB, ethClient *ethclient.Client, chain ChainAPI, chainSched *scheduler.Chain, sender ethereum.Sender) (*InitProvingPeriodTask, error) {
+func NewInitProvingPeriodTask(db *gorm.DB, ethClient bind.ContractBackend, chain ChainAPI, chainSched *scheduler.Chain, sender ethereum.Sender) (*InitProvingPeriodTask, error) {
 	ipp := &InitProvingPeriodTask{
 		db:        db,
 		ethClient: ethClient,

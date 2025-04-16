@@ -2,8 +2,10 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"net/url"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/multiformats/go-multiaddr"
@@ -24,6 +26,48 @@ import (
 )
 
 type PDPConfig struct {
+	Remote *RemotePDPConfig
+	Local  *LocaPDPConfig
+}
+
+type LocalPDPDatabaseConfig struct {
+	Host    string
+	User    string
+	Name    string
+	Port    string
+	SSLMode string
+}
+
+func (c LocalPDPDatabaseConfig) Dialect() (string, error) {
+	if len(c.Host) == 0 {
+		return "", fmt.Errorf("database host is empty")
+	}
+	if len(c.User) == 0 {
+		return "", fmt.Errorf("database user is empty")
+	}
+	if len(c.Name) == 0 {
+		return "", fmt.Errorf("database name is empty")
+	}
+	if len(c.Port) == 0 {
+		return "", fmt.Errorf("database port is empty")
+	}
+	if len(c.SSLMode) == 0 {
+		return "", fmt.Errorf("database sslmode is empty")
+	}
+	return fmt.Sprintf("host=%s user=%s dbname=%s port=%s sslmode=%s",
+		c.Host, c.User, c.Name, c.Port, c.SSLMode), nil
+}
+
+type LocaPDPConfig struct {
+	ProofSet        uint64
+	Address         common.Address
+	TaskEngineDB    LocalPDPDatabaseConfig
+	DataDir         string
+	LotusClientHost string
+	EthClientHost   string
+}
+
+type RemotePDPConfig struct {
 	PDPService    pdp.PDP
 	PDPDatastore  datastore.Datastore
 	CurioEndpoint *url.URL

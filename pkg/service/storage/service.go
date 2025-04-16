@@ -196,21 +196,48 @@ func New(opts ...Option) (*StorageService, error) {
 		} else {
 			blobOpts = append(blobOpts, blobs.WithPublicURLPresigner(id, pubURL))
 		}
-	} else {
+	} else if c.pdp.Remote != nil {
 		curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
 		if err != nil {
 			return nil, fmt.Errorf("generating curio JWT: %w", err)
 		}
-		pdpImpl = c.pdp.PDPService
+		pdpImpl = c.pdp.Remote.PDPService
 		if pdpImpl == nil {
-			client := curio.New(http.DefaultClient, c.pdp.CurioEndpoint, curioAuth)
-			pdpService, err := pdp.NewLocal(c.pdp.PDPDatastore, c.pdp.Database, client, c.pdp.ProofSet, id, receiptStore)
+			curioClient := curio.New(http.DefaultClient, c.pdp.Remote.CurioEndpoint, curioAuth)
+			pdpService, err := pdp.NewRemotePDPService(
+				c.pdp.Remote.PDPDatastore,
+				c.pdp.Remote.Database,
+				curioClient,
+				c.pdp.Remote.ProofSet,
+				id,
+				receiptStore,
+			)
 			if err != nil {
 				return nil, fmt.Errorf("creating pdp service: %w", err)
 			}
 			closeFuncs = append(closeFuncs, pdpService.Shutdown)
 			startFuncs = append(startFuncs, pdpService.Startup)
 			pdpImpl = pdpService
+		}
+	} else {
+		cfg := c.pdp.Local
+		dbDialect, err := cfg.TaskEngineDB.Dialect()
+		if err != nil {
+			return nil, fmt.Errorf("invalid task engine database config: %w", err)
+		}
+		pdpImpl, err = pdp.NewLocalPDPService(
+			context.TODO(),
+			cfg.DataDir,
+			cfg.LotusClientHost,
+			cfg.EthClientHost,
+			dbDialect,
+			cfg.ProofSet,
+			cfg.Address,
+			id,
+			receiptStore,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("creating pdp service: %w", err)
 		}
 	}
 

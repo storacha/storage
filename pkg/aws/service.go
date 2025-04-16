@@ -28,6 +28,7 @@ import (
 	"github.com/storacha/go-ucanto/principal/signer"
 
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
+
 	"github.com/storacha/storage/pkg/access"
 	"github.com/storacha/storage/pkg/pdp"
 	"github.com/storacha/storage/pkg/pdp/aggregator"
@@ -369,7 +370,11 @@ func Construct(cfg Config) (storage.Service, error) {
 			return nil, fmt.Errorf("setting up PDP: %w", err)
 		}
 
-		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{PDPService: pdp}))
+		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{
+			Remote: &storage.RemotePDPConfig{
+				PDPService: pdp,
+			},
+		}))
 	}
 
 	if cfg.BlobStoreBucketKeyPattern != "" {

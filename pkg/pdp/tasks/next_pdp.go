@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	chaintypes "github.com/filecoin-project/lotus/chain/types"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -26,7 +26,7 @@ var _ scheduler.TaskInterface = &NextProvingPeriodTask{}
 
 type NextProvingPeriodTask struct {
 	db        *gorm.DB
-	ethClient *ethclient.Client
+	ethClient bind.ContractBackend
 	sender    ethereum.Sender
 
 	fil ChainAPI
@@ -34,7 +34,7 @@ type NextProvingPeriodTask struct {
 	addFunc promise.Promise[scheduler.AddTaskFunc]
 }
 
-func NewNextProvingPeriodTask(db *gorm.DB, ethClient *ethclient.Client, api ChainAPI, chainSched *scheduler.Chain, sender ethereum.Sender) (*NextProvingPeriodTask, error) {
+func NewNextProvingPeriodTask(db *gorm.DB, ethClient bind.ContractBackend, api ChainAPI, chainSched *scheduler.Chain, sender ethereum.Sender) (*NextProvingPeriodTask, error) {
 	n := &NextProvingPeriodTask{
 		db:        db,
 		ethClient: ethClient,
