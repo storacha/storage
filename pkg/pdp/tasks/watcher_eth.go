@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/core/types"
 	"gorm.io/gorm"
 
 	types2 "github.com/filecoin-project/lotus/chain/types"
@@ -25,9 +25,14 @@ import (
 // Synonymous with finality
 const MinConfidence = 2
 
+type MessageWatcherEthClient interface {
+	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+}
+
 type MessageWatcherEth struct {
 	db  *gorm.DB
-	api *ethclient.Client
+	api MessageWatcherEthClient
 
 	stopping, stopped chan struct{}
 
@@ -35,7 +40,7 @@ type MessageWatcherEth struct {
 	bestBlockNumber atomic.Pointer[big.Int]
 }
 
-func NewMessageWatcherEth(db *gorm.DB, pcs *scheduler.Chain, api *ethclient.Client) (*MessageWatcherEth, error) {
+func NewMessageWatcherEth(db *gorm.DB, pcs *scheduler.Chain, api MessageWatcherEthClient) (*MessageWatcherEth, error) {
 	mw := &MessageWatcherEth{
 		db:       db,
 		api:      api,

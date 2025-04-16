@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
@@ -25,7 +24,7 @@ type ProofSetCreate struct {
 	Service           string `db:"service"`
 }
 
-func NewWatcherCreate(db *gorm.DB, ethClient *ethclient.Client, pcs *scheduler.Chain) error {
+func NewWatcherCreate(db *gorm.DB, ethClient bind.ContractBackend, pcs *scheduler.Chain) error {
 	if err := pcs.AddHandler(func(ctx context.Context, revert, apply *chaintypes.TipSet) error {
 		err := processPendingProofSetCreates(ctx, db, ethClient)
 		if err != nil {
@@ -38,7 +37,7 @@ func NewWatcherCreate(db *gorm.DB, ethClient *ethclient.Client, pcs *scheduler.C
 	return nil
 }
 
-func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient *ethclient.Client) error {
+func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient bind.ContractBackend) error {
 	// Query for pdp_proofset_creates entries where ok = TRUE and proofset_created = FALSE
 	var proofSetCreates []models.PDPProofsetCreate
 	err := db.WithContext(ctx).
@@ -65,7 +64,7 @@ func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient *
 	return nil
 }
 
-func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProofsetCreate, ethClient *ethclient.Client) error {
+func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProofsetCreate, ethClient bind.ContractBackend) error {
 	// Retrieve the tx_receipt from message_waits_eth
 	var msgWait models.MessageWaitsEth
 	err := db.WithContext(ctx).
@@ -172,7 +171,7 @@ func insertProofSet(ctx context.Context, db *gorm.DB, createMsg string, proofSet
 	return nil
 }
 
-func getProvingPeriodChallengeWindow(ctx context.Context, ethClient *ethclient.Client, listenerAddr common.Address) (uint64, uint64, error) {
+func getProvingPeriodChallengeWindow(ctx context.Context, ethClient bind.ContractBackend, listenerAddr common.Address) (uint64, uint64, error) {
 	// ProvingPeriod
 	schedule, err := contract.NewIPDPProvingSchedule(listenerAddr, ethClient)
 	if err != nil {

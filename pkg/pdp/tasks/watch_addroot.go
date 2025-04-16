@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
@@ -39,9 +38,9 @@ type RootAddEntry struct {
 }
 
 // NewWatcherRootAdd sets up the watcher for proof set root additions
-func NewWatcherRootAdd(db *gorm.DB, ethClient *ethclient.Client, pcs *scheduler.Chain) error {
+func NewWatcherRootAdd(db *gorm.DB, pcs *scheduler.Chain) error {
 	if err := pcs.AddHandler(func(ctx context.Context, revert, apply *chainyypes.TipSet) error {
-		err := processPendingProofSetRootAdds(ctx, db, ethClient)
+		err := processPendingProofSetRootAdds(ctx, db)
 		if err != nil {
 			log.Errorf("Failed to process pending proof set root adds: %v", err)
 		}
@@ -54,7 +53,7 @@ func NewWatcherRootAdd(db *gorm.DB, ethClient *ethclient.Client, pcs *scheduler.
 }
 
 // processPendingProofSetRootAdds processes root additions that have been confirmed on-chain
-func processPendingProofSetRootAdds(ctx context.Context, db *gorm.DB, ethClient *ethclient.Client) error {
+func processPendingProofSetRootAdds(ctx context.Context, db *gorm.DB) error {
 	// Query for pdp_proofset_root_adds entries where add_message_ok = TRUE
 	var rootAdds []models.PDPProofsetRootAdd
 	err := db.WithContext(ctx).

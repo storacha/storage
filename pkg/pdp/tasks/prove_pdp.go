@@ -20,8 +20,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-
 	"github.com/filecoin-project/go-commp-utils/zerocomm"
 	commcid "github.com/filecoin-project/go-fil-commcid"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -47,7 +45,7 @@ const LeafSize = proof.NODE_SIZE
 
 type ProveTask struct {
 	db        *gorm.DB
-	ethClient *ethclient.Client
+	ethClient bind.ContractBackend
 	sender    ethereum.Sender
 	bs        blobstore.Blobstore
 	api       ChainAPI
@@ -60,7 +58,7 @@ type ProveTask struct {
 func NewProveTask(
 	chainSched *scheduler.Chain,
 	db *gorm.DB,
-	ethClient *ethclient.Client,
+	ethClient bind.ContractBackend,
 	api ChainAPI,
 	sender ethereum.Sender,
 	bs blobstore.Blobstore,

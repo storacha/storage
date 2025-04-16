@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/urfave/cli/v2"
+
+	"github.com/storacha/storage/pkg/pdp/curio"
 )
 
 var ProofSetCmd = &cli.Command{
@@ -110,7 +111,7 @@ var ProofSetCmd = &cli.Command{
 			Flags: []cli.Flag{
 				KeyFileFlag,
 				RequiredStringFlag(CurioURLFlag),
-				RequiredIntFlag(ProofSetFlag),
+				RequiredUintFlag(ProofSetFlag),
 			},
 			Action: func(cCtx *cli.Context) error {
 				curioURL, err := url.Parse(cCtx.String("curio-url"))

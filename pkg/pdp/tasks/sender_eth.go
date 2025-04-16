@@ -2,17 +2,13 @@ package tasks
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/multierr"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -21,14 +17,23 @@ import (
 	"github.com/storacha/storage/pkg/pdp/promise"
 	"github.com/storacha/storage/pkg/pdp/scheduler"
 	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/storage/pkg/wallet"
 )
 
 var SendLockedWait = 100 * time.Millisecond
 
 var _ scheduler.TaskInterface = &SendTaskETH{}
 
+type SenderETHClient interface {
+	NetworkID(ctx context.Context) (*big.Int, error)
+	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64, error)
+	SendTransaction(ctx context.Context, transaction *types.Transaction) error
+}
+
 type SenderETH struct {
-	client *ethclient.Client
+	client SenderETHClient
 
 	sendTask *SendTaskETH
 
@@ -36,9 +41,10 @@ type SenderETH struct {
 }
 
 // NewSenderETH creates a new SenderETH.
-func NewSenderETH(client *ethclient.Client, db *gorm.DB) (*SenderETH, *SendTaskETH) {
+func NewSenderETH(client SenderETHClient, wallet wallet.Wallet, db *gorm.DB) (*SenderETH, *SendTaskETH) {
 	st := &SendTaskETH{
 		client: client,
+		wallet: wallet,
 		db:     db,
 	}
 
@@ -189,7 +195,8 @@ func (s *SenderETH) Send(ctx context.Context, fromAddress common.Address, tx *ty
 type SendTaskETH struct {
 	sendTF promise.Promise[scheduler.AddTaskFunc]
 
-	client *ethclient.Client
+	client SenderETHClient
+	wallet wallet.Wallet
 
 	db *gorm.DB
 }
@@ -347,42 +354,15 @@ func (s *SendTaskETH) Do(taskID scheduler.TaskID) (done bool, err error) {
 }
 
 func (s *SendTaskETH) signTransaction(ctx context.Context, fromAddress common.Address, tx *types.Transaction) (*types.Transaction, error) {
-	// Fetch the private key from the database
-	var ethKey models.EthKey
-	err := s.db.Where("address = ?", fromAddress.Hex()).First(&ethKey).Error
-	if err != nil {
-		return nil, xerrors.Errorf("fetching private key from db: %w", err)
-	}
-
-	hexPrivateKey := `6f149ce19fc08fab93b5a08ba2e1b1abce3ce08acf5eee25a6e14e8b8f262440`
-	hexPrivateKey = strings.TrimSpace(hexPrivateKey)
-	if hexPrivateKey == "" {
-		return nil, fmt.Errorf("private key cannot be empty")
-	}
-
-	// Remove any leading '0x' from the hex string
-	hexPrivateKey = strings.TrimPrefix(hexPrivateKey, "0x")
-	hexPrivateKey = strings.TrimPrefix(hexPrivateKey, "0X")
-
-	// Decode the hex private key
-	privateKeyBytes, err := hex.DecodeString(hexPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode private key: %v", err)
-	}
-	privateKey, err := crypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return nil, xerrors.Errorf("converting private key: %w", err)
-	}
-
 	// Get the chain ID
 	chainID, err := s.client.NetworkID(ctx)
 	if err != nil {
 		return nil, xerrors.Errorf("getting network ID: %w", err)
 	}
 
-	// Sign the transaction
+	// Sign the transaction with our wallet
 	signer := types.LatestSignerForChainID(chainID)
-	signedTx, err := types.SignTx(tx, signer, privateKey)
+	signedTx, err := s.wallet.SignTransaction(ctx, fromAddress, signer, tx)
 	if err != nil {
 		return nil, xerrors.Errorf("signing transaction: %w", err)
 	}
