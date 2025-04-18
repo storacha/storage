@@ -122,7 +122,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	proofSetID = proofSet.ID
 
 	// Get the listener address for this proof set from the PDPVerifier contract
-	pdpVerifier, err := contract.NewPDPVerifier(contract.ContractAddresses().PDPVerifier, ipp.ethClient)
+	pdpVerifier, err := contract.NewPDPVerifier(contract.Addresses().PDPVerifier, ipp.ethClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to instantiate PDPVerifier contract: %w", err)
 	}
@@ -150,7 +150,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	}
 	prove_at_epoch := init_prove_at.Add(init_prove_at, challengeWindow.Div(challengeWindow, big.NewInt(2))) // Give a buffer of 1/2 challenge window epochs so that we are still within challenge window
 	// Instantiate the PDPVerifier contract
-	pdpContracts := contract.ContractAddresses()
+	pdpContracts := contract.Addresses()
 	pdpVeriferAddress := pdpContracts.PDPVerifier
 
 	// Prepare the transaction data

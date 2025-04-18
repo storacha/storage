@@ -107,7 +107,7 @@ func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err erro
 	proofSetID := pdp.ID
 
 	// Get the listener address for this proof set from the PDPVerifier contract
-	pdpVerifier, err := contract.NewPDPVerifier(contract.ContractAddresses().PDPVerifier, n.ethClient)
+	pdpVerifier, err := contract.NewPDPVerifier(contract.Addresses().PDPVerifier, n.ethClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to instantiate PDPVerifier contract: %w", err)
 	}
@@ -128,7 +128,7 @@ func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err erro
 	}
 
 	// Instantiate the PDPVerifier contract
-	pdpContracts := contract.ContractAddresses()
+	pdpContracts := contract.Addresses()
 	pdpVerifierAddress := pdpContracts.PDPVerifier
 
 	// Prepare the transaction data

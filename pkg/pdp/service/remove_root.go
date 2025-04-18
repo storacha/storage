@@ -32,7 +32,7 @@ func (p *PDPService) RemoveRoot(ctx context.Context, proofSetID uint64, rootID u
 	// Prepare the transaction
 	ethTx := types.NewTransaction(
 		0, // nonce will be set by SenderETH
-		contract.ContractAddresses().PDPVerifier,
+		contract.Addresses().PDPVerifier,
 		big.NewInt(0), // value
 		0,             // gas limit (will be estimated)
 		nil,           // gas price (will be set by SenderETH)
