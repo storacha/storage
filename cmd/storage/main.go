@@ -4,8 +4,9 @@ import (
 	"os"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/storacha/storage/cmd"
 	"github.com/urfave/cli/v2"
+
+	"github.com/storacha/storage/cmd"
 )
 
 var log = logging.Logger("storage")
@@ -21,6 +22,7 @@ func main() {
 			cmd.ClientCmd,
 			cmd.ProofSetCmd,
 			cmd.VersionCmd,
+			cmd.WalletCmd,
 		},
 	}
 
