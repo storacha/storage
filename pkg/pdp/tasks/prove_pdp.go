@@ -162,7 +162,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	}
 	proofSetID := proveTask.ProofsetID
 
-	pdpContracts := contract.ContractAddresses()
+	pdpContracts := contract.Addresses()
 	pdpVerifierAddress := pdpContracts.PDPVerifier
 
 	pdpVerifier, err := contract.NewPDPVerifier(pdpVerifierAddress, p.ethClient)

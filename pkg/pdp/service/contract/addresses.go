@@ -6,28 +6,27 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/snadrus/must"
+
+	"github.com/storacha/storage/pkg/build"
 )
 
 type PDPContracts struct {
 	PDPVerifier common.Address
 }
 
-/*
-These are the record keepers:
-1-day proving service: `0xd394e2504994a3369A87F4a0e8a21f914baf7263`
-
-30-minute proving service: `0x6170dE2b09b404776197485F3dc6c968Ef948505`
-# this one is wired up to dashboard(s):
-- http://explore-pdp.xyz:5173/ (Wyatt owns this and uses for testing)
-- https://calibration.pdp-explorer.eng.filoz.org/ (this is a productionized version)
-  - @Puspendra Mahariya is the developer building the frontend. Complaints with the UX go do him.
-  - Wyatt is responsible for the backend?
-*/
-
-// TODO make this a configuration parameter.
-func ContractAddresses() PDPContracts {
-	return PDPContracts{
-		PDPVerifier: common.HexToAddress("0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"),
+func Addresses() PDPContracts {
+	// addresses here based on https://github.com/FilOzone/pdp/?tab=readme-ov-file#contracts
+	switch build.BuildType {
+	case build.BuildCalibnet:
+		return PDPContracts{
+			PDPVerifier: common.HexToAddress("0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"),
+		}
+	case build.BuildMainnet:
+		return PDPContracts{
+			PDPVerifier: common.HexToAddress("0x9C65E8E57C98cCc040A3d825556832EA1e9f4Df6"),
+		}
+	default:
+		panic("pdp contracts unknown for this network")
 	}
 }
 

@@ -210,7 +210,7 @@ func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []Ad
 	// Prepare the transaction (nonce will be set to 0, SenderETH will assign it)
 	txEth := types.NewTransaction(
 		0,
-		contract.ContractAddresses().PDPVerifier,
+		contract.Addresses().PDPVerifier,
 		big.NewInt(0),
 		0,
 		nil,

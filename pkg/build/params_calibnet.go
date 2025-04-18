@@ -9,4 +9,5 @@ import (
 
 func init() {
 	SetAddressNetwork(address.Testnet)
+	BuildType = BuildCalibnet
 }

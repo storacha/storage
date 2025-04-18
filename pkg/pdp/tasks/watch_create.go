@@ -90,7 +90,7 @@ func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProof
 	}
 
 	// Get the listener address for this proof set from the PDPVerifier contract
-	pdpVerifier, err := contract.NewPDPVerifier(contract.ContractAddresses().PDPVerifier, ethClient)
+	pdpVerifier, err := contract.NewPDPVerifier(contract.Addresses().PDPVerifier, ethClient)
 	if err != nil {
 		return xerrors.Errorf("failed to instantiate PDPVerifier contract: %w", err)
 	}

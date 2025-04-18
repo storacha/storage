@@ -32,7 +32,7 @@ func (p *PDPService) ProofSetCreate(ctx context.Context, recordKeeper common.Add
 	// Prepare the transaction (nonce will be set to 0, SenderETH will assign it)
 	tx := types.NewTransaction(
 		0,
-		contract.ContractAddresses().PDPVerifier,
+		contract.Addresses().PDPVerifier,
 		contract.SybilFee(),
 		0,
 		nil,
