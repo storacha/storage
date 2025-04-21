@@ -19,10 +19,11 @@ import (
 	"github.com/storacha/go-ucanto/core/receipt"
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/curio"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/storage/pkg/pdp/curio"
 )
 
 var log = logging.Logger("fns")
