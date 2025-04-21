@@ -8,12 +8,13 @@ import (
 	"slices"
 
 	"github.com/filecoin-project/go-data-segment/merkletree"
-	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/schema"
+	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/iterable"
-	"github.com/storacha/storage/pkg/pdp/curio"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/storacha/storage/pkg/pdp/curio"
 )
 
 //go:embed aggregate.ipldsch
@@ -22,7 +23,7 @@ var aggregateSchema []byte
 var aggregateTS *schema.TypeSystem
 
 func init() {
-	ts, err := ipld.LoadSchemaBytes(aggregateSchema)
+	ts, err := types.LoadSchemaBytes(aggregateSchema)
 	if err != nil {
 		panic(fmt.Errorf("loading blob schema: %w", err))
 	}

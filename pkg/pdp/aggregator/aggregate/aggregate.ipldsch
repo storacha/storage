@@ -1,8 +1,5 @@
-type Node bytes
-type PieceLink link
-
 type ProofData struct {
-	path  [Node]
+	path  [MerkleNode]
 	index Int
 }
 
