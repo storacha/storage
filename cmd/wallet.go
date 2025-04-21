@@ -28,6 +28,7 @@ var WalletCmd = &cli.Command{
 	},
 	Subcommands: []*cli.Command{
 		walletImport,
+		walletList,
 	},
 }
 
@@ -108,7 +109,7 @@ var walletImport = &cli.Command{
 			if err != nil {
 				return err
 			}
-			log.Errorf("Data directory is not configured, using default: %s", dir)
+			log.Warnf("Data directory is not configured, using default: %s", dir)
 			dataDir = dir
 		}
 
@@ -138,6 +139,57 @@ var walletImport = &cli.Command{
 		}
 
 		fmt.Printf("imported wallet %s successfully!\n", addr)
+		return nil
+	},
+}
+
+var walletList = &cli.Command{
+	Name:  "list",
+	Usage: "List wallet address",
+	Action: func(cctx *cli.Context) error {
+		dataDir := cctx.String("data-dir")
+		if dataDir == "" {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("getting user home directory: %w", err)
+			}
+
+			dir, err := mkdirp(homeDir, ".storacha")
+			if err != nil {
+				return err
+			}
+			log.Warnf("Data directory is not configured, using default: %s", dir)
+			dataDir = dir
+		}
+		pdpDir, err := mkdirp(dataDir, "local-pdp")
+		if err != nil {
+			return err
+		}
+
+		pdpDs, err := leveldb.NewDatastore(pdpDir, nil)
+		if err != nil {
+			return err
+		}
+
+		keyStore, err := keystore.NewKeyStore(pdpDs)
+		if err != nil {
+			return err
+		}
+
+		wlt, err := wallet.NewWallet(keyStore)
+		if err != nil {
+			return err
+		}
+
+		kis, err := wlt.List(cctx.Context)
+		if err != nil {
+			return err
+		}
+
+		for _, k := range kis {
+			fmt.Println("Address: ", k.Address.String())
+		}
+
 		return nil
 	},
 }

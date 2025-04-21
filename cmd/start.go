@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
@@ -69,30 +68,6 @@ var StartCmd = &cli.Command{
 			Name:    "indexing-service-proof",
 			Usage:   "A delegation that allows the node to cache claims with the indexing service.",
 			EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
-		},
-		&cli.BoolFlag{
-			Name:  "local-pdp",
-			Usage: "When true use local PDP implementation. Defaults to false. Not valid with curio-url flag.",
-			Value: false,
-		},
-		// TODO: these were the default values from testing, and they are reused
-		// here for convince, TODO here is to figure out how to just use one
-		// API for both lotus and ethereum. iirc Lotus api should support both
-		// with some modifications to the lotus config.
-		&cli.StringFlag{
-			Name:  "lotus-client-host",
-			Usage: "A websock api address of a lotus node",
-			Value: "ws://127.0.0.1:1234/rpc/v1",
-		},
-		&cli.StringFlag{
-			Name:  "eth-client-host",
-			Usage: "An api address of a eth node",
-			Value: "https://api.calibration.node.glif.io/rpc/v1",
-		},
-		&cli.StringFlag{
-			Name:     "pdp-address",
-			Usage:    "A hex encoded delegate address for interacting with PDP contact",
-			Required: true,
 		},
 	},
 	Action: func(cCtx *cli.Context) error {
@@ -164,13 +139,10 @@ var StartCmd = &cli.Command{
 			return err
 		}
 
-		var pdpConfig *storage.PDPConfig
-		curioURLStr := cCtx.String("curio-url")
-		localPDP := cCtx.Bool("local-pdp")
-
-		if curioURLStr != "" && localPDP {
-			return fmt.Errorf("--curio-url and --local-pdp cannot be used together")
+		pdpConfig := &storage.PDPConfig{
+			Remote: new(storage.RemotePDPConfig),
 		}
+		curioURLStr := cCtx.String("curio-url")
 
 		if curioURLStr != "" {
 			curioURL, err := url.Parse(curioURLStr)
@@ -199,41 +171,6 @@ var StartCmd = &cli.Command{
 				CurioEndpoint: curioURL,
 				ProofSet:      proofSet,
 				Database:      pdpDB,
-			}
-		}
-
-		if localPDP {
-			if !cCtx.IsSet("pdp-proofset") {
-				return errors.New("pdp-proofset must be set if curio is used")
-			}
-			proofSet := cCtx.Uint64("pdp-proofset")
-
-			if !cCtx.IsSet("pdp-address") {
-				return errors.New("pdp-address must be set if local-pdp is used")
-			}
-			pdpAddress := cCtx.String("TODO: use a flag")
-			if !common.IsHexAddress(pdpAddress) {
-				return fmt.Errorf("--pdp-address needs to be a hex address")
-			}
-
-			pdpDir, err := mkdirp(dataDir, "local-pdp")
-			if err != nil {
-				return err
-			}
-
-			pdpConfig.Local = &storage.LocaPDPConfig{
-				ProofSet: proofSet,
-				Address:  common.HexToAddress(pdpAddress),
-				TaskEngineDB: storage.LocalPDPDatabaseConfig{
-					Host:    "localhost",
-					User:    "postgres",
-					Name:    "postgres",
-					Port:    "5432",
-					SSLMode: "disable",
-				},
-				DataDir:         pdpDir,
-				LotusClientHost: cCtx.String("lotus-client-host"),
-				EthClientHost:   cCtx.String("eth-client-host"),
 			}
 		}
 
