@@ -23,6 +23,7 @@ func main() {
 			cmd.ProofSetCmd,
 			cmd.VersionCmd,
 			cmd.WalletCmd,
+			cmd.ServeCmd,
 		},
 	}
 

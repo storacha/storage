@@ -84,6 +84,33 @@ func (w *LocalWallet) Import(ctx context.Context, ki *keystore.KeyInfo) (common.
 	return k.Address, nil
 }
 
+func (w *LocalWallet) List(ctx context.Context) ([]*Key, error) {
+	w.keysMu.Lock()
+	defer w.keysMu.Unlock()
+
+	kis, err := w.keystore.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list wallets: %w", err)
+	}
+
+	out := make([]*Key, len(kis))
+	for i, k := range kis {
+		out[i], err = NewKey(k)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return out, nil
+}
+
+func (w *LocalWallet) Has(ctx context.Context, addr common.Address) (bool, error) {
+	w.keysMu.Lock()
+	defer w.keysMu.Unlock()
+
+	return w.keystore.Has(ctx, KNamePrefix+addr.String())
+}
+
 func (w *LocalWallet) findKey(ctx context.Context, addr common.Address) (*Key, error) {
 	w.keysMu.Lock()
 	defer w.keysMu.Unlock()

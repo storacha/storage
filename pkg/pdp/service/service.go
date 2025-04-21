@@ -165,6 +165,7 @@ func NewPDPService(
 		blobstore:      bs,
 		storage:        ss,
 		sender:         sender,
+		startFns:       startFns,
 		stopFns:        stopFns,
 		engine:         engine,
 		chainScheduler: chainScheduler,
