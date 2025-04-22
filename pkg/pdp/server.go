@@ -66,7 +66,7 @@ func NewServer(
 	if err != nil {
 		return nil, err
 	}
-	blobStore := blobstore.NewDsBlobstore(namespace.Wrap(ds, datastore.NewKey("blobs")))
+	blobStore := blobstore.NewTODO_DsBlobstore(namespace.Wrap(ds, datastore.NewKey("blobs")))
 	stashStore, err := store.NewStashStore(path.Join(dataDir, "stash"))
 	if err != nil {
 		return nil, err

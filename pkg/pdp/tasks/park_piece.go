@@ -6,7 +6,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -147,7 +146,7 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 				return false, fmt.Errorf("decoding cid: %w", err)
 			}
 			if err := p.bs.Put(ctx, c.Hash(), uint64(pieceData.PieceRawSize), sr); err != nil {
-				merr = multierror.Append(merr, fmt.Errorf("write piece: %w", err))
+				return false, fmt.Errorf("putting piece data into store: %w", err)
 			}
 
 			// Update the piece as complete after a successful write.
@@ -162,7 +161,7 @@ func (p *ParkPieceTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 				return false, fmt.Errorf("marking piece as complete: %w", err)
 			}
 
-			return true, nil
+			return true, merr
 		}
 	}
 

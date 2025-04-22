@@ -26,7 +26,7 @@ var pdpCmd = &cli.Command{
 		&cli.IntFlag{
 			Name:    "port",
 			Aliases: []string{"p"},
-			Value:   8080,
+			Value:   3001,
 			Usage:   "Port to bind the server to.",
 			EnvVars: []string{"PDP_SERVER_PORT"},
 			Action: func(c *cli.Context, v int) error {

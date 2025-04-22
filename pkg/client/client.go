@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-libstoracha/capabilities/assert"
@@ -25,6 +26,8 @@ import (
 	uhttp "github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
 )
+
+var log = logging.Logger("client")
 
 var ErrNoReceipt = errors.New("no error for invocation")
 var ErrIncorrectCapability = errors.New("did not receive expected capability")
@@ -51,6 +54,7 @@ type Client struct {
 // upload address if required (i.e. it may be nil if the storage node already
 // has the blob).
 func (s *Client) BlobAllocate(space did.DID, digest multihash.Multihash, size uint64, cause datamodel.Link) (*blob.Address, error) {
+	log.Infow("Blob Allocate", "digest", digest, "size", size, "cid", digest.String())
 	inv, err := blob.Allocate.Invoke(
 		s.cfg.ID,
 		s.cfg.StorageNodeID,

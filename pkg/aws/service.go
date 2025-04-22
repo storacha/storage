@@ -370,11 +370,7 @@ func Construct(cfg Config) (storage.Service, error) {
 			return nil, fmt.Errorf("setting up PDP: %w", err)
 		}
 
-		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{
-			Remote: &storage.RemotePDPConfig{
-				PDPService: pdp,
-			},
-		}))
+		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{PDPService: pdp}))
 	}
 
 	if cfg.BlobStoreBucketKeyPattern != "" {
