@@ -11,7 +11,6 @@ import (
 	"os"
 
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/core/delegation"
@@ -70,7 +69,6 @@ var ClientCmd = &cli.Command{
 				if err != nil {
 					return fmt.Errorf("calculating blob digest: %w", err)
 				}
-				logging.SetLogLevel("*", "info")
 				address, err := client.BlobAllocate(spaceDid, digest.Bytes(), uint64(len(blobData)), cidlink.Link{Cid: cid.NewCidV1(cid.Raw, digest.Bytes())})
 				if err != nil {
 					return fmt.Errorf("invocing blob allocation: %w", err)

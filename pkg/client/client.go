@@ -54,7 +54,6 @@ type Client struct {
 // upload address if required (i.e. it may be nil if the storage node already
 // has the blob).
 func (s *Client) BlobAllocate(space did.DID, digest multihash.Multihash, size uint64, cause datamodel.Link) (*blob.Address, error) {
-	log.Infow("Blob Allocate", "digest", digest, "size", size, "cid", digest.String())
 	inv, err := blob.Allocate.Invoke(
 		s.cfg.ID,
 		s.cfg.StorageNodeID,

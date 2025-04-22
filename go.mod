@@ -16,7 +16,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.55.5
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/ethereum/go-ethereum v1.14.13
-	github.com/filecoin-project/curio v1.24.5-0.20250314183606-b2f8a5827ab3
 	github.com/filecoin-project/go-commp-utils v0.1.4
 	github.com/filecoin-project/go-commp-utils/nonffi v0.0.0-20240802040721-2a04ffc8ffe8
 	github.com/filecoin-project/lotus v1.32.0-rc1
@@ -113,6 +112,7 @@ require (
 	github.com/magefile/mage v1.9.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
@@ -168,7 +168,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
-	github.com/filecoin-project/go-address v1.2.0 // indirect
+	github.com/filecoin-project/go-address v1.2.0
 	github.com/filecoin-project/go-commp-utils/v2 v2.1.0
 	github.com/filecoin-project/go-data-segment v0.0.1
 	github.com/filecoin-project/go-fil-commcid v0.2.0
