@@ -138,7 +138,7 @@ var walletImport = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("imported wallet %s successfully!\n", addr)
+		fmt.Printf("%s", addr)
 		return nil
 	},
 }
