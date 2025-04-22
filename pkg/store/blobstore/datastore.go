@@ -11,7 +11,8 @@ import (
 	"net/http"
 
 	"github.com/ipfs/go-datastore"
-	multihash "github.com/multiformats/go-multihash"
+	"github.com/multiformats/go-multihash"
+
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 )
@@ -26,11 +27,15 @@ type DsBlobstore struct {
 func (d *DsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts ...GetOption) (Object, error) {
 	o := &options{}
 	for _, opt := range opts {
-		opt(o)
+		if err := opt(o); err != nil {
+			return nil, err
+		}
 	}
 
 	k := digestutil.Format(digest)
-	b, err := d.data.Get(ctx, datastore.NewKey(k))
+	key := datastore.NewKey(k)
+	fmt.Println("DSBlobStore GET: ", key.String())
+	b, err := d.data.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, datastore.ErrNotFound) {
 			return nil, store.ErrNotFound
@@ -71,7 +76,9 @@ func (d *DsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	}
 
 	k := digestutil.Format(digest)
-	err = d.data.Put(ctx, datastore.NewKey(k), b)
+	key := datastore.NewKey(k)
+	fmt.Println("DSBlobStore PUT: ", key.String())
+	err = d.data.Put(ctx, key, b)
 	if err != nil {
 		return fmt.Errorf("putting blob: %w", err)
 	}

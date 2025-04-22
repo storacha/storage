@@ -139,11 +139,8 @@ var StartCmd = &cli.Command{
 			return err
 		}
 
-		pdpConfig := &storage.PDPConfig{
-			Remote: new(storage.RemotePDPConfig),
-		}
+		var pdpConfig *storage.PDPConfig
 		curioURLStr := cCtx.String("curio-url")
-
 		if curioURLStr != "" {
 			curioURL, err := url.Parse(curioURLStr)
 			if err != nil {
@@ -152,7 +149,7 @@ var StartCmd = &cli.Command{
 			if !cCtx.IsSet("pdp-proofset") {
 				return errors.New("pdp-proofset must be set if curio is used")
 			}
-			proofSet := cCtx.Uint64("pdp-proofset")
+			proofSet := cCtx.Int64("pdp-proofset")
 			pdpDir, err := mkdirp(dataDir, "pdp")
 			if err != nil {
 				return err
@@ -166,10 +163,10 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
-			pdpConfig.Remote = &storage.RemotePDPConfig{
+			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
-				ProofSet:      proofSet,
+				ProofSet:      uint64(proofSet),
 				Database:      pdpDB,
 			}
 		}
