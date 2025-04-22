@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/did"
@@ -34,4 +36,30 @@ func mkdirp(dirpath ...string) (string, error) {
 		return "", fmt.Errorf("creating directory: %s: %w", dir, err)
 	}
 	return dir, nil
+}
+
+// Poll calls fn every interval until fn returns done=true, fn returns a non‑nil error,
+// or the context expires. It returns the first error encountered, or ctx.Err() if the deadline is reached.
+func Poll(ctx context.Context, interval time.Duration, fn func() (done bool, err error)) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		// First, check immediately (in case the condition is already met)
+		done, err := fn()
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
+
+		// Wait for next tick or context cancellation
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			// loop and call fn again
+		}
+	}
 }

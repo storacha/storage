@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	crypto_ed25519 "crypto/ed25519"
 	"crypto/x509"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -15,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
@@ -25,6 +28,7 @@ import (
 
 	"github.com/storacha/storage/cmd/enum"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
+	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -38,6 +42,7 @@ var StartCmd = &cli.Command{
 	Flags: []cli.Flag{
 		KeyFileFlag,
 		CurioURLFlag,
+		ProofSetFlag,
 		&cli.IntFlag{
 			Name:    "port",
 			Aliases: []string{"p"},
@@ -63,11 +68,27 @@ var StartCmd = &cli.Command{
 			Usage:   "URL the node is publically accessible at.",
 			EnvVars: []string{"STORAGE_PUBLIC_URL"},
 		},
-		ProofSetFlag,
 		&cli.StringFlag{
 			Name:    "indexing-service-proof",
 			Usage:   "A delegation that allows the node to cache claims with the indexing service.",
 			EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
+		},
+		&cli.BoolFlag{
+			Name:  "create-proofset",
+			Usage: "When true creates a proof set with the PDP server.",
+		},
+		&cli.StringFlag{
+			Name:     "record-keeper",
+			Aliases:  []string{"rk"},
+			Usage:    "Hex address of the record keeper",
+			EnvVars:  []string{"STORAGE_RECORD_KEEPER_CONTRACT"},
+			Required: true,
+			Action: func(context *cli.Context, s string) error {
+				if !common.IsHexAddress(s) {
+					return fmt.Errorf("invalid address %s", s)
+				}
+				return nil
+			},
 		},
 	},
 	Action: func(cCtx *cli.Context) error {
@@ -146,10 +167,20 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return fmt.Errorf("parsing curio URL: %w", err)
 			}
-			if !cCtx.IsSet("pdp-proofset") {
-				return errors.New("pdp-proofset must be set if curio is used")
+			var proofSet uint64
+			if cCtx.Bool("create-proofset") {
+				recordKeeper := common.HexToAddress(cCtx.String("record-keeper"))
+				proofSetID, err := createPDPProofSet(cCtx.Context, id, curioURL, recordKeeper)
+				if err != nil {
+					return fmt.Errorf("failed to create PDP proof set: %w", err)
+				}
+				proofSet = proofSetID
+			} else {
+				if !cCtx.IsSet("pdp-proofset") {
+					return errors.New("pdp-proofset must be set if curio is used")
+				}
+				proofSet = cCtx.Uint64("pdp-proofset")
 			}
-			proofSet := cCtx.Int64("pdp-proofset")
 			pdpDir, err := mkdirp(dataDir, "pdp")
 			if err != nil {
 				return err
@@ -166,7 +197,7 @@ var StartCmd = &cli.Command{
 			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
-				ProofSet:      uint64(proofSet),
+				ProofSet:      proofSet,
 				Database:      pdpDB,
 			}
 		}
@@ -375,4 +406,43 @@ func readPrivateKeyFromPEM(f io.Reader) (principal.Signer, error) {
 		return nil, fmt.Errorf("could not find a PRIVATE KEY block in the PEM file")
 	}
 	return ed25519.FromRaw(*privateKey)
+}
+
+func createPDPProofSet(ctx context.Context, id principal.Signer, clientURL *url.URL, recordKeeper common.Address) (uint64, error) {
+	curioAuth, err := curio.CreateCurioJWTAuthHeader("storacha", id)
+	if err != nil {
+		return 0, fmt.Errorf("generating curio jwt: %w", err)
+	}
+
+	client := curio.New(http.DefaultClient, clientURL, curioAuth)
+	statusRef, err := client.CreateProofSet(ctx, curio.CreateProofSet{
+		RecordKeeper: recordKeeper.String(),
+	})
+	if err != nil {
+		return 0, fmt.Errorf("creating proof set: %w", err)
+	}
+	fmt.Printf("proof set being created, polling status at %s\n", statusRef.URL)
+
+	// wait until the proof set has been created
+	var proofSet uint64
+	if err := Poll(ctx, 15*time.Second, func() (done bool, err error) {
+		status, err := client.ProofSetCreationStatus(ctx, curio.StatusRef{
+			URL: statusRef.URL,
+		})
+		if err != nil {
+			return true, fmt.Errorf("getting proof set status: %w", err)
+		}
+		fmt.Printf("polled proof set status %s\n", status.TxStatus)
+		// exit when a proof set ID has been assigned
+		if status.ProofSetId != nil {
+			fmt.Printf("proof set id assigned %d\n", *status.ProofSetId)
+			proofSet = *status.ProofSetId
+			return true, nil
+		}
+		return false, nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to get proof set status: %w", err)
+	}
+
+	return proofSet, nil
 }
