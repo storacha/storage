@@ -33,9 +33,7 @@ func (d *DsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts 
 	}
 
 	k := digestutil.Format(digest)
-	key := datastore.NewKey(k)
-	fmt.Println("DSBlobStore GET: ", key.String())
-	b, err := d.data.Get(ctx, key)
+	b, err := d.data.Get(ctx, datastore.NewKey(k))
 	if err != nil {
 		if errors.Is(err, datastore.ErrNotFound) {
 			return nil, store.ErrNotFound
@@ -76,9 +74,7 @@ func (d *DsBlobstore) Put(ctx context.Context, digest multihash.Multihash, size 
 	}
 
 	k := digestutil.Format(digest)
-	key := datastore.NewKey(k)
-	fmt.Println("DSBlobStore PUT: ", key.String())
-	err = d.data.Put(ctx, key, b)
+	err = d.data.Put(ctx, datastore.NewKey(k), b)
 	if err != nil {
 		return fmt.Errorf("putting blob: %w", err)
 	}

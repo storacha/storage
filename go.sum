@@ -525,8 +525,6 @@ github.com/fatih/color v1.10.0/go.mod h1:ELkj/draVOlAH/xkhN6mQ50Qd0MPOk5AAr3maGE
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/filecoin-project/curio v1.24.5-0.20250314183606-b2f8a5827ab3 h1:v4QhzD6SuGVpilWOqeBsL0jQsVkBVuiic3D/LnhRces=
-github.com/filecoin-project/curio v1.24.5-0.20250314183606-b2f8a5827ab3/go.mod h1:h2fGg+bq0JCshFQMSZ2HOoS3y0EmeP4rqdpEsoXqiAM=
 github.com/filecoin-project/filecoin-ffi v1.31.0 h1:4Zxkcd4n7iBPSkliooHLdYTPyb8GKiy3WN6C55H83J8=
 github.com/filecoin-project/filecoin-ffi v1.31.0/go.mod h1:DLq39zugT2d0hawqmw7PLKJxHZIYZ9EkQc6DZg/e0lM=
 github.com/filecoin-project/go-address v0.0.3/go.mod h1:jr8JxKsYx+lQlQZmF5i2U0Z+cGQ59wMIps/8YW/lDj8=
@@ -1500,6 +1498,7 @@ github.com/raulk/go-watchdog v1.3.0 h1:oUmdlHxdkXRJlwfG0O9omj8ukerm8MEQavSiDTEtB
 github.com/raulk/go-watchdog v1.3.0/go.mod h1:fIvOnLbF0b0ZwkB9YU4mOW9Did//4vPZtDqv66NfsMU=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
+github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
@@ -1556,8 +1555,6 @@ github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
-github.com/storacha/go-libstoracha v0.0.1 h1:cVt9FAU+WD0yu9JO4hcmaW87RTO1p3pHDwdnnvNowtY=
-github.com/storacha/go-libstoracha v0.0.1/go.mod h1:AsPBhhzmzG48XdydXeiKemk2xnyPS7qvC7jH4+cu4Ek=
 github.com/storacha/go-libstoracha v0.0.2 h1:wZngyopV/Topv2cgPMwexQXPV/vVFswMdG16hR9aWIQ=
 github.com/storacha/go-libstoracha v0.0.2/go.mod h1:AsPBhhzmzG48XdydXeiKemk2xnyPS7qvC7jH4+cu4Ek=
 github.com/storacha/go-ucanto v0.3.0 h1:m4jDVREdA6VjcI+j3/lMmRDCmP8gijDk+EkzzC6ANBU=
