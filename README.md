@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://bafybeihuuqarjd3wkswa6mbirykvtsdlwu7yaccqpujnbycvurb6jyq2fm.ipfs.w3s.link/the-racha-centipede.png" alt="Storacha storage node logo" width="180" />
+  <img src="https://w3s.link/ipfs/bafybeidgd53ksarusewxkmf54ojnrmhneamtcvpqa7n7mi73k6hc7qlwym/centipede.png" alt="Storacha storage node logo" width="180" />
   <h1>Storage Node</h1>
   <p>A storage node that runs on the Storacha network.</p>
 </div>
