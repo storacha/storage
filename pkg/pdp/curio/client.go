@@ -21,7 +21,7 @@ type PDPClient interface {
 	ProofSetCreationStatus(ctx context.Context, ref StatusRef) (ProofSetStatus, error)
 	GetProofSet(ctx context.Context, id uint64) (ProofSet, error)
 	DeleteProofSet(ctx context.Context, id uint64) error
-	AddRootsToProofSet(ctx context.Context, id uint64, addRoots []AddRoot) error
+	AddRootsToProofSet(ctx context.Context, id uint64, addRoots []AddRootRequest) error
 	AddPiece(ctx context.Context, addPiece AddPiece) (*UploadRef, error)
 	UploadPiece(ctx context.Context, ref UploadRef, data io.Reader) error
 	FindPiece(ctx context.Context, piece PieceHash) (FoundPiece, error)
@@ -92,9 +92,15 @@ type (
 		SubrootCID string `json:"subrootCid"`
 	}
 
-	AddRoot struct {
+	AddRootRequest struct {
 		RootCID  string         `json:"rootCid"`
 		Subroots []SubrootEntry `json:"subroots"`
+	}
+
+	// AddRootsPayload defines the structure for the entire add roots request payload
+	AddRootsPayload struct {
+		Roots     []AddRootRequest `json:"roots"`
+		ExtraData *string          `json:"extraData,omitempty"`
 	}
 
 	UploadRef struct {
@@ -184,9 +190,10 @@ func (c *Client) DeleteProofSet(ctx context.Context, id uint64) error {
 	return c.verifySuccess(c.sendRequest(ctx, http.MethodDelete, url, nil))
 }
 
-func (c *Client) AddRootsToProofSet(ctx context.Context, id uint64, addRoots []AddRoot) error {
+func (c *Client) AddRootsToProofSet(ctx context.Context, id uint64, roots []AddRootRequest) error {
 	url := c.endpoint.JoinPath(pdpRoutePath, proofSetsPath, "/", strconv.FormatUint(id, 10), rootsPath).String()
-	return c.verifySuccess(c.postJson(ctx, url, addRoots))
+	payload := AddRootsPayload{Roots: roots}
+	return c.verifySuccess(c.postJson(ctx, url, payload))
 }
 
 func (c *Client) AddPiece(ctx context.Context, addPiece AddPiece) (*UploadRef, error) {
