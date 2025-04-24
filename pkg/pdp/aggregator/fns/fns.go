@@ -123,7 +123,7 @@ func SubmitAggregates(ctx context.Context, client *curio.Client, proofSet uint64
 			return nil
 		})),
 	)
-	return client.AddRootsToProofSet(ctx, proofSet, slices.Collect(iterable.Map(func(aggregate aggregate.Aggregate) curio.AddRoot {
+	return client.AddRootsToProofSet(ctx, proofSet, slices.Collect(iterable.Map(func(aggregate aggregate.Aggregate) curio.AddRootRequest {
 		return aggregate.ToCurioAddRoot()
 	}, slices.Values(aggregates))))
 }

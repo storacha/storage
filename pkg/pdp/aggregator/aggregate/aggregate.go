@@ -66,8 +66,8 @@ func (a Aggregate) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
-func (aggregate Aggregate) ToCurioAddRoot() curio.AddRoot {
-	return curio.AddRoot{
+func (aggregate Aggregate) ToCurioAddRoot() curio.AddRootRequest {
+	return curio.AddRootRequest{
 		RootCID: aggregate.Root.V1Link().String(),
 		Subroots: slices.Collect(iterable.Map(func(aggregatePiece AggregatePiece) curio.SubrootEntry {
 			return curio.SubrootEntry{SubrootCID: aggregatePiece.Link.V1Link().String()}
