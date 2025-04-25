@@ -16,6 +16,12 @@ func RequiredIntFlag(strFlag *cli.Int64Flag) *cli.Int64Flag {
 	return &cpy
 }
 
+func RequiredUintFlag(strFlag *cli.Uint64Flag) *cli.Uint64Flag {
+	cpy := *strFlag
+	cpy.Required = true
+	return &cpy
+}
+
 var CurioURLFlag = &cli.StringFlag{
 	Name:    "curio-url",
 	Aliases: []string{"c"},
@@ -62,7 +68,7 @@ var ClientSetupFlags = []cli.Flag{
 	ProofFlag,
 }
 
-var ProofSetFlag = &cli.Int64Flag{
+var ProofSetFlag = &cli.Uint64Flag{
 	Name:    "pdp-proofset",
 	Aliases: []string{"pdp"},
 	Usage:   "Proofset to use with PDP",

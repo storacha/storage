@@ -11,7 +11,8 @@ import (
 	"net/http"
 
 	"github.com/ipfs/go-datastore"
-	multihash "github.com/multiformats/go-multihash"
+	"github.com/multiformats/go-multihash"
+
 	"github.com/storacha/storage/pkg/internal/digestutil"
 	"github.com/storacha/storage/pkg/store"
 )
@@ -26,7 +27,9 @@ type DsBlobstore struct {
 func (d *DsBlobstore) Get(ctx context.Context, digest multihash.Multihash, opts ...GetOption) (Object, error) {
 	o := &options{}
 	for _, opt := range opts {
-		opt(o)
+		if err := opt(o); err != nil {
+			return nil, err
+		}
 	}
 
 	k := digestutil.Format(digest)
