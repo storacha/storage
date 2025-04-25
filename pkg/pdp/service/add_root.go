@@ -22,16 +22,6 @@ type AddRootRequest struct {
 
 // TODO return something useful here, like the transaction Hash.
 func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []AddRootRequest) (interface{}, error) {
-	// Step 3: Parse the request body
-	type SubrootEntry struct {
-		SubrootCID string `json:"subrootCid"`
-	}
-
-	type AddRootRequest struct {
-		RootCID  string         `json:"rootCid"`
-		Subroots []SubrootEntry `json:"subroots"`
-	}
-
 	if len(request) == 0 {
 		return nil, fmt.Errorf("at least one root must be provided")
 	}

@@ -67,14 +67,13 @@ type TaskID int
 
 // TaskEngine is the central scheduler.
 type TaskEngine struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	db             *gorm.DB
-	owner          int
-	handlers       []*taskTypeHandler
-	taskMap        map[string]*taskTypeHandler
-	lastFollowTime time.Time
-	lastCleanup    time.Time
+	ctx         context.Context
+	cancel      context.CancelFunc
+	db          *gorm.DB
+	owner       int
+	handlers    []*taskTypeHandler
+	taskMap     map[string]*taskTypeHandler
+	lastCleanup time.Time
 }
 
 // taskTypeHandler ties a task implementation with engine-specific metadata.
@@ -260,7 +259,7 @@ retryAddTask:
 			return nil
 		}
 
-		return DoNotCommitErr
+		return ErrDoNotCommit
 	})
 	if err != nil {
 		// If a unique constraint error is detected, assume the task already exists.
@@ -275,7 +274,7 @@ retryAddTask:
 			goto retryAddTask
 		}
 
-		if errors.Is(err, DoNotCommitErr) {
+		if errors.Is(err, ErrDoNotCommit) {
 			return
 		}
 		log.Errorw("Could not add task. AddTask func failed", "error", err, "type", h.TaskTypeDetails.Name)
@@ -341,7 +340,7 @@ func (h *taskTypeHandler) considerWork(source string, taskIDs []TaskID, db *gorm
 	return acceptedAny
 }
 
-var DoNotCommitErr = errors.New("do not commit")
+var ErrDoNotCommit = errors.New("do not commit")
 
 func IsUniqueConstraintError(err error) bool {
 	var pgErr *pgconn.PgError

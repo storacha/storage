@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -36,7 +35,7 @@ func (p *PDP) handleFindPiece(c echo.Context) error {
 	// Verify that a 'parked_pieces' entry exists for the given 'piece_cid'
 	pieceCID, has, err := p.Service.FindPiece(ctx, name, hash, size)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprint("failed to find piece in database"))
+		return c.String(http.StatusInternalServerError, "failed to find piece in database")
 	}
 	if !has {
 		return c.String(http.StatusNotFound, "piece not found")

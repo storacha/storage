@@ -12,7 +12,6 @@ import (
 
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	_ "gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	commcid "github.com/filecoin-project/go-fil-commcid"
