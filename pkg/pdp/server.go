@@ -21,6 +21,7 @@ import (
 	"github.com/storacha/storage/pkg/pdp/pieceadder"
 	"github.com/storacha/storage/pkg/pdp/piecefinder"
 	"github.com/storacha/storage/pkg/pdp/service"
+	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/store"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/keystore"
@@ -108,7 +109,7 @@ func NewServer(
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
 	dialector := postgres.Open(dbConfig)
-	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient)
+	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
 	if err != nil {
 		return nil, fmt.Errorf("creating pdp service: %w", err)
 	}
