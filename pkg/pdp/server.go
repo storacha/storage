@@ -14,7 +14,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	leveldb "github.com/ipfs/go-ds-leveldb"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 
 	"github.com/storacha/storage/pkg/pdp/api"
 	"github.com/storacha/storage/pkg/pdp/curio"
@@ -108,7 +108,7 @@ func NewServer(
 	if err != nil {
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
-	dialector := postgres.Open(dbConfig)
+	dialector := sqlite.Open("pdp.db")
 	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
 	if err != nil {
 		return nil, fmt.Errorf("creating pdp service: %w", err)

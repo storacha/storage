@@ -3,6 +3,7 @@ package testing
 import (
 	"context"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 
 	"github.com/storacha/storage/pkg/build"
 	"github.com/storacha/storage/pkg/pdp/service"
@@ -28,20 +29,23 @@ func init() {
 	build.BuildType = build.BuildCalibnet
 }
 
-const DBConfig = "host=localhost user=postgres dbname=postgres port=5432 sslmode=disable"
+const PostgresDBConfig = "host=localhost user=postgres dbname=postgres port=5432 sslmode=disable"
+const SQLiteDBConfig = "pdp.db"
 
 // NB: this address is never sent to during testing so it's value is insignificant.
 // picked a valid address anyways, but can be whatever we want.
 var RecordKeepAddress = common.HexToAddress("0x6170dE2b09b404776197485F3dc6c968Ef948505")
 
 // this address also doesn't matter
-var ListenetAddress = common.HexToAddress("0x6170dE2b09b404776197485F3dc6c968Ef948506")
+var ListenerAddress = common.HexToAddress("0x6170dE2b09b404776197485F3dc6c968Ef948506")
 
 func TestPDPService(t *testing.T) {
 	// TODO truncate database tables before each run.
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	dbPath := filepath.Join(t.TempDir(), SQLiteDBConfig)
 
 	ks := keystore.NewMemKeyStore()
 	wlt, err := wallet.NewWallet(ks)
@@ -51,7 +55,7 @@ func TestPDPService(t *testing.T) {
 	require.NoError(t, err)
 	clientAddress, err := wlt.Import(ctx, &keystore.KeyInfo{PrivateKey: crypto.FromECDSA(privKey)})
 	require.NoError(t, err)
-	dbDialector := postgres.Open(DBConfig)
+	dbDialector := sqlite.Open(dbPath)
 	bs := blobstore.NewTODOMapBlobstore()
 	ss, err := store.NewStashStore(t.TempDir())
 	require.NoError(t, err)
@@ -59,8 +63,6 @@ func TestPDPService(t *testing.T) {
 	fakeChain := NewFakeChainClient(t)
 	mockEth := NewMockEthClient(ctrl)
 	mockContract, mockVerifier, mockScheduler := NewMockContractClient(ctrl)
-	_ = mockVerifier
-	_ = mockScheduler
 
 	s, err := service.NewPDPService(
 		dbDialector,
@@ -162,7 +164,7 @@ func TestPDPService(t *testing.T) {
 	// return a proofset with ID 1
 	mockContract.EXPECT().GetProofSetIdFromReceipt(gomock.Any()).Return(uint64(1), nil)
 
-	mockVerifier.EXPECT().GetProofSetListener(gomock.Any(), big.NewInt(1)).Return(ListenetAddress, nil).AnyTimes()
+	mockVerifier.EXPECT().GetProofSetListener(gomock.Any(), big.NewInt(1)).Return(ListenerAddress, nil).AnyTimes()
 	mockScheduler.EXPECT().GetMaxProvingPeriod(gomock.Any()).Return(uint64(1), nil)
 	mockScheduler.EXPECT().ChallengeWindow(gomock.Any()).Return(big.NewInt(1), nil)
 
