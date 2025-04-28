@@ -117,12 +117,12 @@ func (c *FakeChainClient) StateGetRandomnessDigestFromBeacon(ctx context.Context
 	return randBytes, nil
 }
 
-func (c *FakeChainClient) AdvanceChain() {
-	c.AdvanceByHeight(1)
+func (c *FakeChainClient) AdvanceChain() abi.ChainEpoch {
+	return c.AdvanceByHeight(1)
 }
 
 // AdvanceHeight advances the chain by the specified number of epochs
-func (c *FakeChainClient) AdvanceByHeight(epochs int64) {
+func (c *FakeChainClient) AdvanceByHeight(epochs int64) abi.ChainEpoch {
 	c.currentMu.Lock()
 	defer c.currentMu.Unlock()
 
@@ -162,4 +162,5 @@ func (c *FakeChainClient) AdvanceByHeight(epochs int64) {
 			// Channel is full, continue without blocking
 		}
 	}
+	return newHeight
 }

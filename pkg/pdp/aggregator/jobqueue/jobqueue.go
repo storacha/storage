@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
