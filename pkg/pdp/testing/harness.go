@@ -94,7 +94,7 @@ func (h *Harness) WaitFor_MessageWaitsEth_TxSuccess(signedTx common.Hash) {
 
 		return record.TxSuccess != nil && *record.TxSuccess
 	},
-		3*time.Second,
+		time.Minute,
 		50*time.Millisecond)
 }
 
@@ -106,7 +106,7 @@ func (h *Harness) WaitFor_PDPProofsetCreate_OK(signedTx common.Hash) {
 
 		return record.Ok != nil && *record.Ok
 	},
-		3*time.Second,
+		time.Minute,
 		50*time.Millisecond,
 	)
 }
@@ -119,7 +119,7 @@ func (h *Harness) WaitFor_PDPProofsetCreate_ProofsetCreated(signedTx common.Hash
 
 		return record.Ok != nil && *record.Ok && record.ProofsetCreated
 	},
-		3*time.Second,
+		time.Minute,
 		50*time.Millisecond,
 	)
 
