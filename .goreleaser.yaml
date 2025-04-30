@@ -1,3 +1,5 @@
+version: 2
+
 builds:
   - main: ./cmd/storage
     binary: storage
@@ -28,4 +30,4 @@ archives:
 release:
   mode: keep-existing
 changelog:
-  skip: true
+  disable: true
