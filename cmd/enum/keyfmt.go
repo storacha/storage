@@ -2,7 +2,10 @@ package enum
 
 // inspiration: https://github.com/zarldev/goenums
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type KeyFormat struct {
 	keyFormat
@@ -37,9 +40,9 @@ func ParseKeyFormat(a any) KeyFormat {
 	case KeyFormat:
 		return v
 	case string:
-		return KeyFormat{stringToOperation(v)}
+		return KeyFormat{stringToOperation(strings.ToUpper(v))}
 	case fmt.Stringer:
-		return KeyFormat{stringToOperation(v.String())}
+		return KeyFormat{stringToOperation(strings.ToUpper(v.String()))}
 	case int:
 		return KeyFormat{keyFormat(v)}
 	case int64:
