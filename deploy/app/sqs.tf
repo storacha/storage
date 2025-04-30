@@ -10,6 +10,7 @@ resource "aws_sqs_queue" "piece_aggregator" {
   tags = {
     Name = "${terraform.workspace}-${var.app}-piece-aggregator"
   }
+  visibility_timeout_seconds = 60
 }
 
 resource "aws_sqs_queue" "piece_aggregator_deadletter" {
@@ -41,6 +42,7 @@ resource "aws_sqs_queue" "piece_accepter" {
   tags = {
     Name = "${terraform.workspace}-${var.app}-piece-accepter"
   }
+  visibility_timeout_seconds = 60
 }
 
 resource "aws_sqs_queue" "piece_accepter_deadletter" {
@@ -72,6 +74,7 @@ resource "aws_sqs_queue" "aggregate_submitter" {
   tags = {
     Name = "${terraform.workspace}-${var.app}-aggregate-submitter"
   }
+  visibility_timeout_seconds = 60
 }
 
 resource "aws_sqs_queue" "aggregate_submitter_deadletter" {

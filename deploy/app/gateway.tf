@@ -1,5 +1,6 @@
 locals {
-  web_functions = { for k, v in local.functions : k => v if(v.route != "") }
+  #web_functions = { for k, v in local.functions : k => v if(v.route != "") }
+  web_functions = { for k, v in local.functions : k => v if(try(v.route,"") != "") }
   domain_name   = terraform.workspace == "prod" ? "${var.app}.${var.domain}" : "${terraform.workspace}.${var.app}.${var.domain}"
 }
 
