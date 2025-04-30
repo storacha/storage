@@ -317,7 +317,7 @@ resource "aws_lambda_event_source_mapping" "piece_aggregator_source_mapping" {
 
 resource "aws_lambda_event_source_mapping" "pieceaccepter_source_mapping" {
   count            = var.use_pdp ? 1 : 0
-  event_source_arn = aws_sqs_queue.piece_accepter
+  event_source_arn = aws_sqs_queue.piece_accepter[0].arn
   enabled          = true
   function_name    = aws_lambda_function.lambda["pieceaccepter"].arn
   batch_size       = terraform.workspace == "prod" ? 10 : 1
