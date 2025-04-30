@@ -6,7 +6,7 @@ COPY go.* .
 RUN go mod download
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o /go/bin/storage ./cmd
+RUN CGO_ENABLED=0 go build -o /go/bin/storage ./cmd/storage
 RUN CGO_ENABLED=0 go build -o /go/bin/do-storage ./cmd/do
 
 FROM gcr.io/distroless/static-debian12

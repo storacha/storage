@@ -1,5 +1,5 @@
 builds:
-  - main: ./cmd
+  - main: ./cmd/storage
     binary: storage
     ldflags:
       # Sets the version variable in the build package to the build version prefixed with a 'v'
@@ -7,7 +7,6 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.CommitDate}} -X main.builtBy=goreleaser -X github.com/storacha/storage/pkg/build.version=v{{.Version}}
     goos:
       - linux
-      - windows
       - darwin
     goarch:
       - 'amd64'
@@ -20,10 +19,8 @@ universal_binaries:
   - replace: true
 archives:
   - format_overrides:
-    - goos: windows
-      format: zip
-    - goos: darwin
-      format: zip
+      - goos: darwin
+        format: zip
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}mac_os
