@@ -243,6 +243,7 @@ func New(opts ...Option) (*StorageService, error) {
 		peerAddr,
 		claims.WithPublisherDirectAnnounce(c.announceURLs...),
 		claims.WithPublisherAnnounceAddress(c.publisherAnnouceAddr),
+		claims.WithPublisherBlobAddress(c.publisherBlobAddress),
 		claims.WithPublisherIndexingService(c.indexingService),
 		claims.WithPublisherIndexingServiceProof(c.indexingServiceProofs...),
 	)

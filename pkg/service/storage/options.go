@@ -45,6 +45,7 @@ type config struct {
 	publisherStore        store.PublisherStore
 	publisherDatastore    datastore.Datastore
 	publisherAnnouceAddr  multiaddr.Multiaddr
+	publisherBlobAddress  multiaddr.Multiaddr
 	receiptStore          receiptstore.ReceiptStore
 	receiptDatastore      datastore.Datastore
 	pdp                   *PDPConfig
@@ -181,6 +182,14 @@ func WithPublisherDatastore(dstore datastore.Datastore) Option {
 func WithPublisherAnnounceAddress(addr multiaddr.Multiaddr) Option {
 	return func(c *config) error {
 		c.publisherAnnouceAddr = addr
+		return nil
+	}
+}
+
+// WithPublisherBlobAddress sets the multiaddr for blobs used by the publisher
+func WithPublisherBlobAddress(addr multiaddr.Multiaddr) Option {
+	return func(c *config) error {
+		c.publisherBlobAddress = addr
 		return nil
 	}
 }

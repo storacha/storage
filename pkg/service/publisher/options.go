@@ -12,6 +12,7 @@ import (
 )
 
 type options struct {
+	blobAddr              multiaddr.Multiaddr
 	announceAddr          multiaddr.Multiaddr
 	announceURLs          []url.URL
 	indexingService       client.Connection
@@ -25,6 +26,14 @@ type Option func(*options) error
 func WithAnnounceAddress(addr multiaddr.Multiaddr) Option {
 	return func(o *options) error {
 		o.announceAddr = addr
+		return nil
+	}
+}
+
+// WithBlobAddress sets a custom address to tell indexers where to fetch blobs from
+func WithBlobAddress(addr multiaddr.Multiaddr) Option {
+	return func(o *options) error {
+		o.blobAddr = addr
 		return nil
 	}
 }
