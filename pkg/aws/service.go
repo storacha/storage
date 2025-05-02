@@ -396,7 +396,7 @@ func Construct(cfg Config) (storage.Service, error) {
 			}
 			pathAddr, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape(cfg.BlobStoreBucketKeyPattern))
 			if err != nil {
-				return nil, fmt.Errorf("parsing multi addr for blob store key pattern: %w", err)
+				return nil, fmt.Errorf("parsing multiaddr for blob store key pattern: %w", err)
 			}
 			blobAddr = multiaddr.Join(blobPublicAddr, pathAddr)
 		}
