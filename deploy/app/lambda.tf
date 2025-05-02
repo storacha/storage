@@ -5,12 +5,6 @@ locals {
       pdponly   = true
       nopdponly = false
     }
-    getblob = {
-      name      = "GETblob"
-      pdponly   = false
-      nopdponly = true
-      route     = "GET /blob/{blob}"
-    }
     getclaim = {
       name      = "GETclaim"
       pdponly   = false
@@ -196,6 +190,7 @@ data "aws_iam_policy_document" "lambda_s3_put_get_document" {
       "${aws_s3_bucket.claim_store_bucket.arn}/*",
     ]
   }
+
   statement {
     actions = [
       "s3:ListBucket", "s3:GetBucketLocation"

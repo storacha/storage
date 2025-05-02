@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/ipni/go-libipni/maurl"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-libstoracha/metadata"
 	"github.com/storacha/go-libstoracha/piece/piece"
@@ -348,6 +349,7 @@ func Construct(cfg Config) (storage.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing announce multiaddr: %w", err)
 	}
+
 	opts := []storage.Option{
 		storage.WithIdentity(cfg.Signer),
 		storage.WithBlobstore(blobStore),
@@ -364,6 +366,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		storage.WithBlobsPresigner(blobStore.PresignClient()),
 	}
 
+	var blobAddr multiaddr.Multiaddr
 	if cfg.SQSPDPPieceAggregatorURL != "" && cfg.CurioURL != "" {
 		pdp, err := NewPDP(cfg)
 		if err != nil {
@@ -371,9 +374,33 @@ func Construct(cfg Config) (storage.Service, error) {
 		}
 
 		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{PDPService: pdp}))
+		curioURL, _ := url.Parse(cfg.CurioURL)
+		if err != nil {
+			return nil, fmt.Errorf("parsing curio URL: %w", err)
+		}
+		curioAddr, err := maurl.FromURL(curioURL)
+		if err != nil {
+			return nil, fmt.Errorf("parsing curio URL to multiaddr: %w", err)
+		}
+		pieceAddr, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("piece/{blobCID}"))
+		if err != nil {
+			return nil, fmt.Errorf("parsing piece addr for curio: %w", err)
+		}
+		blobAddr = multiaddr.Join(curioAddr, pieceAddr)
 	}
 
 	if cfg.BlobStoreBucketKeyPattern != "" {
+		if blobAddr == nil {
+			blobPublicAddr, err := maurl.FromURL(blobsPublicURL)
+			if err != nil {
+				return nil, fmt.Errorf("parsing blobs public url to address: %w", err)
+			}
+			pathAddr, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape(cfg.BlobStoreBucketKeyPattern))
+			if err != nil {
+				return nil, fmt.Errorf("parsing multiaddr for blob store key pattern: %w", err)
+			}
+			blobAddr = multiaddr.Join(blobPublicAddr, pathAddr)
+		}
 		pattern := blobsPublicURL.String()
 		if strings.HasSuffix(pattern, "/") {
 			pattern = fmt.Sprintf("%s%s", pattern, cfg.BlobStoreBucketKeyPattern)
@@ -386,6 +413,8 @@ func Construct(cfg Config) (storage.Service, error) {
 		}
 		opts = append(opts, storage.WithBlobsAccess(access))
 	}
-
+	if blobAddr != nil {
+		opts = append(opts, storage.WithPublisherBlobAddress(blobAddr))
+	}
 	return storage.New(opts...)
 }

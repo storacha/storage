@@ -260,7 +260,7 @@ func New(
 	if err != nil {
 		return nil, fmt.Errorf("creating libp2p peer ID from private key: %w", err)
 	}
-	provInfo := providerInfo(peerid, publicAddr)
+	provInfo := providerInfo(peerid, publicAddr, o.blobAddr)
 
 	if o.indexingService == nil {
 		log.Errorf("Indexing service is not configured - claims will not be cached")
@@ -276,12 +276,17 @@ func New(
 	}, nil
 }
 
-func providerInfo(peerID peer.ID, publicAddr multiaddr.Multiaddr) peer.AddrInfo {
+func providerInfo(peerID peer.ID, publicAddr multiaddr.Multiaddr, blobAddr multiaddr.Multiaddr) peer.AddrInfo {
 	provider := peer.AddrInfo{ID: peerID}
-	blobSuffix, _ := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("blob/{blob}"))
+	if blobAddr == nil {
+		blobSuffix, _ := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("blob/{blob}"))
+		provider.Addrs = append(provider.Addrs, multiaddr.Join(publicAddr, blobSuffix))
+	} else {
+		provider.Addrs = append(provider.Addrs, blobAddr)
+	}
 	claimSuffix, _ := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("claim/{claim}"))
-	provider.Addrs = append(provider.Addrs, multiaddr.Join(publicAddr, blobSuffix))
 	provider.Addrs = append(provider.Addrs, multiaddr.Join(publicAddr, claimSuffix))
+
 	return provider
 }
 

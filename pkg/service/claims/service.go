@@ -40,6 +40,7 @@ func New(id principal.Signer, claimStore claimstore.ClaimStore, publisherStore s
 		publisher.WithIndexingService(o.indexingService),
 		publisher.WithIndexingServiceProof(o.indexingServiceProofs...),
 		publisher.WithAnnounceAddress(o.announceAddr),
+		publisher.WithBlobAddress(o.blobAddr),
 	)
 	if err != nil {
 		return nil, err

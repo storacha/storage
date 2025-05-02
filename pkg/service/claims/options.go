@@ -14,6 +14,7 @@ import (
 type options struct {
 	announceAddr          multiaddr.Multiaddr
 	announceURLs          []url.URL
+	blobAddr              multiaddr.Multiaddr
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
 }
@@ -25,6 +26,14 @@ type Option func(*options) error
 func WithPublisherAnnounceAddress(addr multiaddr.Multiaddr) Option {
 	return func(o *options) error {
 		o.announceAddr = addr
+		return nil
+	}
+}
+
+// WithPublisherBlobAddress sets the address the publisher uses to announce blobs
+func WithPublisherBlobAddress(addr multiaddr.Multiaddr) Option {
+	return func(o *options) error {
+		o.blobAddr = addr
 		return nil
 	}
 }

@@ -16,6 +16,8 @@ import (
 	"time"
 
 	leveldb "github.com/ipfs/go-ds-leveldb"
+	"github.com/ipni/go-libipni/maurl"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
@@ -140,6 +142,7 @@ var StartCmd = &cli.Command{
 		}
 
 		var pdpConfig *storage.PDPConfig
+		var blobAddr multiaddr.Multiaddr
 		curioURLStr := cCtx.String("curio-url")
 		if curioURLStr != "" {
 			curioURL, err := url.Parse(curioURLStr)
@@ -169,6 +172,15 @@ var StartCmd = &cli.Command{
 				ProofSet:      uint64(proofSet),
 				Database:      pdpDB,
 			}
+			curioAddr, err := maurl.FromURL(curioURL)
+			if err != nil {
+				return err
+			}
+			pieceAddr, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("piece/{blobCID}"))
+			if err != nil {
+				return err
+			}
+			blobAddr = multiaddr.Join(curioAddr, pieceAddr)
 		}
 
 		port := cCtx.Int("port")
@@ -251,6 +263,9 @@ var StartCmd = &cli.Command{
 		}
 		if pdpConfig != nil {
 			opts = append(opts, storage.WithPDPConfig(*pdpConfig))
+		}
+		if blobAddr != nil {
+			opts = append(opts, storage.WithPublisherBlobAddress(blobAddr))
 		}
 		svc, err := storage.New(opts...)
 		if err != nil {
