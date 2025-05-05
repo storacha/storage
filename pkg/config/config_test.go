@@ -201,9 +201,6 @@ func TestFromCLI(t *testing.T) {
 	assert.Equal(t, defaultCfg.Core.ServerPort, cfg.Core.ServerPort)
 	assert.Equal(t, defaultCfg.Core.PublicURL, cfg.Core.PublicURL)
 
-	// Create a CLI context with various flags set
-	ctx = mockCLIContext(t)
-
 	// Set flags manually
 	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 	flagSet.String("key-file", "/path/to/key.pem", "")
