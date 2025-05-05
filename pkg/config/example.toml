@@ -1,0 +1,26 @@
+[core]
+#key_file = 'path/to/a/file.pem'
+#port = 3000
+#public_url = 'http://localhost:3000'
+
+[pdp]
+#server_url = 'https://pdp-server.com'
+#proof_set = 123
+
+[directories]
+#data_dir = 'path/to/root/storacha/dir'
+#temp_dir = 'path/to/tmp/dir'
+
+[indexing]
+#storage_proof = 'some-really-long-base64-string'
+#service_did = 'did:key:bafy-example'
+#service_url = 'http://some-domain-name.com'
+#announce_url = 'http://some-domain-name.com'
+
+
+[principals]
+#'did:web:some-domain-name' = 'did:key:bafy-example'
+
+[upload]
+#service_did = 'did:key:bafy-example'
+#service_url = 'http://some-domain-name.com'

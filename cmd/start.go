@@ -26,8 +26,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/cmd/enum"
+	"github.com/storacha/storage/pkg/config"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
-	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
 	"github.com/storacha/storage/pkg/service/storage"
@@ -38,12 +38,23 @@ var StartCmd = &cli.Command{
 	Name:  "start",
 	Usage: "Start the storage node daemon.",
 	Flags: []cli.Flag{
-		KeyFileFlag,
 		CurioURLFlag,
+		ProofSetFlag,
+		&cli.PathFlag{
+			Name:      "key-file",
+			Usage:     "Path to a file containing ed25519 private key, typically created by the id gen command.",
+			EnvVars:   []string{"STORAGE_PRIVATE_KEY"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "config",
+			Usage:   "Path to configuration file.",
+			EnvVars: []string{"STORAGE_CONFIG"},
+		},
 		&cli.IntFlag{
 			Name:    "port",
 			Aliases: []string{"p"},
-			Value:   3000,
+			Value:   config.DefaultServicePort,
 			Usage:   "Port to bind the server to.",
 			EnvVars: []string{"STORAGE_PORT"},
 		},
@@ -65,50 +76,60 @@ var StartCmd = &cli.Command{
 			Usage:   "URL the node is publically accessible at.",
 			EnvVars: []string{"STORAGE_PUBLIC_URL"},
 		},
-		ProofSetFlag,
 		&cli.StringFlag{
 			Name:    "indexing-service-proof",
 			Usage:   "A delegation that allows the node to cache claims with the indexing service.",
 			EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
 		},
+		&cli.StringFlag{
+			Name:    "indexing-service-url",
+			Usage:   "URL of the indexing service.",
+			EnvVars: []string{"STORAGE_INDEXING_SERVICE_URL"},
+		},
+		&cli.StringFlag{
+			Name:    "indexing-service-did",
+			Usage:   "DID of the indexing service.",
+			EnvVars: []string{"STORAGE_INDEXING_SERVICE_DID"},
+		},
+		&cli.StringFlag{
+			Name:    "announce-url",
+			Usage:   "URL to announce storage advertisements.",
+			EnvVars: []string{"STORAGE_ANNOUNCE_URL"},
+		},
+		&cli.StringFlag{
+			Name:    "upload-service-url",
+			Usage:   "URL of the upload service.",
+			EnvVars: []string{"STORAGE_UPLOAD_SERVICE_URL"},
+		},
+		&cli.StringFlag{
+			Name:    "upload-service-did",
+			Usage:   "DID of the upload service.",
+			EnvVars: []string{"STORAGE_UPLOAD_SERVICE_DID"},
+		},
 	},
 	Action: func(cCtx *cli.Context) error {
-		id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
+		cfg, err := config.LoadConfig(cCtx)
 		if err != nil {
 			return err
 		}
 
-		dataDir := cCtx.String("data-dir")
-		if dataDir == "" {
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("getting user home directory: %w", err)
-			}
-
-			dir, err := mkdirp(homeDir, ".storacha")
-			if err != nil {
-				return err
-			}
-			log.Errorf("Data directory is not configured, using default: %s", dir)
-			dataDir = dir
+		// load identity from key file
+		id, err := PrincipalSignerFromFile(cfg.Core.KeyFilePath)
+		if err != nil {
+			return err
 		}
 
-		tmpDir := cCtx.String("tmp-dir")
-		if tmpDir == "" {
-			dir, err := mkdirp(path.Join(os.TempDir(), "storage"))
-			if err != nil {
-				return err
-			}
-			log.Warnf("Tmp directory is not configured, using default: %s", dir)
-			tmpDir = dir
-		}
-
-		blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"), path.Join(tmpDir, "blobs"))
+		// Create file-based blob storage
+		blobStore, err := blobstore.NewFsBlobstore(
+			path.Join(cfg.Directories.DataDir, "blobs"),
+			path.Join(cfg.Directories.TempDir, "blobs"),
+		)
 		if err != nil {
 			return fmt.Errorf("creating blob storage: %w", err)
 		}
 
-		allocsDir, err := mkdirp(dataDir, "allocation")
+		// Set up datastores
+		allocsDir, err := mkdirp(cfg.Directories.DataDir, "allocation")
 		if err != nil {
 			return err
 		}
@@ -116,7 +137,8 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		claimsDir, err := mkdirp(dataDir, "claim")
+
+		claimsDir, err := mkdirp(cfg.Directories.DataDir, "claim")
 		if err != nil {
 			return err
 		}
@@ -124,7 +146,8 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		publisherDir, err := mkdirp(dataDir, "publisher")
+
+		publisherDir, err := mkdirp(cfg.Directories.DataDir, "publisher")
 		if err != nil {
 			return err
 		}
@@ -132,7 +155,8 @@ var StartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		receiptDir, err := mkdirp(dataDir, "receipt")
+
+		receiptDir, err := mkdirp(cfg.Directories.DataDir, "receipt")
 		if err != nil {
 			return err
 		}
@@ -141,19 +165,62 @@ var StartCmd = &cli.Command{
 			return err
 		}
 
+		// Parse necessary URLs
+		pubURL, err := url.Parse(cfg.Core.PublicURL)
+		if err != nil {
+			return fmt.Errorf("parsing public URL: %w", err)
+		}
+
+		announceURL, err := url.Parse(cfg.Indexing.AnnounceURL)
+		if err != nil {
+			return fmt.Errorf("parsing announce URL: %w", err)
+		}
+
+		indexingServiceURL, err := url.Parse(cfg.Indexing.ServiceURL)
+		if err != nil {
+			return fmt.Errorf("parsing indexing service URL: %w", err)
+		}
+
+		uploadServiceURL, err := url.Parse(cfg.Upload.ServiceURL)
+		if err != nil {
+			return fmt.Errorf("parsing upload service URL: %w", err)
+		}
+
+		// Parse DIDs
+		indexingServiceDID, err := did.Parse(cfg.Indexing.ServiceDID)
+		if err != nil {
+			return fmt.Errorf("parsing indexing service DID: %w", err)
+		}
+
+		uploadServiceDID, err := did.Parse(cfg.Upload.ServiceDID)
+		if err != nil {
+			return fmt.Errorf("parsing upload service DID: %w", err)
+		}
+
+		// Parse delegation proofs if present
+		var indexingServiceProofs delegation.Proofs
+		if cfg.Indexing.StorageProof != "" {
+			dlg, err := delegation.Parse(cfg.Indexing.StorageProof)
+			if err != nil {
+				return fmt.Errorf("parsing indexing service proof: %w", err)
+			}
+			indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(dlg))
+		}
+
+		// Configure PDP if enabled
 		var pdpConfig *storage.PDPConfig
 		var blobAddr multiaddr.Multiaddr
-		curioURLStr := cCtx.String("curio-url")
-		if curioURLStr != "" {
-			curioURL, err := url.Parse(curioURLStr)
+		if cfg.PDP != nil && cfg.PDP.ServerURL != "" {
+			curioURL, err := url.Parse(cfg.PDP.ServerURL)
 			if err != nil {
 				return fmt.Errorf("parsing curio URL: %w", err)
 			}
-			if !cCtx.IsSet("pdp-proofset") {
+
+			if cfg.PDP.ProofSet == 0 {
 				return errors.New("pdp-proofset must be set if curio is used")
 			}
-			proofSet := cCtx.Int64("pdp-proofset")
-			pdpDir, err := mkdirp(dataDir, "pdp")
+
+			pdpDir, err := mkdirp(cfg.Directories.DataDir, "pdp")
 			if err != nil {
 				return err
 			}
@@ -161,15 +228,16 @@ var StartCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
-			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
+
 			pdpDB, err := jobqueue.NewInMemoryDB()
 			if err != nil {
 				return err
 			}
+
 			pdpConfig = &storage.PDPConfig{
 				PDPDatastore:  pdpDs,
 				CurioEndpoint: curioURL,
-				ProofSet:      uint64(proofSet),
+				ProofSet:      cfg.PDP.ProofSet,
 				Database:      pdpDB,
 			}
 			curioAddr, err := maurl.FromURL(curioURL)
@@ -183,71 +251,7 @@ var StartCmd = &cli.Command{
 			blobAddr = multiaddr.Join(curioAddr, pieceAddr)
 		}
 
-		port := cCtx.Int("port")
-		pubURLstr := cCtx.String("public-url")
-		if pubURLstr == "" {
-			pubURLstr = fmt.Sprintf("http://localhost:%d", port)
-			log.Errorf("Public URL is not configured, using: %s", pubURLstr)
-		}
-		pubURL, err := url.Parse(pubURLstr)
-		if err != nil {
-			return fmt.Errorf("parsing public URL: %w", err)
-		}
-
-		announceURL := *presets.AnnounceURL
-		if os.Getenv("STORAGE_ANNOUNCE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_ANNOUNCE_URL"))
-			if err != nil {
-				return fmt.Errorf("parsing announce URL: %w", err)
-			}
-			announceURL = *u
-		}
-
-		indexingServiceDID := presets.IndexingServiceDID
-		if os.Getenv("STORAGE_INDEXING_SERVICE_DID") != "" {
-			d, err := did.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_DID"))
-			if err != nil {
-				return fmt.Errorf("parsing indexing service DID: %w", err)
-			}
-			indexingServiceDID = d
-		}
-
-		indexingServiceURL := *presets.IndexingServiceURL
-		if os.Getenv("STORAGE_INDEXING_SERVICE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_URL"))
-			if err != nil {
-				return fmt.Errorf("parsing indexing service URL: %w", err)
-			}
-			indexingServiceURL = *u
-		}
-
-		uploadServiceDID := presets.UploadServiceDID
-		if os.Getenv("STORAGE_UPLOAD_SERVICE_DID") != "" {
-			d, err := did.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_DID"))
-			if err != nil {
-				return fmt.Errorf("parsing indexing service DID: %w", err)
-			}
-			uploadServiceDID = d
-		}
-
-		uploadServiceURL := *presets.UploadServiceURL
-		if os.Getenv("STORAGE_UPLOAD_SERVICE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_URL"))
-			if err != nil {
-				return fmt.Errorf("parsing indexing service URL: %w", err)
-			}
-			uploadServiceURL = *u
-		}
-
-		var indexingServiceProofs delegation.Proofs
-		if cCtx.String("indexing-service-proof") != "" {
-			dlg, err := delegation.Parse(cCtx.String("indexing-service-proof"))
-			if err != nil {
-				return fmt.Errorf("parsing indexing service proof: %w", err)
-			}
-			indexingServiceProofs = append(indexingServiceProofs, delegation.FromDelegation(dlg))
-		}
-
+		// Configure storage service options
 		opts := []storage.Option{
 			storage.WithIdentity(id),
 			storage.WithBlobstore(blobStore),
@@ -255,22 +259,26 @@ var StartCmd = &cli.Command{
 			storage.WithClaimDatastore(claimDs),
 			storage.WithPublisherDatastore(publisherDs),
 			storage.WithPublicURL(*pubURL),
-			storage.WithPublisherDirectAnnounce(announceURL),
-			storage.WithUploadServiceConfig(uploadServiceDID, uploadServiceURL),
-			storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
+			storage.WithPublisherDirectAnnounce(*announceURL),
+			storage.WithUploadServiceConfig(uploadServiceDID, *uploadServiceURL),
+			storage.WithPublisherIndexingServiceConfig(indexingServiceDID, *indexingServiceURL),
 			storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),
 			storage.WithReceiptDatastore(receiptDs),
 		}
+
 		if pdpConfig != nil {
 			opts = append(opts, storage.WithPDPConfig(*pdpConfig))
 		}
 		if blobAddr != nil {
 			opts = append(opts, storage.WithPublisherBlobAddress(blobAddr))
 		}
+
+		// Create and start the service
 		svc, err := storage.New(opts...)
 		if err != nil {
 			return fmt.Errorf("creating service instance: %w", err)
 		}
+
 		err = svc.Startup(cCtx.Context)
 		if err != nil {
 			return fmt.Errorf("starting service: %w", err)
@@ -278,20 +286,13 @@ var StartCmd = &cli.Command{
 
 		defer svc.Close(cCtx.Context)
 
-		principalMapping := presets.PrincipalMapping
-		if os.Getenv("STORAGE_PRINCIPAL_MAPPING") != "" {
-			var pm map[string]string
-			err := json.Unmarshal([]byte(os.Getenv("STORAGE_PRINCIPAL_MAPPING")), &pm)
-			if err != nil {
-				return fmt.Errorf("parsing principal mapping: %w", err)
-			}
-			principalMapping = pm
-		}
-		presolv, err := principalresolver.New(principalMapping)
+		// Configure principal resolver
+		presolv, err := principalresolver.New(cfg.Principals)
 		if err != nil {
 			return fmt.Errorf("creating principal resolver: %w", err)
 		}
 
+		// Display the service ID
 		go func() {
 			time.Sleep(time.Millisecond * 50)
 			if err == nil {
@@ -299,8 +300,9 @@ var StartCmd = &cli.Command{
 			}
 		}()
 
+		// Start the HTTP server
 		err = server.ListenAndServe(
-			fmt.Sprintf(":%d", cCtx.Int("port")),
+			fmt.Sprintf(":%d", cfg.Core.ServerPort),
 			svc,
 			ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey),
 		)
