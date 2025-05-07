@@ -28,7 +28,8 @@ import (
 	"github.com/storacha/go-ucanto/core/result"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/principal"
-	"github.com/storacha/storage/pkg/service/publisher/advertisement"
+
+	"github.com/storacha/go-libstoracha/advertisement"
 )
 
 var log = logging.Logger("publisher")
@@ -70,8 +71,8 @@ func PublishLocationCommitment(
 ) error {
 	log := log.With("claim", locationCommitment.Link())
 
-	cap := locationCommitment.Capabilities()[0]
-	nb, rerr := assert.LocationCaveatsReader.Read(cap.Nb())
+	capability := locationCommitment.Capabilities()[0]
+	nb, rerr := assert.LocationCaveatsReader.Read(capability.Nb())
 	if rerr != nil {
 		return fmt.Errorf("reading location commitment data: %w", rerr)
 	}
@@ -87,8 +88,14 @@ func PublishLocationCommitment(
 		exp = *locationCommitment.Expiration()
 	}
 
+	shardCid, err := advertisement.ShardCID(provider, nb)
+	if err != nil {
+		return fmt.Errorf("failed to extract shard CID for provider: %s locationCommitment %s: %w", provider, capability, err)
+	}
+
 	meta := metadata.MetadataContext.New(
 		&metadata.LocationCommitmentMetadata{
+			Shard:      shardCid,
 			Claim:      asCID(locationCommitment.Link()),
 			Expiration: int64(exp),
 		},
