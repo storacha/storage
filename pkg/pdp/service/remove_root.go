@@ -14,7 +14,7 @@ import (
 
 func (p *PDPService) RemoveRoot(ctx context.Context, proofSetID uint64, rootID uint64) error {
 	// Get the ABI and pack the transaction data
-	abiData, err := contract.PDPVerifierMetaData.GetAbi()
+	abiData, err := contract.PDPVerifierMetaData()
 	if err != nil {
 		return fmt.Errorf("get contract ABI: %w", err)
 	}

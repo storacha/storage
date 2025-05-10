@@ -18,7 +18,7 @@ func (p *PDPService) ProofSetCreate(ctx context.Context, recordKeeper common.Add
 	}
 
 	// Obtain the ABI of the PDPVerifier contract
-	abiData, err := contract.PDPVerifierMetaData.GetAbi()
+	abiData, err := contract.PDPVerifierMetaData()
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to get contract ABI: %w", err)
 	}

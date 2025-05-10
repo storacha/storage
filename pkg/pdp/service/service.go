@@ -16,6 +16,7 @@ import (
 
 	"github.com/storacha/storage/pkg/pdp/ethereum"
 	"github.com/storacha/storage/pkg/pdp/scheduler"
+	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/service/models"
 	"github.com/storacha/storage/pkg/pdp/store"
 	"github.com/storacha/storage/pkg/pdp/tasks"
@@ -70,7 +71,7 @@ type ChainClient interface {
 	StateGetRandomnessDigestFromBeacon(ctx context.Context, randEpoch abi.ChainEpoch, tsk types.TipSetKey) (abi.Randomness, error)
 }
 
-type ContractClient interface {
+type EthClient interface {
 	tasks.SenderETHClient
 	tasks.MessageWatcherEthClient
 	bind.ContractBackend
@@ -83,7 +84,8 @@ func NewPDPService(
 	bs blobstore.Blobstore,
 	ss store.Stash,
 	chainClient ChainClient,
-	ethClient ContractClient,
+	ethClient EthClient,
+	contractClient contract.PDP,
 ) (*PDPService, error) {
 	var (
 		startFns []func(context.Context) error
@@ -91,7 +93,7 @@ func NewPDPService(
 	)
 	chainScheduler := scheduler.NewChain(chainClient)
 
-	db, err := setupDatabase(dialector)
+	db, err := SetupDatabase(dialector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup database: %w", err)
 	}
@@ -100,13 +102,13 @@ func NewPDPService(
 	sender, senderTask := tasks.NewSenderETH(ethClient, wallet, db)
 	t = append(t, senderTask)
 
-	pdpInitTask, err := tasks.NewInitProvingPeriodTask(db, ethClient, chainClient, chainScheduler, sender)
+	pdpInitTask, err := tasks.NewInitProvingPeriodTask(db, ethClient, contractClient, chainClient, chainScheduler, sender)
 	if err != nil {
 		return nil, fmt.Errorf("creating init proving period task: %w", err)
 	}
 	t = append(t, pdpInitTask)
 
-	pdpNextTask, err := tasks.NewNextProvingPeriodTask(db, ethClient, chainClient, chainScheduler, sender)
+	pdpNextTask, err := tasks.NewNextProvingPeriodTask(db, ethClient, contractClient, chainClient, chainScheduler, sender)
 	if err != nil {
 		return nil, fmt.Errorf("creating next proving period task: %w", err)
 	}
@@ -115,17 +117,17 @@ func NewPDPService(
 	pdpNotifyTask := tasks.NewPDPNotifyTask(db)
 	t = append(t, pdpNotifyTask)
 
-	pdpProveTask, err := tasks.NewProveTask(chainScheduler, db, ethClient, chainClient, sender, bs)
+	pdpProveTask, err := tasks.NewProveTask(chainScheduler, db, ethClient, contractClient, chainClient, sender, bs)
 	if err != nil {
 		return nil, fmt.Errorf("creating prove period task: %w", err)
 	}
 	t = append(t, pdpProveTask)
 
-	if err := tasks.NewWatcherCreate(db, ethClient, chainScheduler); err != nil {
+	if err := tasks.NewWatcherCreate(db, ethClient, contractClient, chainScheduler); err != nil {
 		return nil, fmt.Errorf("creating watcher root create: %w", err)
 	}
 
-	if err := tasks.NewWatcherRootAdd(db, chainScheduler); err != nil {
+	if err := tasks.NewWatcherRootAdd(db, chainScheduler, contractClient); err != nil {
 		return nil, fmt.Errorf("creating watcher root add: %w", err)
 	}
 
@@ -172,7 +174,7 @@ func NewPDPService(
 	}, nil
 }
 
-func setupDatabase(d gorm.Dialector) (*gorm.DB, error) {
+func SetupDatabase(d gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(d)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)

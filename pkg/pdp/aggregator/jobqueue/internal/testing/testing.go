@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"testing"
 
-	_ "github.com/ncruces/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/stretchr/testify/require"
 
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"

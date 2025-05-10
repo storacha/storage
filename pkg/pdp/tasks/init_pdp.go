@@ -30,9 +30,10 @@ var log = logging.Logger("pdp/tasks")
 var _ scheduler.TaskInterface = &InitProvingPeriodTask{}
 
 type InitProvingPeriodTask struct {
-	db        *gorm.DB
-	ethClient bind.ContractBackend
-	sender    ethereum.Sender
+	db             *gorm.DB
+	ethClient      bind.ContractBackend
+	contractClient contract.PDP
+	sender         ethereum.Sender
 
 	chain ChainAPI
 
@@ -44,12 +45,20 @@ type ChainAPI interface {
 	StateGetRandomnessDigestFromBeacon(ctx context.Context, randEpoch abi.ChainEpoch, tsk chaintypes.TipSetKey) (abi.Randomness, error) //perm:read
 }
 
-func NewInitProvingPeriodTask(db *gorm.DB, ethClient bind.ContractBackend, chain ChainAPI, chainSched *scheduler.Chain, sender ethereum.Sender) (*InitProvingPeriodTask, error) {
+func NewInitProvingPeriodTask(
+	db *gorm.DB,
+	ethClient bind.ContractBackend,
+	contractClient contract.PDP,
+	chain ChainAPI,
+	chainSched *scheduler.Chain,
+	sender ethereum.Sender,
+) (*InitProvingPeriodTask, error) {
 	ipp := &InitProvingPeriodTask{
-		db:        db,
-		ethClient: ethClient,
-		sender:    sender,
-		chain:     chain,
+		db:             db,
+		ethClient:      ethClient,
+		contractClient: contractClient,
+		sender:         sender,
+		chain:          chain,
 	}
 
 	if err := chainSched.AddHandler(func(ctx context.Context, revert, apply *chaintypes.TipSet) error {
@@ -122,7 +131,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	proofSetID = proofSet.ID
 
 	// Get the listener address for this proof set from the PDPVerifier contract
-	pdpVerifier, err := contract.NewPDPVerifier(contract.Addresses().PDPVerifier, ipp.ethClient)
+	pdpVerifier, err := ipp.contractClient.NewPDPVerifier(contract.Addresses().PDPVerifier, ipp.ethClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to instantiate PDPVerifier contract: %w", err)
 	}
@@ -133,7 +142,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	}
 
 	// Determine the next challenge window start by consulting the listener
-	provingSchedule, err := contract.NewIPDPProvingSchedule(listenerAddr, ipp.ethClient)
+	provingSchedule, err := ipp.contractClient.NewIPDPProvingSchedule(listenerAddr, ipp.ethClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to create proving schedule binding, check that listener has proving schedule methods: %w", err)
 	}
@@ -154,7 +163,7 @@ func (ipp *InitProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err er
 	pdpVeriferAddress := pdpContracts.PDPVerifier
 
 	// Prepare the transaction data
-	abiData, err := contract.PDPVerifierMetaData.GetAbi()
+	abiData, err := contract.PDPVerifierMetaData()
 	if err != nil {
 		return false, fmt.Errorf("failed to get PDPVerifier ABI: %w", err)
 	}

@@ -7,7 +7,7 @@ import (
 	"gorm.io/datatypes"
 )
 
-//go:embed triggers.sql
+//go:embed triggers.sqlite.sql
 var Triggers string
 
 // Machine represents the machines table.
