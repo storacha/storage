@@ -2,6 +2,7 @@ package replica
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/storacha/go-libstoracha/capabilities/blob/replica"
 	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/go-ucanto/client"
+	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/invocation"
 	"github.com/storacha/go-ucanto/core/invocation/ran"
 	"github.com/storacha/go-ucanto/core/ipld"
@@ -55,6 +57,55 @@ type TransferRequest struct {
 	// Cause is the invocation responsible for spawning this replication
 	// should be a replica/transfer invocation.
 	Cause invocation.Invocation
+}
+
+func (r *TransferRequest) MarshalJSON() ([]byte, error) {
+	archive, err := io.ReadAll(r.Cause.Archive())
+	if err != nil {
+		return nil, err
+	}
+	adapter := struct {
+		Space  []byte     `json:"space"`
+		Blob   types.Blob `json:"blob"`
+		Source url.URL    `json:"source"`
+		Sink   *url.URL   `json:"sink"`
+		Cause  []byte     `json:"cause"`
+	}{
+		Space:  r.Space.Bytes(),
+		Blob:   r.Blob,
+		Source: r.Source,
+		Sink:   r.Sink,
+		Cause:  archive,
+	}
+	return json.Marshal(adapter)
+}
+
+func (r *TransferRequest) UnmarshalJSON(b []byte) error {
+	type adapter struct {
+		Space  []byte     `json:"space"`
+		Blob   types.Blob `json:"blob"`
+		Source url.URL    `json:"source"`
+		Sink   *url.URL   `json:"sink"`
+		Cause  []byte     `json:"cause"`
+	}
+	var a adapter
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	cause, err := delegation.Extract(a.Cause)
+	if err != nil {
+		return err
+	}
+	space, err := did.Decode(a.Space)
+	if err != nil {
+		return err
+	}
+	r.Space = space
+	r.Blob = a.Blob
+	r.Source = a.Source
+	r.Sink = a.Sink
+	r.Cause = cause
+	return nil
 }
 
 func Transfer(ctx context.Context, service TransferService, request *TransferRequest) error {

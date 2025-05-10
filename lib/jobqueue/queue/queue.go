@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"time"
 
-	internalsql "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/sql"
+	internalsql "github.com/storacha/storage/lib/jobqueue/internal/sql"
 )
 
 //go:embed schema.sql

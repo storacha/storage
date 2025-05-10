@@ -16,7 +16,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/storacha/storage/lib/jobqueue/queue"
 )
 
 //go:embed schema.sql

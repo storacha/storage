@@ -17,9 +17,9 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 
 	"github.com/storacha/storage/internal/ipldstore"
+	"github.com/storacha/storage/lib/jobqueue"
+	"github.com/storacha/storage/lib/jobqueue/serializer"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/store/receiptstore"
 )
@@ -50,8 +50,8 @@ type LocalAggregator struct {
 
 // Startup starts up aggregation queues
 func (la *LocalAggregator) Startup(ctx context.Context) error {
-	go la.pieceQueue.Start(ctx)
-	go la.linkQueue.Start(ctx)
+	la.pieceQueue.Start(ctx)
+	la.linkQueue.Start(ctx)
 	return nil
 }
 
@@ -83,7 +83,7 @@ func NewLocal(
 	linkQueue, err := jobqueue.New(
 		LinkQueueName,
 		db,
-		&serializer.IPLDSerializerCBOR[datamodel.Link]{
+		&serializer.IPLDCBOR[datamodel.Link]{
 			Typ:  &schema.TypeLink{},
 			Opts: types.Converters,
 		},
@@ -98,7 +98,7 @@ func NewLocal(
 	pieceQueue, err := jobqueue.New(
 		PieceQueueName,
 		db,
-		&serializer.IPLDSerializerCBOR[piece.PieceLink]{
+		&serializer.IPLDCBOR[piece.PieceLink]{
 			Typ:  aggregate.PieceLinkType(),
 			Opts: types.Converters,
 		},

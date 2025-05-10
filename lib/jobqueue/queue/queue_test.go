@@ -19,9 +19,10 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
-	testing2 "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/testing"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 	"github.com/stretchr/testify/require"
+
+	testing2 "github.com/storacha/storage/lib/jobqueue/internal/testing"
+	"github.com/storacha/storage/lib/jobqueue/queue"
 )
 
 //go:embed schema.sql

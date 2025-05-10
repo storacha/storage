@@ -53,6 +53,7 @@ type config struct {
 	indexingService       client.Connection
 	indexingServiceProofs delegation.Proofs
 	uploadService         client.Connection
+	db                    *sql.DB
 }
 
 type Option func(*config) error
@@ -262,6 +263,13 @@ func WithLogLevel(name string, level string) Option {
 func WithPDPConfig(pdpConfig PDPConfig) Option {
 	return func(c *config) error {
 		c.pdp = &pdpConfig
+		return nil
+	}
+}
+
+func WithDB(db *sql.DB) Option {
+	return func(c *config) error {
+		c.db = db
 		return nil
 	}
 }
