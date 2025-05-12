@@ -1,0 +1,26 @@
+[Unit]
+Description=Storacha Storage Node Service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+Environment="GOLOG_LOG_LEVEL=${storage_log_level}"
+Environment="STORAGE_PRINCIPAL_MAPPING='${storage_principal_mapping}'"
+Environment="STORAGE_INDEXING_SERVICE_DID='${storage_indexing_service_did}'"
+Environment="STORAGE_INDEXING_SERVICE_URL='${storage_indexing_service_url}'"
+Environment="STORAGE_UPLOAD_SERVICE_DID='${storage_upload_service_did}'"
+Environment="STORAGE_UPLOAD_SERVICE_URL='${storage_upload_service_url}'"
+Environment="STORAGE_PRIVATE_KEY=/opt/service.pem"
+Environment="STORAGE_CURIO_URL='${storage_curio_url}'"
+Environment="STORAGE_PDP_PROOFSET=${storage_pdp_proofset}"
+Environment="STORAGE_PUBLIC_URL='${storage_public_url}'"
+Environment="STORAGE_INDEXING_SERVICE_PROOF='${storage_indexing_service_proof}'"
+Environment="STORAGE_DATA_DIR=/data/storage"
+ExecStart=/usr/local/bin/storage start
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
