@@ -10,7 +10,7 @@ output "instance_public_ip" {
 
 output "instance_dns" {
   description = "DNS name of the storage node"
-  value       = aws_route53_record.storage_node.fqdn
+  value       = aws_route53_record.pdp_record.fqdn
 }
 
 output "data_volume_id" {
