@@ -24,9 +24,14 @@ type ProofSetCreate struct {
 	Service           string `db:"service"`
 }
 
-func NewWatcherCreate(db *gorm.DB, ethClient bind.ContractBackend, pcs *scheduler.Chain) error {
+func NewWatcherCreate(
+	db *gorm.DB,
+	ethClient bind.ContractBackend,
+	contractClient contract.PDP,
+	pcs *scheduler.Chain,
+) error {
 	if err := pcs.AddHandler(func(ctx context.Context, revert, apply *chaintypes.TipSet) error {
-		err := processPendingProofSetCreates(ctx, db, ethClient)
+		err := processPendingProofSetCreates(ctx, db, ethClient, contractClient)
 		if err != nil {
 			log.Warnf("Failed to process pending proof set creates: %v", err)
 		}
@@ -37,7 +42,12 @@ func NewWatcherCreate(db *gorm.DB, ethClient bind.ContractBackend, pcs *schedule
 	return nil
 }
 
-func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient bind.ContractBackend) error {
+func processPendingProofSetCreates(
+	ctx context.Context,
+	db *gorm.DB,
+	ethClient bind.ContractBackend,
+	contractClient contract.PDP,
+) error {
 	// Query for pdp_proofset_creates entries where ok = TRUE and proofset_created = FALSE
 	var proofSetCreates []models.PDPProofsetCreate
 	err := db.WithContext(ctx).
@@ -54,7 +64,7 @@ func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient b
 
 	// Process each proof set create
 	for _, psc := range proofSetCreates {
-		err := processProofSetCreate(ctx, db, psc, ethClient)
+		err := processProofSetCreate(ctx, db, psc, ethClient, contractClient)
 		if err != nil {
 			log.Warnf("Failed to process proof set create for tx %s: %v", psc.CreateMessageHash, err)
 			continue
@@ -64,7 +74,13 @@ func processPendingProofSetCreates(ctx context.Context, db *gorm.DB, ethClient b
 	return nil
 }
 
-func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProofsetCreate, ethClient bind.ContractBackend) error {
+func processProofSetCreate(
+	ctx context.Context,
+	db *gorm.DB,
+	psc models.PDPProofsetCreate,
+	ethClient bind.ContractBackend,
+	contactClient contract.PDP,
+) error {
 	// Retrieve the tx_receipt from message_waits_eth
 	var msgWait models.MessageWaitsEth
 	err := db.WithContext(ctx).
@@ -84,13 +100,13 @@ func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProof
 	}
 
 	// Parse the logs to extract the proofSetId
-	proofSetId, err := extractProofSetIdFromReceipt(&txReceipt)
+	proofSetId, err := contactClient.GetProofSetIdFromReceipt(&txReceipt)
 	if err != nil {
 		return xerrors.Errorf("failed to extract proofSetId from receipt for tx %s: %w", psc.CreateMessageHash, err)
 	}
 
 	// Get the listener address for this proof set from the PDPVerifier contract
-	pdpVerifier, err := contract.NewPDPVerifier(contract.Addresses().PDPVerifier, ethClient)
+	pdpVerifier, err := contactClient.NewPDPVerifier(contract.Addresses().PDPVerifier, ethClient)
 	if err != nil {
 		return xerrors.Errorf("failed to instantiate PDPVerifier contract: %w", err)
 	}
@@ -102,7 +118,7 @@ func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProof
 
 	// Get the proving period from the listener
 	// Assumption: listener is a PDP Service with proving window informational methods
-	provingPeriod, challengeWindow, err := getProvingPeriodChallengeWindow(ctx, ethClient, listenerAddr)
+	provingPeriod, challengeWindow, err := getProvingPeriodChallengeWindow(ctx, ethClient, listenerAddr, contactClient)
 	if err != nil {
 		return xerrors.Errorf("failed to get max proving period: %w", err)
 	}
@@ -125,37 +141,15 @@ func processProofSetCreate(ctx context.Context, db *gorm.DB, psc models.PDPProof
 	return nil
 }
 
-func extractProofSetIdFromReceipt(receipt *types.Receipt) (uint64, error) {
-	pdpABI, err := contract.PDPVerifierMetaData.GetAbi()
-	if err != nil {
-		return 0, xerrors.Errorf("failed to get PDP ABI: %w", err)
-	}
-
-	event, exists := pdpABI.Events["ProofSetCreated"]
-	if !exists {
-		return 0, xerrors.Errorf("ProofSetCreated event not found in ABI")
-	}
-	_ = event
-
-	// it would appear the event ID being returned from the ABI is currently incorrect.
-	// this appears to be the correct ID.
-	// THIS TOOK FOR FUCKING EVER TO DEBUG WHAT THE FUCK
-	//correctProofSetCreatedEventHash := common.HexToHash("0x5979d495e336598dba8459e44f8eb2a1c957ce30fcc10cabea4bb0ffe969df6a")
-	for _, vLog := range receipt.Logs {
-		if len(vLog.Topics) > 0 && vLog.Topics[0] == event.ID {
-			if len(vLog.Topics) < 2 {
-				return 0, xerrors.Errorf("log does not contain setId topic")
-			}
-
-			setIdBigInt := new(big.Int).SetBytes(vLog.Topics[1].Bytes())
-			return setIdBigInt.Uint64(), nil
-		}
-	}
-
-	return 0, xerrors.Errorf("ProofSetCreated event not found in receipt")
-}
-
-func insertProofSet(ctx context.Context, db *gorm.DB, createMsg string, proofSetId uint64, service string, provingPeriod uint64, challengeWindow uint64) error {
+func insertProofSet(
+	ctx context.Context,
+	db *gorm.DB,
+	createMsg string,
+	proofSetId uint64,
+	service string,
+	provingPeriod uint64,
+	challengeWindow uint64,
+) error {
 	// Implement the insertion into pdp_proof_sets table
 	proofset := models.PDPProofSet{
 		ID:                int64(proofSetId),
@@ -171,9 +165,9 @@ func insertProofSet(ctx context.Context, db *gorm.DB, createMsg string, proofSet
 	return nil
 }
 
-func getProvingPeriodChallengeWindow(ctx context.Context, ethClient bind.ContractBackend, listenerAddr common.Address) (uint64, uint64, error) {
+func getProvingPeriodChallengeWindow(ctx context.Context, ethClient bind.ContractBackend, listenerAddr common.Address, contractClient contract.PDP) (uint64, uint64, error) {
 	// ProvingPeriod
-	schedule, err := contract.NewIPDPProvingSchedule(listenerAddr, ethClient)
+	schedule, err := contractClient.NewIPDPProvingSchedule(listenerAddr, ethClient)
 	if err != nil {
 		return 0, 0, xerrors.Errorf("failed to create proving schedule binding, check that listener has proving schedule methods: %w", err)
 	}

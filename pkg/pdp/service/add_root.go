@@ -143,7 +143,7 @@ func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []Ad
 
 	// Step 5: Prepare the Ethereum transaction data outside the DB transaction
 	// Obtain the ABI of the PDPVerifier contract
-	abiData, err := contract.PDPVerifierMetaData.GetAbi()
+	abiData, err := contract.PDPVerifierMetaData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get abi data from PDPVerifierMetaData: %w", err)
 	}

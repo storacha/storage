@@ -44,11 +44,12 @@ var _ scheduler.TaskInterface = &ProveTask{}
 const LeafSize = proof.NODE_SIZE
 
 type ProveTask struct {
-	db        *gorm.DB
-	ethClient bind.ContractBackend
-	sender    ethereum.Sender
-	bs        blobstore.Blobstore
-	api       ChainAPI
+	db             *gorm.DB
+	ethClient      bind.ContractBackend
+	contractClient contract.PDP
+	sender         ethereum.Sender
+	bs             blobstore.Blobstore
+	api            ChainAPI
 
 	head atomic.Pointer[chaintypes.TipSet]
 
@@ -59,16 +60,18 @@ func NewProveTask(
 	chainSched *scheduler.Chain,
 	db *gorm.DB,
 	ethClient bind.ContractBackend,
+	contractClient contract.PDP,
 	api ChainAPI,
 	sender ethereum.Sender,
 	bs blobstore.Blobstore,
 ) (*ProveTask, error) {
 	pt := &ProveTask{
-		db:        db,
-		ethClient: ethClient,
-		sender:    sender,
-		api:       api,
-		bs:        bs,
+		db:             db,
+		ethClient:      ethClient,
+		contractClient: contractClient,
+		sender:         sender,
+		api:            api,
+		bs:             bs,
 	}
 
 	// ProveTasks are created on pdp_proof_sets entries where
@@ -165,7 +168,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	pdpContracts := contract.Addresses()
 	pdpVerifierAddress := pdpContracts.PDPVerifier
 
-	pdpVerifier, err := contract.NewPDPVerifier(pdpVerifierAddress, p.ethClient)
+	pdpVerifier, err := p.contractClient.NewPDPVerifier(pdpVerifierAddress, p.ethClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to instantiate PDPVerifier contract at %s: %w", pdpVerifierAddress.Hex(), err)
 	}
@@ -190,7 +193,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 		return false, fmt.Errorf("failed to generate proofs: %w", err)
 	}
 
-	abiData, err := contract.PDPVerifierMetaData.GetAbi()
+	abiData, err := contract.PDPVerifierMetaData()
 	if err != nil {
 		return false, fmt.Errorf("failed to get PDPVerifier ABI: %w", err)
 	}
@@ -277,7 +280,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	return true, nil
 }
 
-func (p *ProveTask) GenerateProofs(ctx context.Context, pdpService *contract.PDPVerifier, proofSetID int64, seed abi.Randomness, numChallenges int) ([]contract.PDPVerifierProof, error) {
+func (p *ProveTask) GenerateProofs(ctx context.Context, pdpService contract.PDPVerifier, proofSetID int64, seed abi.Randomness, numChallenges int) ([]contract.PDPVerifierProof, error) {
 	proofs := make([]contract.PDPVerifierProof, numChallenges)
 
 	callOpts := &bind.CallOpts{
@@ -623,7 +626,7 @@ func (p *ProveTask) proveRoot(ctx context.Context, proofSetID int64, rootId int6
 	return out, nil
 }
 
-func (p *ProveTask) cleanupDeletedRoots(ctx context.Context, proofSetID int64, pdpVerifier *contract.PDPVerifier) error {
+func (p *ProveTask) cleanupDeletedRoots(ctx context.Context, proofSetID int64, pdpVerifier contract.PDPVerifier) error {
 	removals, err := pdpVerifier.GetScheduledRemovals(nil, big.NewInt(proofSetID))
 	if err != nil {
 		return fmt.Errorf("failed to get scheduled removals: %w", err)
