@@ -175,7 +175,7 @@ func NewPDPService(
 }
 
 func SetupDatabase(d gorm.Dialector) (*gorm.DB, error) {
-	db, err := gorm.Open(d)
+	db, err := gorm.Open(d, &gorm.Config{SkipDefaultTransaction: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
 	}

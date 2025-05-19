@@ -30,10 +30,11 @@ type Task struct {
 	InitiatedBy  *int      `gorm:"column:initiated_by;comment:The task ID whose completion occasioned this task"`
 	UpdateTime   time.Time `gorm:"not null;default:current_timestamp;column:update_time;comment:When it was last modified. not a heartbeat"`
 	PostedTime   time.Time `gorm:"not null;column:posted_time"`
-	OwnerID      *int      `gorm:"column:owner_id;comment:may be null if between owners or not yet taken"`
-	AddedBy      int       `gorm:"not null;column:added_by"`
+	SessionID    *string   `gorm:"column:session_id;comment:may be null if not yet taken"`
+	AddedBy      string    `gorm:"not null;column:added_by"`
 	PreviousTask *int      `gorm:"column:previous_task"`
 	Name         string    `gorm:"size:16;not null;column:name;comment:The name of the task type"`
+	Retries      uint      `gorm:"not null;column:retries"`
 	// Note: The "retries" field was commented out in the original schema.
 
 	// TODO consider adding this in when/if we allow more machines
@@ -46,15 +47,15 @@ func (Task) TableName() string {
 
 // TaskHistory represents the task_history table.
 type TaskHistory struct {
-	ID                     int64     `gorm:"primaryKey;autoIncrement;column:id"`
-	TaskID                 int       `gorm:"not null;column:task_id"`
-	Name                   string    `gorm:"size:16;not null;column:name"`
-	Posted                 time.Time `gorm:"not null;column:posted"`
-	WorkStart              time.Time `gorm:"not null;column:work_start"`
-	WorkEnd                time.Time `gorm:"not null;column:work_end"`
-	Result                 bool      `gorm:"not null;column:result;comment:Use to detemine if this was a successful run."`
-	Err                    string    `gorm:"column:err"`
-	CompletedByHostAndPort string    `gorm:"size:300;not null;column:completed_by_host_and_port"`
+	ID                   int64     `gorm:"primaryKey;autoIncrement;column:id"`
+	TaskID               int64     `gorm:"not null;column:task_id"`
+	Name                 string    `gorm:"size:16;not null;column:name"`
+	Posted               time.Time `gorm:"not null;column:posted"`
+	WorkStart            time.Time `gorm:"not null;column:work_start"`
+	WorkEnd              time.Time `gorm:"not null;column:work_end"`
+	Result               bool      `gorm:"not null;column:result;comment:Use to determine if this was a successful run."`
+	Err                  string    `gorm:"column:err"`
+	CompletedBySessionID string    `gorm:"size:300;not null;column:completed_by_session_id"`
 }
 
 func (TaskHistory) TableName() string {
