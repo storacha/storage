@@ -21,14 +21,20 @@ type TaskInterface interface {
 
 // TaskTypeDetails defines static properties for each task type.
 type TaskTypeDetails struct {
-	// Maximum concurrent tasks allowed (0 means no limit)
-	Max int
 	// Task name (should be unique and short)
 	Name string
 	// Maximum failure count before dropping the task (0 = retry forever)
 	MaxFailures uint
 	// RetryWait is a function returning the wait duration based on retries.
 	RetryWait func(retries int) time.Duration
+	// PeriodicScheduler defines a task that should run on a fixed interval
+	PeriodicScheduler *PeriodicScheduler
+}
 
-	IAmBored func(AddTaskFunc) error
+// PeriodicScheduler defines a periodic task scheduler that runs on a fixed interval
+type PeriodicScheduler struct {
+	// Interval is the time between executions
+	Interval time.Duration
+	// Runner is the function that will be called periodically
+	Runner func(AddTaskFunc) error
 }

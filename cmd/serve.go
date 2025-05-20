@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/pkg/pdp"
@@ -77,6 +78,7 @@ var pdpCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		logging.SetLogLevel("*", "INFO")
 		rootDir := cctx.String("data-dir")
 		if rootDir == "" {
 			homeDir, err := os.UserHomeDir()
@@ -109,7 +111,7 @@ var pdpCmd = &cli.Command{
 			port,
 			lotusURL,
 			ethURL,
-			"host=localhost user=postgres dbname=postgres port=5432 sslmode=disable",
+			"pdp-server.db",
 			common.HexToAddress(addrStr),
 		)
 		if err != nil {

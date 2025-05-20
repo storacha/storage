@@ -75,15 +75,9 @@ func NewEngine(db *gorm.DB, impls []TaskInterface, opts ...Option) (*TaskEngine,
 		// Start the adder routine for the task type.
 		go h.Adder(h.AddTask)
 
-		// **Start the periodic "bored" routine if provided**
-		if h.TaskTypeDetails.IAmBored != nil {
-			go func(h *taskTypeHandler) {
-				err := h.TaskTypeDetails.IAmBored(h.AddTask)
-				if err != nil {
-					log.Warnf("IAmBored for task %s returned error: %v",
-						h.TaskTypeDetails.Name, err)
-				}
-			}(h)
+		// Start the periodic scheduler if provided
+		if h.TaskTypeDetails.PeriodicScheduler != nil {
+			go h.runPeriodicTask()
 		}
 	}
 
@@ -167,30 +161,6 @@ func (e *TaskEngine) pollerTryAllWork() bool {
 				return true
 			}
 			log.Warnf("Work not accepted for %d %s task(s)", len(taskIDs), h.TaskTypeDetails.Name)
-		}
-	}
-
-	// if no work was accepted, are we bored? Then find work in priority order.
-	for _, v := range e.handlers {
-		v := v
-		if v.TaskTypeDetails.IAmBored != nil {
-			var added []TaskID
-			err := v.TaskTypeDetails.IAmBored(func(extraInfo func(TaskID, *gorm.DB) (shouldCommit bool, seriousError error)) {
-				v.AddTask(func(tID TaskID, tx *gorm.DB) (shouldCommit bool, seriousError error) {
-					b, err := extraInfo(tID, tx)
-					if err == nil && shouldCommit {
-						added = append(added, tID)
-					}
-					return b, err
-				})
-			})
-			if err != nil {
-				log.Error("IAmBored failed: ", err)
-				continue
-			}
-			if added != nil { // tiny chance a fail could make these bogus, but considerWork should then fail.
-				v.considerWork(added, e.db)
-			}
 		}
 	}
 

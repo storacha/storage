@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgconn"
@@ -82,7 +81,9 @@ retryAddTask:
 func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 	acceptedAny := false
 
+	log.Infof("Considering work for tasks %v", taskIDs)
 	for _, id := range taskIDs {
+		log.Infof("Considering work for task %d", id)
 		result := db.Model(&models.Task{}).
 			Where(&models.Task{ID: int64(id), SessionID: nil}).
 			Updates(models.Task{
@@ -104,6 +105,7 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 		// TODO doing this in parallel is causing concurrency issues with the sqlite database.
 		acceptedAny = true
 		func(taskID TaskID) {
+			tlog := log.With("name", h.TaskTypeDetails.Name, "task_id", taskID, "session_id", h.TaskEngine.sessionID)
 			var (
 				done    bool
 				doErr   error
@@ -113,23 +115,16 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 				if r := recover(); r != nil {
 					stackSlice := make([]byte, 4092)
 					sz := runtime.Stack(stackSlice, false)
-					log.Error("Recovered from a serious error "+
-						"while processing "+h.TaskTypeDetails.Name+" task "+strconv.Itoa(int(taskID))+": ", r,
-						" Stack: ", string(stackSlice[:sz]))
+					tlog.Error("Task recovered from panic", "panic", r, "stack", string(stackSlice[:sz]))
 				}
 
 				h.handleDoneTask(taskID, doStart, done, doErr)
 			}()
 
-			log.Infow(
-				"Executing task",
-				"name", h.TaskTypeDetails.Name,
-				"id", taskID,
-				"session", h.TaskEngine.sessionID,
-			)
+			tlog.Info("Task starting execution")
 			done, doErr = h.Do(taskID)
 			if doErr != nil {
-				log.Errorw("Error executing task", "task_id", taskID, "error", doErr)
+				tlog.Errorw("Task execution failed", "error", doErr, "done", done, "duration", time.Since(doStart))
 			}
 		}(id)
 	}
@@ -138,28 +133,38 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 }
 
 func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bool, doErr error) error {
+	tlog := log.With(
+		"name", h.TaskTypeDetails.Name,
+		"task_id", id,
+		"session_id", h.TaskEngine.sessionID,
+		"done", done,
+		"duration", time.Since(startTime),
+	)
+
 	endTime := time.Now()
 	err := h.TaskEngine.db.WithContext(h.TaskEngine.ctx).Debug().Transaction(func(tx *gorm.DB) error {
-
 		// find the task that we are handling
 		task := models.Task{}
 		if res := tx.Model(&models.Task{}).
 			Where("id = ?", id).
 			First(&task); res.Error != nil {
-			return fmt.Errorf("failed to handle done task: failed to query taskID: %d: %w", id, res.Error)
+			return fmt.Errorf("failed to handle task: failed to query taskID: %d: %w", id, res.Error)
 		} else if res.RowsAffected == 0 {
-			return fmt.Errorf("failed to handle done task: no task found for taskID: %d: %w", id, res.Error)
+			return fmt.Errorf("failed to handle task: no task found for taskID: %d: %w", id, res.Error)
 		}
 
 		taskErrMsg := ""
 		if done {
 			// if the task is done, we can delete it
-			if err := tx.Model(&models.Task{}).Delete(task).Error; err != nil {
+			if err := tx.Delete(&models.Task{}, id).Error; err != nil {
 				return fmt.Errorf("failed to handle done task: failed to delete task %d: %w", id, err)
 			}
 			// the task may have returned an error, in addition to completing successfully, record this if present
 			if doErr != nil {
 				taskErrMsg = "non-failing error: " + doErr.Error()
+				tlog.Warn("Task completed execution with error", "error", doErr)
+			} else {
+				tlog.Info("Task completed execution")
 			}
 		} else {
 			// if the task is not done, see if it can be retried, and capture its error message
@@ -168,10 +173,12 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 			}
 			// the task has exceeded the number of allowed retries, delete it
 			if h.TaskTypeDetails.MaxFailures > 0 && task.Retries >= h.TaskTypeDetails.MaxFailures {
+				tlog.Errorw("Task execution retries exceeded, removing task", "maxFailures", h.TaskTypeDetails.MaxFailures, "retries", task.Retries, "error", doErr)
 				if err := tx.Delete(&models.Task{}, id).Error; err != nil {
 					return fmt.Errorf("failed to deleted failed task %d: %w", id, err)
 				}
 			} else {
+				tlog.Warnw("Task retrying execution", "maxFailures", h.TaskTypeDetails.MaxFailures, "retry", task.Retries, "error", doErr)
 				// the task may be retried, increment retry counter and set sessionID to nil, allowing the task engine
 				// to pick it back up and try again
 				if err := tx.Model(&models.Task{}).
@@ -227,4 +234,28 @@ func IsSerializationError(err error) bool {
 		return pgErr.Code == "40001"
 	}
 	return false
+}
+
+// runPeriodicTask runs a periodic task at the specified interval
+func (h *taskTypeHandler) runPeriodicTask() {
+	scheduler := h.TaskTypeDetails.PeriodicScheduler
+	if scheduler == nil {
+		return
+	}
+
+	ticker := time.NewTicker(scheduler.Interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-h.TaskEngine.ctx.Done():
+			return
+		case <-ticker.C:
+			err := scheduler.Runner(h.AddTask)
+			if err != nil {
+				log.Warnf("Periodic scheduler for task %s returned error: %v",
+					h.TaskTypeDetails.Name, err)
+			}
+		}
+	}
 }

@@ -6,9 +6,20 @@ import (
 	"strings"
 	"time"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
+
+	"github.com/storacha/storage/pkg/pdp/api/middleware"
 )
+
+var logger = logging.Logger("pdp/server")
+
+// customErrorHandler provides enhanced error handling for ContextualError types
+func customErrorHandler(err error, c echo.Context) {
+	// Let our middleware handle the error type and logging
+	middleware.HandleError(err, c)
+}
 
 type Server struct {
 	e *echo.Echo
@@ -17,8 +28,11 @@ type Server struct {
 func NewServer(p *PDP) *Server {
 	e := echo.New()
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	e.Use(middleware.LogMiddleware(logger))
+	e.Use(echomiddleware.Recover())
+	
+	// Custom error handler for our ContextualError type
+	e.HTTPErrorHandler = customErrorHandler
 
 	RegisterEchoRoutes(e, p)
 

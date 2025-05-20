@@ -88,7 +88,7 @@ func NewLocal(
 			Opts: types.Converters,
 		},
 		jobqueue.WithLogger(logging.Logger("jobqueue").With("queue", LinkQueueName)),
-		jobqueue.WithMaxRetries(10),
+		jobqueue.WithMaxRetries(50),
 		jobqueue.WithMaxWorkers(uint(runtime.NumCPU())),
 	)
 	if err != nil {
@@ -103,7 +103,7 @@ func NewLocal(
 			Opts: types.Converters,
 		},
 		jobqueue.WithLogger(logging.Logger("jobqueue").With("queue", PieceQueueName)),
-		jobqueue.WithMaxRetries(10),
+		jobqueue.WithMaxRetries(50),
 		jobqueue.WithMaxWorkers(uint(runtime.NumCPU())),
 	)
 	if err != nil {

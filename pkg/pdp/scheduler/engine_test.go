@@ -14,7 +14,7 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
-const InMemoryDSN = ":memory:"
+const InMemoryDSN = "file:test"
 
 // MockTask implements TaskInterface for testing
 type MockTask struct {
@@ -31,7 +31,6 @@ func NewMockTask(name string, maxConcurrent int, shouldComplete bool) *MockTask 
 	return &MockTask{
 		typeDetails: TaskTypeDetails{
 			Name: name,
-			Max:  maxConcurrent,
 			RetryWait: func(retries int) time.Duration {
 				return time.Millisecond * 50
 			},

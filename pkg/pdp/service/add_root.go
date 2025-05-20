@@ -228,7 +228,7 @@ func (p *PDPService) ProofSetAddRoot(ctx context.Context, id int64, request []Ad
 		// Update proof set for initialization upon first add
 		if err := tx.WithContext(ctx).
 			Model(&models.PDPProofSet{}).
-			Where("id = ? AND prev_challenge_request_epoch IS NULL AND challenge_request_msg_hash IS NULL AND prove_at_epoch IS NULL", proofSetID).
+			Where("id = ? AND prev_challenge_request_epoch IS NULL AND challenge_request_msg_hash IS NULL AND prove_at_epoch IS NULL", proofSetID.Int64()).
 			Update("init_ready", true).Error; err != nil {
 			return err
 		}

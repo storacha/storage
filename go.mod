@@ -42,8 +42,8 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/mock v0.5.0
 	gorm.io/datatypes v1.2.5
-	gorm.io/driver/sqlite v1.4.3
-	gorm.io/gorm v1.25.11
+	gorm.io/driver/sqlite v1.5.7
+	gorm.io/gorm v1.26.1
 
 )
 
@@ -111,7 +111,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
