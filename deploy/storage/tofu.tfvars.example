@@ -1,0 +1,20 @@
+region              = "us-west-2"
+allowed_account_ids = ["123456789012"]
+# Service configuration
+storage_upload_service_did     = "did:web:upload.your-domain.storacha.network"
+storage_upload_service_url     = "https://your-upload-api-gateway.execute-api.us-west-2.amazonaws.com/"
+storage_principal_mapping      = <<EOF
+{"did:web:storage.your-domain.storacha.network":"did:key:z6MkYourKeyHere"}
+EOF
+storage_indexing_service_did   = "did:key:z6MkYourIndexerKeyHere"
+storage_indexing_service_url   = "https://your-indexer-endpoint.storacha.network/claims"
+storage_indexing_service_proof = "your-indexing-service-proof-string"
+storage_pdp_proofset           = 123
+storage_curio_url              = "https://your-curio-endpoint.tech"
+storage_log_level              = "info"
+# EC2 configuration
+ssh_key_name        = "your-ssh-key-name"
+app                 = "pdp"
+service_pem_content = "-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_CONTENT_HERE\n-----END PRIVATE KEY-----"
+ebs_device_name     = "/dev/sdf"
+data_mount_point    = "/data"
