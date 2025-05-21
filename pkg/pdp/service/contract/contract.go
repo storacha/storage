@@ -35,6 +35,7 @@ type PDPVerifier interface {
 	FindRootIds(opts *bind.CallOpts, setId *big.Int, leafIndexs []*big.Int) ([]internal.PDPVerifierRootIdAndOffset, error)
 	GetScheduledRemovals(opts *bind.CallOpts, setId *big.Int) ([]*big.Int, error)
 	CalculateProofFee(opts *bind.CallOpts, setId *big.Int, estimatedGasFee *big.Int) (*big.Int, error)
+	GetChallengeFinality(opts *bind.CallOpts) (*big.Int, error)
 }
 
 func PDPVerifierMetaData() (*abi.ABI, error) {

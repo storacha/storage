@@ -122,7 +122,9 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 
 				doneMu.Lock()
 				defer doneMu.Unlock()
-				h.handleDoneTask(taskID, doStart, done, doErr)
+				if err := h.handleDoneTask(taskID, doStart, done, doErr); err != nil {
+					log.Errorw("failed to handle task done", "task_id", taskID, "error", err)
+				}
 			}()
 
 			tlog.Info("Task starting execution")

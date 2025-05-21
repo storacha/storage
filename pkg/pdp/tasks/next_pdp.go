@@ -129,6 +129,71 @@ func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err erro
 		return false, fmt.Errorf("failed to get next challenge window start: %w", err)
 	}
 
+	//
+	// special case
+	/*
+		 In the event this node has been offline, next_prove_at will be =< current chain head.
+		 This will result in a message send failure on the contract as the next_prove_at epoch must:
+			- fall within the next challenge window
+		 	- be at least challengeFinality epochs in the future.
+		 In this event:
+			- Explicitly calculate the minimum required epoch based on the contract's requirements.
+			- Ensures a buffer of at least half the challengeWindow but never less than the required challengeFinality.
+			- Set new next_prove_at value.
+			- warn the user!
+	*/
+	// used for logging later if case is hit.
+	originalProveAt := new(big.Int).Set(next_prove_at)
+
+	// get the current head (height) of chain.
+	head, err := n.fil.ChainHead(context.Background())
+	if err != nil {
+		return false, fmt.Errorf("failed to get chain head: %w", err)
+	}
+	// get the challengeFinality parameter from the PDPVerifier.
+	challengeFinality, err := pdpVerifier.GetChallengeFinality(nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to get challenge finality: %w", err)
+	}
+	// get the challengeWindow parameter from the PDPProvingScheduler.
+	challengeWindow, err := provingSchedule.ChallengeWindow(nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to get challenge window: %w", err)
+	}
+	// ensure it's at least challengeFinality epochs in the future
+	minRequiredEpoch := new(big.Int).Add(big.NewInt(int64(head.Height())), challengeFinality)
+	if next_prove_at.Cmp(minRequiredEpoch) < 0 {
+		// Calculate a proper buffer - should be at least half the challenge window but not less than challengeFinality
+		buffer := new(big.Int).Div(challengeWindow, big.NewInt(2))
+		if buffer.Cmp(challengeFinality) < 0 {
+			buffer = new(big.Int).Set(challengeFinality)
+		}
+		// Calculate new next_prove_at: current height + buffer
+		next_prove_at = new(big.Int).Add(big.NewInt(int64(head.Height())), buffer)
+
+		// notify user of issue after adjusting.
+		log.Warnw("Adjusting next_prove_at due to offline period or timing constraints",
+			"proof_set_id", proofSetID,
+			"original_next_prove_at", originalProveAt,
+			"current_height", head.Height(),
+			"challenge_finality", challengeFinality,
+			"challenge_window", challengeWindow,
+			"min_required_epoch", minRequiredEpoch,
+			"adjusted_next_prove_at", next_prove_at,
+			"buffer_used", buffer)
+	}
+
+	// an initial hacky fix, that did work, but wasn't robust, confirm new fix works, then remove this
+	/*
+		if next_prove_at.Uint64() < uint64(head.Height())+challengeWindow.Uint64() {
+			next_prove_at = next_prove_at.Add(next_prove_at, challengeWindow.Div(challengeWindow, big.NewInt(2)))
+		}
+
+	*/
+	//
+	// end special case
+	//
+
 	// Instantiate the PDPVerifier contract
 	pdpContracts := contract.Addresses()
 	pdpVerifierAddress := pdpContracts.PDPVerifier
@@ -167,6 +232,7 @@ func (n *NextProvingPeriodTask) Do(taskID scheduler.TaskID) (done bool, err erro
 
 	// Send the transaction
 	reason := "pdp-proving-period"
+	log.Infow("Sending next proving period transaction", "task_id", taskID, "proof_set_id", proofSetID, "next_prove_at", next_prove_at, "current_height", head.Height(), "challenge_window", challengeWindow)
 	txHash, err := n.sender.Send(ctx, fromAddress, txEth, reason)
 	if err != nil {
 		return false, fmt.Errorf("failed to send transaction: %w", err)
