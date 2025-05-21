@@ -87,6 +87,9 @@ func NewLocal(
 		database.WithSynchronous("FULL"),
 		database.WithAutoVacuum("INCREMENTAL"),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("creating jobqueue database: %w", err)
+	}
 	linkQueue, err := jobqueue.New(
 		LinkQueueName,
 		db,

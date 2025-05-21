@@ -22,12 +22,11 @@ var log = logging.Logger("pdp/scheduler")
 
 // TaskEngine is the central scheduler.
 type TaskEngine struct {
-	ctx         context.Context
-	cancel      context.CancelFunc
-	db          *gorm.DB
-	sessionID   string
-	handlers    []*taskTypeHandler
-	lastCleanup time.Time
+	ctx       context.Context
+	cancel    context.CancelFunc
+	db        *gorm.DB
+	sessionID string
+	handlers  []*taskTypeHandler
 }
 
 type Option func(*TaskEngine) error
