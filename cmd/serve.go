@@ -140,7 +140,7 @@ var pdpCmd = &cli.Command{
 			port,
 			lotusURL,
 			ethURL,
-			filepath.Join(stateDir, "state.db"),
+			filepath.Join(stateDir, "state.db?_pragma=foreign_keys(1)"),
 			common.HexToAddress(addrStr),
 			wlt,
 		)

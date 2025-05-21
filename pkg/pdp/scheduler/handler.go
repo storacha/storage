@@ -148,7 +148,7 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 	)
 
 	endTime := time.Now()
-	err := h.TaskEngine.db.WithContext(h.TaskEngine.ctx).Debug().Transaction(func(tx *gorm.DB) error {
+	err := h.TaskEngine.db.WithContext(h.TaskEngine.ctx).Transaction(func(tx *gorm.DB) error {
 		// find the task that we are handling
 		task := models.Task{}
 		if res := tx.Model(&models.Task{}).

@@ -1,18 +1,25 @@
 package testing
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
+	"github.com/ipfs/go-cid"
+	"github.com/multiformats/go-multihash"
+	"github.com/storacha/go-ucanto/core/ipld/hash/sha256"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/storacha/storage/pkg/build"
@@ -21,7 +28,9 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/service/contract/mocks"
 	"github.com/storacha/storage/pkg/pdp/service/models"
+	types2 "github.com/storacha/storage/pkg/pdp/service/types"
 	"github.com/storacha/storage/pkg/pdp/store"
+	"github.com/storacha/storage/pkg/pdp/tasks"
 	"github.com/storacha/storage/pkg/store/blobstore"
 	"github.com/storacha/storage/pkg/store/keystore"
 	"github.com/storacha/storage/pkg/wallet"
@@ -126,6 +135,154 @@ func (h *Harness) WaitFor_PDPProofsetCreate_ProofsetCreated(signedTx common.Hash
 
 }
 
+func (h *Harness) UploadPiece(ctx context.Context, svc *service.PDPService, piece []byte, notify string) *service.PiecePrepareResponse {
+	pieceDigest, err := sha256.Hasher.Sum(piece)
+	require.NoError(h.T, err)
+
+	decoded, err := multihash.Decode(pieceDigest.Bytes())
+	require.NoError(h.T, err)
+
+	prepareRequest := service.PiecePrepareRequest{
+		Check: types2.PieceHash{
+			Name: decoded.Name,
+			Hash: hex.EncodeToString(decoded.Digest),
+			Size: int64(len(piece)),
+		},
+		Notify: notify,
+	}
+	resp, err := svc.PreparePiece(ctx, prepareRequest)
+	require.NoError(h.T, err)
+
+	// ensure the piece was added to the prepareUpload table
+	var prepareUpload []models.PDPPieceUpload
+	expectedID := strings.Split(resp.Location, "/")[4]
+	res := h.DB.Where(&models.PDPPieceUpload{ID: expectedID}).Find(&prepareUpload)
+	require.NoError(h.T, res.Error)
+	require.Len(h.T, prepareUpload, 1)
+	require.Equal(h.T, prepareUpload[0].CheckHashCodec, prepareRequest.Check.Name)
+	require.Equal(h.T, prepareUpload[0].CheckSize, prepareRequest.Check.Size)
+
+	// upload piece we prepared above.
+	expectedUUID, err := uuid.Parse(expectedID)
+	require.NoError(h.T, err)
+	_, err = svc.UploadPiece(ctx, expectedUUID, bytes.NewReader(piece))
+	require.NoError(h.T, err)
+
+	// after a piece is uploaded, the prepareUpload table will be populated with its details.
+	var postUpload []models.PDPPieceUpload
+	require.Eventually(h.T, func() bool {
+		result := h.DB.Model(&models.PDPPieceUpload{}).
+			Where("id = ?", expectedID).
+			Find(&postUpload)
+		if result.Error != nil {
+			return false
+		}
+		if len(postUpload) == 0 {
+			return false
+		}
+		return true
+	},
+		time.Minute,
+		50*time.Millisecond)
+
+	var parkedPiece []models.ParkedPiece
+	res = h.DB.Where(&models.ParkedPiece{PieceCID: *postUpload[0].PieceCID}).
+		Find(&parkedPiece)
+	require.NoError(h.T, res.Error)
+	require.Len(h.T, parkedPiece, 1)
+	require.EqualValues(h.T, len(piece), parkedPiece[0].PieceRawSize)
+	require.True(h.T, parkedPiece[0].LongTerm)
+	require.False(h.T, parkedPiece[0].Complete)
+
+	var parkedPieceRef []models.ParkedPieceRef
+	res = h.DB.Where(&models.ParkedPieceRef{PieceID: parkedPiece[0].ID}).
+		Find(&parkedPieceRef)
+	require.NoError(h.T, res.Error)
+	require.Len(h.T, parkedPieceRef, 1)
+	require.True(h.T, parkedPieceRef[0].LongTerm)
+
+	// ensure the prepareUpload is removed from the table, eventually
+	// TODO this can be sped up my mocking the clock used by the engine for running
+	// scheduled tasks, currently they run every 10 seconds.
+	require.Eventually(h.T, func() bool {
+		var rmUpload []models.PDPPieceUpload
+		res = h.DB.Where(&models.PDPPieceUpload{ID: expectedID}).Find(&rmUpload)
+
+		if len(rmUpload) == 0 {
+			return true
+		}
+
+		return false
+	}, time.Minute, 50*time.Millisecond)
+
+	var parkedPieceReady []models.ParkedPiece
+	res = h.DB.Where(&models.ParkedPiece{PieceCID: *postUpload[0].PieceCID}).
+		Find(&parkedPieceReady)
+	require.NoError(h.T, res.Error)
+	require.Len(h.T, parkedPieceReady, 1)
+	require.EqualValues(h.T, len(piece), parkedPiece[0].PieceRawSize)
+	require.True(h.T, parkedPieceReady[0].LongTerm)
+	require.True(h.T, parkedPieceReady[0].Complete)
+
+	pieceCid, found, err := svc.FindPiece(ctx, prepareRequest.Check.Name, prepareRequest.Check.Hash, prepareRequest.Check.Size)
+	require.NoError(h.T, err)
+	require.True(h.T, found)
+	// TODO make an actual assertion on the CID equal to the expected
+	require.NotEqual(h.T, cid.Undef, pieceCid)
+	h.T.Logf("found piece CID: %s", pieceCid)
+
+	return resp
+}
+
+func (h *Harness) CreateProofSet(ctx context.Context, svc *service.PDPService, id, challengeWindow, provingPeriod uint64) *models.PDPProofSet {
+	h.SendCreateProofSet(id)
+
+	proofSetCreatTx, err := svc.ProofSetCreate(ctx, RecordKeepAddress)
+	require.NoError(h.T, err)
+
+	h.Require_MessageSendsEth_SendSuccess("pdp-mkproofset", proofSetCreatTx)
+
+	// trigger processing of watch_eth task
+	currentHeight := h.Chain.AdvanceByHeight(tasks.MinConfidence)
+
+	h.EthClient.MockMessageWatcherEthClient.EXPECT().
+		TransactionReceipt(gomock.Any(), common.HexToHash(proofSetCreatTx.Hex())).
+		Return(NewSuccessfulReceipt(int64(currentHeight-tasks.MinConfidence)), nil)
+
+	h.EthClient.MockMessageWatcherEthClient.EXPECT().
+		TransactionByHash(gomock.Any(), common.HexToHash(proofSetCreatTx.Hex())).
+		Return(NewCreateProofSetTransaction(h.T), false, nil)
+
+	h.WaitFor_MessageWaitsEth_TxSuccess(proofSetCreatTx)
+
+	// trigger processing of watch_create task
+	h.Chain.AdvanceChain()
+
+	h.Contract.EXPECT().GetProofSetIdFromReceipt(gomock.Any()).Return(id, nil)
+	h.Verifier.EXPECT().GetProofSetListener(gomock.Any(), big.NewInt(1)).Return(ListenerAddress, nil).AnyTimes()
+	h.Schedule.EXPECT().GetMaxProvingPeriod(gomock.Any()).Return(provingPeriod, nil)
+	h.Schedule.EXPECT().ChallengeWindow(gomock.Any()).Return(big.NewInt(int64(challengeWindow)), nil)
+
+	h.WaitFor_PDPProofsetCreate_OK(proofSetCreatTx)
+	h.WaitFor_PDPProofsetCreate_ProofsetCreated(proofSetCreatTx)
+
+	var proofSet []models.PDPProofSet
+	res := h.DB.Where(&models.PDPProofSet{CreateMessageHash: proofSetCreatTx.Hex()}).
+		Find(&proofSet)
+
+	require.NoError(h.T, res.Error)
+	require.Len(h.T, proofSet, 1)
+	require.Nil(h.T, proofSet[0].PrevChallengeRequestEpoch)
+	require.Nil(h.T, proofSet[0].ChallengeRequestTaskID)
+	require.Nil(h.T, proofSet[0].ChallengeRequestMsgHash)
+	require.Nil(h.T, proofSet[0].ProveAtEpoch)
+	require.False(h.T, proofSet[0].InitReady)
+	require.EqualValues(h.T, challengeWindow, *proofSet[0].ChallengeWindow)
+	require.EqualValues(h.T, provingPeriod, *proofSet[0].ProvingPeriod)
+
+	return &proofSet[0]
+}
+
 func SetupTestDeps(t testing.TB, ctx context.Context, ctrl *gomock.Controller) (*Harness, *service.PDPService) {
 	// a fake chain with methods to advance the state of the chain
 	fakeChain := NewFakeChainClient(t)
@@ -135,6 +292,7 @@ func SetupTestDeps(t testing.TB, ctx context.Context, ctrl *gomock.Controller) (
 	mockContract, mockVerifier, mockScheduler := NewMockContractClient(ctrl)
 
 	// directory all state for test will be initialized in
+	//testDir := "/home/frrist/workspace/"
 	testDir := t.TempDir()
 
 	// path to SQLite db used for test case

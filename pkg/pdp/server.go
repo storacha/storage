@@ -11,11 +11,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filecoin-project/lotus/api/client"
+	"github.com/glebarez/sqlite"
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	leveldb "github.com/ipfs/go-ds-leveldb"
-	"gorm.io/driver/sqlite"
 
 	"github.com/storacha/storage/pkg/pdp/api"
 	"github.com/storacha/storage/pkg/pdp/curio"
