@@ -110,6 +110,12 @@ variable "sentry_environment" {
   default     = ""
 }
 
+variable "ipni_announce_urls" {
+  type        = string
+  description = "Optional JSON array of IPNI node URLs to announce chain updates to."
+  default     = "[\"https://cid.contact\"]"
+}
+
 // Externally hosted, S3 compatible blob bucket? These variables are for you.
 // Note: credentials MUST have s3:GetObject, s3:PutObject s3:ListBucket perms.
 

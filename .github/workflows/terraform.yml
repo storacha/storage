@@ -39,6 +39,9 @@ on:
       external-blob-bucket-domain:
         required: false
         type: string
+      ipni-announce-urls:
+        required: false
+        type: string
     secrets:
       aws-account-id:
         required: true
@@ -84,6 +87,7 @@ env:
   TF_VAR_external_blob_bucket_access_key_id: ${{ secrets.external-blob-bucket-access-key-id }}
   TF_VAR_external_blob_bucket_secret_access_key: ${{ secrets.external-blob-bucket-secret-access-key }}
   TF_VAR_sentry_dsn: ${{ secrets.sentry-dsn }}
+  TF_VAR_ipni_announce_urls: ${{ inputs.ipni-announce-urls }}
 
 permissions:
   id-token: write # This is required for requesting the JWT
