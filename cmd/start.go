@@ -26,7 +26,6 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/cmd/enum"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	"github.com/storacha/storage/pkg/presets"
 	"github.com/storacha/storage/pkg/principalresolver"
 	"github.com/storacha/storage/pkg/server"
@@ -153,24 +152,37 @@ var StartCmd = &cli.Command{
 				return errors.New("pdp-proofset must be set if curio is used")
 			}
 			proofSet := cCtx.Int64("pdp-proofset")
-			pdpDir, err := mkdirp(dataDir, "pdp")
+			/*
+				.storacha/aggregator/
+				├── datastore
+				│ ├── 000001.log
+				│ ├── CURRENT
+				│ ├── LOCK
+				│ ├── LOG
+				│ └── MANIFEST-000000
+				└── jobqueue
+				    ├── jobqueue.db
+				    ├── jobqueue.db-shm
+				    └── jobqueue.db-wal
+			*/
+			aggRootDir, err := mkdirp(dataDir, "aggregator")
 			if err != nil {
 				return err
 			}
-			pdpDs, err := leveldb.NewDatastore(pdpDir, nil)
+			aggDsDir, err := mkdirp(aggRootDir, "datastore")
+			aggDs, err := leveldb.NewDatastore(aggDsDir, nil)
 			if err != nil {
 				return err
 			}
-			// TODO(forrest): eventually add option to use a file via jobqueue.NewDB()
-			pdpDB, err := jobqueue.NewInMemoryDB()
+			aggJobQueueDir, err := mkdirp(aggRootDir, "jobqueue")
 			if err != nil {
 				return err
 			}
 			pdpConfig = &storage.PDPConfig{
-				PDPDatastore:  pdpDs,
+				PDPDatastore:  aggDs,
 				CurioEndpoint: curioURL,
 				ProofSet:      uint64(proofSet),
-				Database:      pdpDB,
+				DatabasePath:  filepath.Join(aggJobQueueDir, "jobqueue.db"),
 			}
 			curioAddr, err := maurl.FromURL(curioURL)
 			if err != nil {

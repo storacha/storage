@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/storacha/storage/pkg/build"
+	"github.com/storacha/storage/pkg/database"
 	"github.com/storacha/storage/pkg/pdp/service"
 	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/service/contract/mocks"
@@ -141,7 +142,7 @@ func SetupTestDeps(t testing.TB, ctx context.Context, ctrl *gomock.Controller) (
 	t.Logf("Database path: %s", dbPath)
 	dbDialector := sqlite.Open(dbPath)
 	// sqlite database handle, may be queries in tests to assert state of DB
-	db, err := service.SetupDatabase(dbDialector)
+	db, err := database.NewGORMDb(dbDialector)
 	require.NoError(t, err)
 
 	// memory backed blob and stash store for PDP pieces.

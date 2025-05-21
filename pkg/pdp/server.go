@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -24,7 +25,6 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/store"
 	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/store/keystore"
 	"github.com/storacha/storage/pkg/wallet"
 )
 
@@ -62,21 +62,14 @@ func NewServer(
 	ethClientAddr string,
 	dbConfig string,
 	address common.Address,
+	wlt *wallet.LocalWallet,
 ) (*Server, error) {
-	ds, err := leveldb.NewDatastore(dataDir, nil)
+	ds, err := leveldb.NewDatastore(filepath.Join(dataDir, "datastore"), nil)
 	if err != nil {
 		return nil, err
 	}
 	blobStore := blobstore.NewTODO_DsBlobstore(namespace.Wrap(ds, datastore.NewKey("blobs")))
-	stashStore, err := store.NewStashStore(path.Join(dataDir, "stash"))
-	if err != nil {
-		return nil, err
-	}
-	keyStore, err := keystore.NewKeyStore(ds)
-	if err != nil {
-		return nil, err
-	}
-	wlt, err := wallet.NewWallet(keyStore)
+	stashStore, err := store.NewStashStore(path.Join(dataDir))
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +101,7 @@ func NewServer(
 	if err != nil {
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
+
 	dialector := sqlite.Open(dbConfig)
 	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
 	if err != nil {

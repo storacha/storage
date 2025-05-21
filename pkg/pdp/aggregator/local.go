@@ -2,9 +2,9 @@ package aggregator
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
@@ -17,6 +17,7 @@ import (
 	"github.com/storacha/go-ucanto/ucan"
 
 	"github.com/storacha/storage/internal/ipldstore"
+	"github.com/storacha/storage/pkg/database"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
@@ -68,18 +69,24 @@ func (la *LocalAggregator) AggregatePiece(ctx context.Context, pieceLink piece.P
 // NewLocal constructs an aggregator to run directly on a machine from a local datastore
 func NewLocal(
 	ds datastore.Datastore,
-	db *sql.DB,
+	dbPath string,
 	client *curio.Client,
 	proofSet uint64,
 	issuer ucan.Signer,
 	receiptStore receiptstore.ReceiptStore,
 ) (*LocalAggregator, error) {
-
 	aggregateStore := ipldstore.IPLDStore[datamodel.Link, aggregate.Aggregate](
 		store.SimpleStoreFromDatastore(namespace.Wrap(ds, datastore.NewKey(aggregatePrefix))),
 		aggregate.AggregateType(), types.Converters...)
 	inProgressWorkspace := NewInProgressWorkspace(store.SimpleStoreFromDatastore(namespace.Wrap(ds, datastore.NewKey(workspaceKey))))
 
+	db, err := database.NewSQLite(dbPath,
+		database.WithJournalMode("WAL"),
+		database.WithBusyTimeout(5*time.Second),
+		database.WithSharedCache(),
+		database.WithSynchronous("FULL"),
+		database.WithAutoVacuum("INCREMENTAL"),
+	)
 	linkQueue, err := jobqueue.New(
 		LinkQueueName,
 		db,

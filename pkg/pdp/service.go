@@ -2,7 +2,6 @@ package pdp
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -56,13 +55,13 @@ var _ PDP = (*PDPService)(nil)
 
 func NewRemotePDPService(
 	ds datastore.Datastore,
-	db *sql.DB,
+	dbPath string,
 	client *curio.Client,
 	proofSet uint64,
 	issuer ucan.Signer,
 	receiptStore receiptstore.ReceiptStore,
 ) (*PDPService, error) {
-	aggregator, err := aggregator.NewLocal(ds, db, client, proofSet, issuer, receiptStore)
+	aggregator, err := aggregator.NewLocal(ds, dbPath, client, proofSet, issuer, receiptStore)
 	if err != nil {
 		return nil, fmt.Errorf("creating local aggregator: %w", err)
 	}

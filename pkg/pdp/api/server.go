@@ -27,10 +27,15 @@ type Server struct {
 
 func NewServer(p *PDP) *Server {
 	e := echo.New()
+	// don't print echo stuff when we start, our logs cover this.
+	e.HideBanner = true
+	e.HidePort = true
 
-	e.Use(middleware.LogMiddleware(logger))
+	// handle panics
 	e.Use(echomiddleware.Recover())
-	
+	// log requests with our logging system
+	e.Use(middleware.LogMiddleware(logger))
+
 	// Custom error handler for our ContextualError type
 	e.HTTPErrorHandler = customErrorHandler
 

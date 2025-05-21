@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgconn"
@@ -104,7 +105,8 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 		// Successfully claimed this task, so let’s run it in a goroutine:
 		// TODO doing this in parallel is causing concurrency issues with the sqlite database.
 		acceptedAny = true
-		func(taskID TaskID) {
+		doneMu := sync.Mutex{}
+		go func(taskID TaskID) {
 			tlog := log.With("name", h.TaskTypeDetails.Name, "task_id", taskID, "session_id", h.TaskEngine.sessionID)
 			var (
 				done    bool
@@ -118,6 +120,8 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 					tlog.Error("Task recovered from panic", "panic", r, "stack", string(stackSlice[:sz]))
 				}
 
+				doneMu.Lock()
+				defer doneMu.Unlock()
 				h.handleDoneTask(taskID, doStart, done, doErr)
 			}()
 
@@ -156,7 +160,7 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 		taskErrMsg := ""
 		if done {
 			// if the task is done, we can delete it
-			if err := tx.Delete(&models.Task{}, id).Error; err != nil {
+			if err := tx.Delete(&models.Task{ID: int64(id)}).Error; err != nil {
 				return fmt.Errorf("failed to handle done task: failed to delete task %d: %w", id, err)
 			}
 			// the task may have returned an error, in addition to completing successfully, record this if present
@@ -174,7 +178,7 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 			// the task has exceeded the number of allowed retries, delete it
 			if h.TaskTypeDetails.MaxFailures > 0 && task.Retries >= h.TaskTypeDetails.MaxFailures {
 				tlog.Errorw("Task execution retries exceeded, removing task", "maxFailures", h.TaskTypeDetails.MaxFailures, "retries", task.Retries, "error", doErr)
-				if err := tx.Delete(&models.Task{}, id).Error; err != nil {
+				if err := tx.Delete(&models.Task{ID: int64(id)}).Error; err != nil {
 					return fmt.Errorf("failed to deleted failed task %d: %w", id, err)
 				}
 			} else {
