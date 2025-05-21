@@ -194,13 +194,22 @@ var StartCmd = &cli.Command{
 			return fmt.Errorf("parsing public URL: %w", err)
 		}
 
-		announceURL := *presets.AnnounceURL
-		if os.Getenv("STORAGE_ANNOUNCE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_ANNOUNCE_URL"))
+		var ipniAnnounceURLs []url.URL
+		if os.Getenv("STORAGE_IPNI_ANNOUNCE_URLS") != "" {
+			var urls []string
+			err := json.Unmarshal([]byte(os.Getenv("STORAGE_IPNI_ANNOUNCE_URLS")), &urls)
 			if err != nil {
-				return fmt.Errorf("parsing announce URL: %w", err)
+				return fmt.Errorf("parsing IPNI announce URLs JSON: %w", err)
 			}
-			announceURL = *u
+			for _, s := range urls {
+				url, err := url.Parse(s)
+				if err != nil {
+					return fmt.Errorf("parsing IPNI announce URL: %s: %w", s, err)
+				}
+				ipniAnnounceURLs = append(ipniAnnounceURLs, *url)
+			}
+		} else {
+			ipniAnnounceURLs = presets.IPNIAnnounceURLs
 		}
 
 		indexingServiceDID := presets.IndexingServiceDID
@@ -255,7 +264,7 @@ var StartCmd = &cli.Command{
 			storage.WithClaimDatastore(claimDs),
 			storage.WithPublisherDatastore(publisherDs),
 			storage.WithPublicURL(*pubURL),
-			storage.WithPublisherDirectAnnounce(announceURL),
+			storage.WithPublisherDirectAnnounce(ipniAnnounceURLs...),
 			storage.WithUploadServiceConfig(uploadServiceDID, uploadServiceURL),
 			storage.WithPublisherIndexingServiceConfig(indexingServiceDID, indexingServiceURL),
 			storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),

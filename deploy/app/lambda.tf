@@ -73,10 +73,10 @@ resource "aws_lambda_function" "lambda" {
     variables = {
       SENTRY_DSN                          = var.sentry_dsn
       SENTRY_ENVIRONMENT                  = var.sentry_environment == "" ? terraform.workspace : var.sentry_environment
-      IPNI_ENDPOINT                       = "https://cid.contact"
       CHUNK_LINKS_TABLE_NAME              = aws_dynamodb_table.chunk_links.id
       METADATA_TABLE_NAME                 = aws_dynamodb_table.metadata.id
       IPNI_STORE_BUCKET_NAME              = aws_s3_bucket.ipni_store_bucket.bucket
+      IPNI_ANNOUNCE_URLS                  = var.ipni_announce_urls
       PRIVATE_KEY                         = aws_ssm_parameter.private_key.name
       PUBLIC_URL                          = "https://${aws_apigatewayv2_domain_name.custom_domain.domain_name}"
       IPNI_STORE_BUCKET_REGIONAL_DOMAIN   = aws_s3_bucket.ipni_store_bucket.bucket_regional_domain_name
