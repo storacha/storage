@@ -170,6 +170,9 @@ var StartCmd = &cli.Command{
 				return err
 			}
 			aggDsDir, err := mkdirp(aggRootDir, "datastore")
+			if err != nil {
+				return err
+			}
 			aggDs, err := leveldb.NewDatastore(aggDsDir, nil)
 			if err != nil {
 				return err

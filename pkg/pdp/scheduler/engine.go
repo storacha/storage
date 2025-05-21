@@ -1,7 +1,7 @@
 // Package scheduler implements a session-based task scheduler with the following features:
 //
 // 1. Session-Based Ownership: Each engine instance gets a globally unique session ID
-// 2. Clean Session Boundaries: Tasks are tied to specific sessions, not just owners  
+// 2. Clean Session Boundaries: Tasks are tied to specific sessions, not just owners
 // 3. Automatic Cleanup: Previous sessions are cleaned up on startup
 // 4. Graceful Termination: Tasks are released when an engine shuts down
 package scheduler

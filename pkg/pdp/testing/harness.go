@@ -207,12 +207,7 @@ func (h *Harness) UploadPiece(ctx context.Context, svc *service.PDPService, piec
 	require.Eventually(h.T, func() bool {
 		var rmUpload []models.PDPPieceUpload
 		res = h.DB.Where(&models.PDPPieceUpload{ID: expectedID}).Find(&rmUpload)
-
-		if len(rmUpload) == 0 {
-			return true
-		}
-
-		return false
+		return len(rmUpload) == 0
 	}, time.Minute, 50*time.Millisecond)
 
 	var parkedPieceReady []models.ParkedPiece
