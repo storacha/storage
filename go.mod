@@ -20,6 +20,7 @@ require (
 	github.com/filecoin-project/go-commp-utils/nonffi v0.0.0-20240802040721-2a04ffc8ffe8
 	github.com/filecoin-project/lotus v1.32.0-rc1
 	github.com/getsentry/sentry-go v0.31.1
+	github.com/glebarez/go-sqlite v1.21.2
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/ipfs/go-cid v0.5.0
@@ -28,7 +29,6 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipld/go-ipld-prime v0.21.1-0.20240917223228-6148356a4c2e
 	github.com/ipni/go-libipni v0.6.16
-	github.com/jackc/pgconn v1.14.3
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/multiformats/go-multiaddr v0.14.0
@@ -43,8 +43,8 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/mock v0.5.0
 	gorm.io/datatypes v1.2.5
-	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.26.1
+	modernc.org/sqlite v1.23.1
 
 )
 
@@ -88,7 +88,6 @@ require (
 	github.com/filecoin-project/specs-actors/v7 v7.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gbrlsnchs/jwt/v3 v3.0.1 // indirect
-	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -100,11 +99,6 @@ require (
 	github.com/invopop/jsonschema v0.12.0 // indirect
 	github.com/ipfs/boxo v0.21.0 // indirect
 	github.com/ipld/go-car/v2 v2.13.1 // indirect
-	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
@@ -114,7 +108,6 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
@@ -149,10 +142,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
 	gorm.io/driver/postgres v1.5.7 // indirect
+	gorm.io/driver/sqlite v1.5.7 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
-	modernc.org/sqlite v1.23.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 

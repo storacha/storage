@@ -49,9 +49,9 @@ func TestAdjustNextProveAt(t *testing.T) {
 		{
 			name:              "smart contract realistic values",
 			currentHeight:     1000000,
-			challengeFinality: big.NewInt(2), // MinConfidence from watcher_eth.go
+			challengeFinality: big.NewInt(2),  // MinConfidence from watcher_eth.go
 			challengeWindow:   big.NewInt(30), // Common challenge window from tests
-			expected:          1000021, // minRequired=1000002, windowStart=999990+30=1000020, result=1000021 (1000020+1)
+			expected:          1000021,        // minRequired=1000002, windowStart=999990+30=1000020, result=1000021 (1000020+1)
 			description:       "Realistic smart contract values with challenge window 30 and finality 2",
 		},
 		{
@@ -59,7 +59,7 @@ func TestAdjustNextProveAt(t *testing.T) {
 			currentHeight:     500000,
 			challengeFinality: big.NewInt(2),
 			challengeWindow:   big.NewInt(60), // As requested - proving period of 60
-			expected:          500041, // minRequired=500002, next window=500040, result=500041 (500040+1)
+			expected:          500041,         // minRequired=500002, next window=500040, result=500041 (500040+1)
 			description:       "Scenario with proving period/challenge window of 60 epochs",
 		},
 	}
@@ -77,18 +77,18 @@ func TestAdjustNextProveAt(t *testing.T) {
 			// Verify it's properly in the future (past challenge finality requirement)
 			minRequired := tt.currentHeight + tt.challengeFinality.Int64()
 			if resultInt <= minRequired {
-				t.Errorf("adjustNextProveAt() = %d, should be > %d (current + finality)", 
+				t.Errorf("adjustNextProveAt() = %d, should be > %d (current + finality)",
 					resultInt, minRequired)
 			}
 
 			// Verify it's exactly 1 epoch after a window boundary
 			windowSize := tt.challengeWindow.Int64()
 			if (resultInt-1)%windowSize != 0 {
-				t.Errorf("adjustNextProveAt() = %d, should be 1 epoch after window boundary (multiple of %d)", 
+				t.Errorf("adjustNextProveAt() = %d, should be 1 epoch after window boundary (multiple of %d)",
 					resultInt, windowSize)
 			}
 
-			t.Logf("%s: currentHeight=%d -> nextProveAt=%d (1 epoch after window boundary)", 
+			t.Logf("%s: currentHeight=%d -> nextProveAt=%d (1 epoch after window boundary)",
 				tt.description, tt.currentHeight, resultInt)
 		})
 	}

@@ -97,7 +97,7 @@ func NewNextProvingPeriodTask(db *gorm.DB, ethClient bind.ContractBackend, contr
 // 1. next_prove_at >= currentHeight + challengeFinality (enough time for tx processing)
 // 2. next_prove_at must fall within a challenge window boundary (windows are at multiples of challengeWindow)
 //
-// Algorithm: Find the first challenge window that starts after (currentHeight + challengeFinality), 
+// Algorithm: Find the first challenge window that starts after (currentHeight + challengeFinality),
 // then schedule 1 epoch after that window starts. This is deterministic and always contract-compliant.
 //
 // Example: currentHeight=1000, finality=2, window=30
