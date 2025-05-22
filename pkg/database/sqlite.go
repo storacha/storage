@@ -8,6 +8,7 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
 var log = logging.Logger("database")
