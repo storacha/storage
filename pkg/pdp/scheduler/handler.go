@@ -18,7 +18,7 @@ type taskTypeHandler struct {
 	TaskInterface
 	TaskTypeDetails TaskTypeDetails
 	TaskEngine      *TaskEngine
-	// Additional fields like concurrency limiters can be added here.
+	doneMu          sync.Mutex
 }
 
 // AddTask is the implementation passed to each task's Adder.
@@ -106,7 +106,6 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 		// Successfully claimed this task, so let’s run it in a goroutine:
 		// TODO doing this in parallel is causing concurrency issues with the sqlite database.
 		acceptedAny = true
-		doneMu := sync.Mutex{}
 		go func(taskID TaskID) {
 			tlog := log.With("name", h.TaskTypeDetails.Name, "task_id", taskID, "session_id", h.TaskEngine.sessionID)
 			var (
@@ -121,8 +120,8 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 					tlog.Error("Task recovered from panic", "panic", r, "stack", string(stackSlice[:sz]))
 				}
 
-				doneMu.Lock()
-				defer doneMu.Unlock()
+				h.doneMu.Lock()
+				defer h.doneMu.Unlock()
 				if err := h.handleDoneTask(taskID, doStart, done, doErr); err != nil {
 					log.Errorw("failed to handle task done", "task_id", taskID, "error", err)
 				}
