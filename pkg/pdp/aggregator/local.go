@@ -18,6 +18,7 @@ import (
 
 	"github.com/storacha/storage/internal/ipldstore"
 	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/storage/pkg/database/sqlitedb"
 	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
@@ -80,12 +81,10 @@ func NewLocal(
 		aggregate.AggregateType(), types.Converters...)
 	inProgressWorkspace := NewInProgressWorkspace(store.SimpleStoreFromDatastore(namespace.Wrap(ds, datastore.NewKey(workspaceKey))))
 
-	db, err := database.NewSQLite(dbPath,
+	db, err := sqlitedb.New(dbPath,
 		database.WithJournalMode("WAL"),
-		database.WithBusyTimeout(5*time.Second),
-		database.WithSharedCache(),
-		database.WithSynchronous("FULL"),
-		database.WithAutoVacuum("INCREMENTAL"),
+		database.WithTimeout(5*time.Second),
+		database.WithSyncMode(database.SyncModeNORMAL),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating jobqueue database: %w", err)

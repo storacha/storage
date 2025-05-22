@@ -14,13 +14,12 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	"github.com/stretchr/testify/require"
+
 	internalsql "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/sql"
 	internaltesting "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/testing"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRunner_Register(t *testing.T) {

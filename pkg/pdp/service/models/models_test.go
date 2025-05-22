@@ -1,4 +1,4 @@
-package database
+package models_test
 
 import (
 	"os"
@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 
+	"github.com/storacha/storage/pkg/database/gormdb"
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
-func TestGORMOnDeleteSetNull(t *testing.T) {
+func TestOnDeleteSetNull(t *testing.T) {
 	// Create a temporary file for the database
 	tempDir, err := os.MkdirTemp("", "gorm-test-*")
 	require.NoError(t, err)
@@ -22,10 +22,9 @@ func TestGORMOnDeleteSetNull(t *testing.T) {
 	})
 
 	dbPath := filepath.Join(tempDir, "test.db")
-	dialector := sqlite.Open(dbPath)
 
 	// Create a new GORM database
-	db, err := NewGORMDb(dialector)
+	db, err := gormdb.New(dbPath)
 	require.NoError(t, err)
 
 	sqlDB, err := db.DB()
@@ -127,7 +126,7 @@ func TestGORMOnDeleteSetNull(t *testing.T) {
 
 }
 
-func TestGORMOnDeleteCascade(t *testing.T) {
+func TestOnDeleteCascade(t *testing.T) {
 	// Create a temporary file for the database
 	tempDir, err := os.MkdirTemp("", "gorm-test-*")
 	require.NoError(t, err)
@@ -136,10 +135,10 @@ func TestGORMOnDeleteCascade(t *testing.T) {
 	})
 
 	dbPath := filepath.Join(tempDir, "test.db")
-	dialector := sqlite.Open(dbPath)
 
 	// Create a new GORM database
-	db, err := NewGORMDb(dialector)
+	// Create a new GORM database
+	db, err := gormdb.New(dbPath)
 	require.NoError(t, err)
 
 	sqlDB, err := db.DB()

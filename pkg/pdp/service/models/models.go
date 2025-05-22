@@ -2,9 +2,11 @@ package models
 
 import (
 	_ "embed"
+	"fmt"
 	"time"
 
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 //go:embed triggers.sqlite.sql
@@ -344,4 +346,38 @@ func (MessageWaitsEth) TableName() string {
 
 func Ptr[T any](v T) *T {
 	return &v
+}
+
+func AutoMigrateDB(db *gorm.DB) error {
+	if err := db.AutoMigrate(
+		&Machine{},
+		&Task{},
+		&TaskHistory{},
+		&TaskFollow{},
+		&TaskImpl{},
+
+		&ParkedPiece{},
+		&ParkedPieceRef{},
+
+		&PDPService{},
+		&PDPPieceUpload{},
+		&PDPPieceRef{},
+		&PDPProofSet{},
+		&PDPProveTask{},
+		&PDPProofsetCreate{},
+		&PDPProofsetRoot{},
+		&PDPProofsetRootAdd{},
+		&PDPPieceMHToCommp{},
+
+		&EthKey{},
+		&MessageSendsEth{},
+		&MessageSendEthLock{},
+		&MessageWaitsEth{},
+	); err != nil {
+		return fmt.Errorf("failed to auto migrate database: %s", err)
+	}
+	if err := db.Exec(Triggers).Error; err != nil {
+		return fmt.Errorf("failed to install database triggers: %s", err)
+	}
+	return nil
 }

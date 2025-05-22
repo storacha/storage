@@ -7,12 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/ncruces/go-sqlite3/embed"
-
+	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
-
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
 )
 
 type Service[T any] interface {
@@ -123,15 +120,4 @@ func (j *JobQueue[T]) Register(name string, fn func(context.Context, T) error) e
 
 func (j *JobQueue[T]) Enqueue(ctx context.Context, name string, msg T) error {
 	return j.worker.Enqueue(ctx, name, msg)
-}
-
-func NewInMemoryDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
-	if err != nil {
-		return nil, fmt.Errorf("failed to open memory database: %w", err)
-	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	return db, nil
 }

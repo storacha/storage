@@ -1,4 +1,4 @@
-package database
+package gormdb
 
 import (
 	"context"
@@ -8,38 +8,63 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	logging "github.com/ipfs/go-log/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/storacha/storage/pkg/database"
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
-func NewGORMDb(d gorm.Dialector) (*gorm.DB, error) {
-	db, err := gorm.Open(d, &gorm.Config{
-		// No need to run every operation in a transaction, we are explicit about where transactions are required.
-		SkipDefaultTransaction: true,
-		Logger:                 newGormLogger(log),
-	})
+var log = logging.Logger("database/gorm")
+
+var (
+	DefaultJournalMode                 = database.JournalModeWAL
+	DefaultTimeout                     = 3 * time.Second
+	DefaultSyncMode                    = database.SyncModeNORMAL
+	DefaultForeignKeyConstraintsEnable = true
+)
+
+func New(dbPath string, opts ...database.Option) (*gorm.DB, error) {
+	// default config setting
+	cfg := &database.Config{
+		JournalMode:                 DefaultJournalMode,
+		Timeout:                     DefaultTimeout,
+		ForeignKeyConstraintsEnable: DefaultForeignKeyConstraintsEnable,
+		SyncMode:                    DefaultSyncMode,
+	}
+
+	// Apply user-provided options (can override defaults)
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return nil, fmt.Errorf("failed to apply option %T: %w", opt, err)
+		}
+	}
+
+	// Build connection string with pragmas from config
+	var pragmas []string
+	pragmas = append(pragmas, fmt.Sprintf("_pragma=journal_mode(%s)", cfg.JournalMode))
+	pragmas = append(pragmas, fmt.Sprintf("_pragma=busy_timeout(%d)", cfg.Timeout.Milliseconds()))
+	pragmas = append(pragmas, fmt.Sprintf("_pragma=synchronous(%s)", cfg.SyncMode))
+	pragmas = append(pragmas, fmt.Sprintf("_pragma=foreign_keys(%d)", bool2int(cfg.ForeignKeyConstraintsEnable)))
+
+	// Build connection string with pragmas
+	connStr := dbPath
+	if len(pragmas) > 0 {
+		connStr = fmt.Sprintf("%s?%s", dbPath, strings.Join(pragmas, "&"))
+	}
+
+	log.Infof("connecting to GORM SQLite at %s", connStr)
+	db, err := gorm.Open(
+		sqlite.Open(connStr),
+		&gorm.Config{
+			// No need to run every operation in a transaction, we are explicit about where transactions are required.
+			SkipDefaultTransaction: true,
+			Logger:                 newGormLogger(log),
+		})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
-	}
-
-	// Execute pragmas directly using raw SQL
-	pragmas := []string{
-		"PRAGMA journal_mode = WAL",
-		"PRAGMA synchronous = NORMAL",
-		"PRAGMA foreign_keys = ON",
-		"PRAGMA busy_timeout = 500000",
-		"PRAGMA cache_size = -64000", // Approximately 64MB (negative means KB)
-	}
-
-	log.Infof("setting SQLite PRAGMAs...")
-	for _, pragma := range pragmas {
-		if err := db.Exec(pragma).Error; err != nil {
-			return nil, fmt.Errorf("failed to execute pragma %s: %w", pragma, err)
-		}
-		log.Debugf("executed: %s", pragma)
 	}
 
 	if err := db.AutoMigrate(
@@ -214,4 +239,14 @@ func (g *gormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 			"caller", caller,
 		)
 	}
+}
+
+func bool2int(b bool) int {
+	var i int
+	if b {
+		i = 1
+	} else {
+		i = 0
+	}
+	return i
 }

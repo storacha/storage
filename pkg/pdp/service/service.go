@@ -14,10 +14,10 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/database"
 	"github.com/storacha/storage/pkg/pdp/ethereum"
 	"github.com/storacha/storage/pkg/pdp/scheduler"
 	"github.com/storacha/storage/pkg/pdp/service/contract"
+	"github.com/storacha/storage/pkg/pdp/service/models"
 	"github.com/storacha/storage/pkg/pdp/store"
 	"github.com/storacha/storage/pkg/pdp/tasks"
 	"github.com/storacha/storage/pkg/store/blobstore"
@@ -78,7 +78,7 @@ type EthClient interface {
 }
 
 func NewPDPService(
-	dialector gorm.Dialector,
+	db *gorm.DB,
 	address common.Address,
 	wallet wallet.Wallet,
 	bs blobstore.Blobstore,
@@ -91,12 +91,11 @@ func NewPDPService(
 		startFns []func(context.Context) error
 		stopFns  []func(context.Context) error
 	)
-	chainScheduler := scheduler.NewChain(chainClient)
-
-	db, err := database.NewGORMDb(dialector)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup database: %w", err)
+	// apply the PDP service database models to the database.
+	if err := models.AutoMigrateDB(db); err != nil {
+		return nil, err
 	}
+	chainScheduler := scheduler.NewChain(chainClient)
 
 	var t []scheduler.TaskInterface
 	sender, senderTask := tasks.NewSenderETH(ethClient, wallet, db)

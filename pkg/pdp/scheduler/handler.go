@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgconn"
 	"gorm.io/gorm"
 
+	"github.com/storacha/storage/pkg/database"
 	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
@@ -58,12 +58,13 @@ retryAddTask:
 	})
 	if err != nil {
 		// If a unique constraint error is detected, assume the task already exists.
-		if IsUniqueConstraintError(err) {
+		if database.IsUniqueConstraintError(err) {
 			log.Debugf("addtask(%s) saw unique constraint, so it's added already.", h.TaskTypeDetails.Name)
 			return
 		}
-		// If it's a serialization error, backoff and retry.
-		if IsSerializationError(err) {
+		// If it's a timeout error, backoff and retry.
+		if database.IsLockedError(err) {
+			log.Warnf("addtask(%s) saw locked error retrying in %s.", retryWait, h.TaskTypeDetails.Name)
 			time.Sleep(retryWait)
 			retryWait *= 2
 			goto retryAddTask
@@ -82,9 +83,9 @@ retryAddTask:
 func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 	acceptedAny := false
 
-	log.Infof("Considering work for tasks %v", taskIDs)
+	log.Debugf("Considering work for tasks %v", taskIDs)
 	for _, id := range taskIDs {
-		log.Infof("Considering work for task %d", id)
+		log.Debugf("Considering work for task %d", id)
 		result := db.Model(&models.Task{}).
 			Where(&models.Task{ID: int64(id), SessionID: nil}).
 			Updates(models.Task{
@@ -147,7 +148,14 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 		"duration", time.Since(startTime),
 	)
 
-	endTime := time.Now()
+	var (
+		endTime         = time.Now()
+		retryWait       = 100 * time.Millisecond
+		maxRetries uint = 10
+		retryCount uint = 0
+	)
+
+retryHandleDoneTask:
 	err := h.TaskEngine.db.WithContext(h.TaskEngine.ctx).Transaction(func(tx *gorm.DB) error {
 		// find the task that we are handling
 		task := models.Task{}
@@ -216,6 +224,15 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 		return nil
 	})
 	if err != nil {
+		// If it's a serialization error and we haven't exceeded max retries, backoff and retry
+		if database.IsLockedError(err) && retryCount < maxRetries {
+			retryCount++
+			tlog.Warnw("handleDoneTask transaction failed with serialization error, retrying",
+				"error", err, "retry_count", retryCount, "max_retries", maxRetries)
+			time.Sleep(retryWait)
+			retryWait *= 2
+			goto retryHandleDoneTask
+		}
 		return err
 	}
 
@@ -223,24 +240,6 @@ func (h *taskTypeHandler) handleDoneTask(id TaskID, startTime time.Time, done bo
 }
 
 var ErrDoNotCommit = errors.New("do not commit")
-
-func IsUniqueConstraintError(err error) bool {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		// 23505 is the PostgreSQL error code for unique violation.
-		return pgErr.Code == "23505"
-	}
-	return false
-}
-
-func IsSerializationError(err error) bool {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		// 40001 is the PostgreSQL error code for serialization failure.
-		return pgErr.Code == "40001"
-	}
-	return false
-}
 
 // runPeriodicTask runs a periodic task at the specified interval
 func (h *taskTypeHandler) runPeriodicTask() {

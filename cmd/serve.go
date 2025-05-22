@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -129,18 +128,12 @@ var pdpCmd = &cli.Command{
 			return err
 		}
 
-		stateDir, err := mkdirp(dataDir, "state")
-		if err != nil {
-			return err
-		}
-
 		svr, err := pdp.NewServer(
 			ctx,
 			dataDir,
 			port,
 			lotusURL,
 			ethURL,
-			filepath.Join(stateDir, "state.db?_pragma=foreign_keys(1)"),
 			common.HexToAddress(addrStr),
 			wlt,
 		)

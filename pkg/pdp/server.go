@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filecoin-project/lotus/api/client"
-	"github.com/glebarez/sqlite"
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 
+	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/storage/pkg/database/gormdb"
 	"github.com/storacha/storage/pkg/pdp/api"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/pdp/pieceadder"
@@ -60,7 +63,6 @@ func NewServer(
 	port int,
 	lotusClientAddr string,
 	ethClientAddr string,
-	dbConfig string,
 	address common.Address,
 	wlt *wallet.LocalWallet,
 ) (*Server, error) {
@@ -102,8 +104,23 @@ func NewServer(
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
 
-	dialector := sqlite.Open(dbConfig)
-	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
+	stateDir, err := os.MkdirTemp(dataDir, "state")
+	if err != nil {
+		return nil, err
+	}
+
+	stateDB, err := gormdb.New(filepath.Join(stateDir, "state.db"),
+		// use a write ahead log for transactions, good for parallel operations.
+		database.WithJournalMode(database.JournalModeWAL),
+		// ensure foreign key constraints are respected.
+		database.WithForeignKeyConstraintsEnable(true),
+		// wait up to 5 seconds before failing to write due to bust database.
+		database.WithTimeout(5*time.Second))
+
+	if err != nil {
+		return nil, err
+	}
+	pdpService, err := service.NewPDPService(stateDB, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
 	if err != nil {
 		return nil, fmt.Errorf("creating pdp service: %w", err)
 	}
