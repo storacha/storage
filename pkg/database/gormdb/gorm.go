@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/storacha/storage/pkg/database"
-	"github.com/storacha/storage/pkg/pdp/service/models"
 )
 
 var log = logging.Logger("database/gorm")
@@ -65,37 +64,6 @@ func New(dbPath string, opts ...database.Option) (*gorm.DB, error) {
 		})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
-	}
-
-	if err := db.AutoMigrate(
-		&models.Machine{},
-		&models.Task{},
-		&models.TaskHistory{},
-		&models.TaskFollow{},
-		&models.TaskImpl{},
-
-		&models.ParkedPiece{},
-		&models.ParkedPieceRef{},
-
-		&models.PDPService{},
-		&models.PDPPieceUpload{},
-		&models.PDPPieceRef{},
-		&models.PDPProofSet{},
-		&models.PDPProveTask{},
-		&models.PDPProofsetCreate{},
-		&models.PDPProofsetRoot{},
-		&models.PDPProofsetRootAdd{},
-		&models.PDPPieceMHToCommp{},
-
-		&models.EthKey{},
-		&models.MessageSendsEth{},
-		&models.MessageSendEthLock{},
-		&models.MessageWaitsEth{},
-	); err != nil {
-		return nil, fmt.Errorf("failed to auto migrate database: %s", err)
-	}
-	if err := db.Exec(models.Triggers).Error; err != nil {
-		return nil, fmt.Errorf("failed to install database triggers: %s", err)
 	}
 	return db, nil
 }
