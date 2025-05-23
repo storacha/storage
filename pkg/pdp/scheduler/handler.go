@@ -54,6 +54,14 @@ retryAddTask:
 			return nil
 		}
 
+		/*
+		   - AddTask attempts to add a task to the database.
+		   - AddTask invokes a tasks Adder function (extra in this method).
+		     The Adder function, implemented by each tasks, is used to determine if said task should run.
+		   - If the task needs to run, its Adder returns true, otherwise false.
+		   - In the event the Adder returns false we don't want to run the task, so we return an error here to abort
+		      the database transactions which creates the task in the db.
+		*/
 		return ErrDoNotCommit
 	})
 	if err != nil {
@@ -104,7 +112,6 @@ func (h *taskTypeHandler) considerWork(taskIDs []TaskID, db *gorm.DB) bool {
 		}
 
 		// Successfully claimed this task, so let’s run it in a goroutine:
-		// TODO doing this in parallel is causing concurrency issues with the sqlite database.
 		acceptedAny = true
 		go func(taskID TaskID) {
 			tlog := log.With("name", h.TaskTypeDetails.Name, "task_id", taskID, "session_id", h.TaskEngine.sessionID)
