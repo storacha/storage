@@ -94,8 +94,8 @@ func (t *PDPNotifyTask) TypeDetails() scheduler.TaskTypeDetails {
 		RetryWait: func(retries int) time.Duration {
 			return time.Duration(float64(5*time.Second) * math.Pow(2, float64(retries)))
 		},
-		// TODO need to implement aspects of a take that allow it to run on some frequency.
-		IAmBored: scheduler.Every(10*time.Second, func(taskFunc scheduler.AddTaskFunc) error {
+		// Use the new PeriodicScheduler with helper function
+		PeriodicScheduler: scheduler.NewPeriodicScheduler(10*time.Second, func(taskFunc scheduler.AddTaskFunc) error {
 			return t.schedule(context.Background(), taskFunc)
 		}),
 	}

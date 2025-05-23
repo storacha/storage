@@ -7,9 +7,13 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	leveldb "github.com/ipfs/go-ds-leveldb"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
 	"github.com/storacha/storage/pkg/pdp"
+	"github.com/storacha/storage/pkg/store/keystore"
+	"github.com/storacha/storage/pkg/wallet"
 )
 
 var ServeCmd = &cli.Command{
@@ -77,6 +81,7 @@ var pdpCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		logging.SetLogLevel("*", "INFO")
 		rootDir := cctx.String("data-dir")
 		if rootDir == "" {
 			homeDir, err := os.UserHomeDir()
@@ -98,7 +103,27 @@ var pdpCmd = &cli.Command{
 		ethURL := cctx.String("eth-client-host")
 		addrStr := cctx.String("pdp-address")
 
-		dataDir, err := mkdirp(rootDir, "local-pdp")
+		walletDir, err := mkdirp(rootDir, "wallet")
+		if err != nil {
+			return err
+		}
+
+		walletDs, err := leveldb.NewDatastore(walletDir, nil)
+		if err != nil {
+			return err
+		}
+
+		keyStore, err := keystore.NewKeyStore(walletDs)
+		if err != nil {
+			return err
+		}
+
+		wlt, err := wallet.NewWallet(keyStore)
+		if err != nil {
+			return err
+		}
+
+		dataDir, err := mkdirp(rootDir, "pdp")
 		if err != nil {
 			return err
 		}
@@ -109,8 +134,8 @@ var pdpCmd = &cli.Command{
 			port,
 			lotusURL,
 			ethURL,
-			"host=localhost user=postgres dbname=postgres port=5432 sslmode=disable",
 			common.HexToAddress(addrStr),
+			wlt,
 		)
 		if err != nil {
 			return fmt.Errorf("creating pdp server: %w", err)
@@ -119,6 +144,7 @@ var pdpCmd = &cli.Command{
 		if err := svr.Start(ctx); err != nil {
 			return fmt.Errorf("starting pdp server: %w", err)
 		}
+		fmt.Println("Server started! Listening on ", port)
 
 		<-ctx.Done()
 

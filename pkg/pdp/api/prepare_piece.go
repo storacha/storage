@@ -2,11 +2,13 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/ipfs/go-cid"
 	"github.com/labstack/echo/v4"
 
+	"github.com/storacha/storage/pkg/pdp/api/middleware"
 	"github.com/storacha/storage/pkg/pdp/proof"
 	"github.com/storacha/storage/pkg/pdp/service"
 	"github.com/storacha/storage/pkg/pdp/service/types"
@@ -40,15 +42,24 @@ var PieceSizeLimit = abi.PaddedPieceSize(proof.MaxMemtreeSize).Unpadded()
 // handlePreparePiece -> POST /pdp/piece
 func (p *PDP) handlePreparePiece(c echo.Context) error {
 	ctx := c.Request().Context()
+	operation := "PreparePiece"
+
 	var req PreparePieceRequest
 	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, "Invalid request")
+		return middleware.NewError(operation, "Invalid request body", err, http.StatusBadRequest)
 	}
 
 	if abi.UnpaddedPieceSize(req.Check.Size) > PieceSizeLimit {
-		return c.String(http.StatusBadRequest, "Piece size exceeds the maximum allowed size")
+		return middleware.NewError(operation, "Piece size exceeds maximum allowed size", nil, http.StatusBadRequest).
+			WithContext("allowed size", PieceSizeLimit).
+			WithContext("requested size", req.Check.Size)
 	}
 
+	log.Debugw("Processing prepare piece request",
+		"name", req.Check,
+		"hash", req.Check.Hash,
+		"size", req.Check.Size)
+	start := time.Now()
 	res, err := p.Service.PreparePiece(ctx, service.PiecePrepareRequest{
 		Check: types.PieceHash{
 			Name: req.Check.Name,
@@ -58,7 +69,7 @@ func (p *PDP) handlePreparePiece(c echo.Context) error {
 		Notify: req.Notify,
 	})
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "failed to prepare piece")
+		return middleware.NewError(operation, "Failed to prepare piece", err, http.StatusInternalServerError)
 	}
 
 	resp := PreparePieceResponse{
@@ -68,6 +79,10 @@ func (p *PDP) handlePreparePiece(c echo.Context) error {
 	if res.PieceCID != cid.Undef {
 		resp.PieceCID = res.PieceCID.String()
 	}
+	log.Infow("Successfully prepared piece",
+		"location", resp.Location,
+		"created", resp.Created,
+		"duration", time.Since(start))
 	if res.Created {
 		c.Response().Header().Set(echo.HeaderLocation, res.Location)
 		return c.JSON(http.StatusCreated, resp)

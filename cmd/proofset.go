@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
 
 	"github.com/urfave/cli/v2"
 
@@ -54,7 +55,7 @@ var ProofSetCmd = &cli.Command{
 				if err != nil {
 					return fmt.Errorf("creating proof set: %w", err)
 				}
-				fmt.Printf("proof set being created, check status at %s\n", statusRef.URL)
+				fmt.Printf("proof set being created, check status at %s\n", filepath.Join(curioURL.String(), statusRef.URL))
 				return nil
 			},
 		},

@@ -386,7 +386,6 @@ func (s *SendTaskETH) CanAccept(ids []scheduler.TaskID, engine *scheduler.TaskEn
 
 func (s *SendTaskETH) TypeDetails() scheduler.TaskTypeDetails {
 	return scheduler.TaskTypeDetails{
-		Max:         1024,
 		Name:        "SendTransaction",
 		MaxFailures: 1000,
 	}

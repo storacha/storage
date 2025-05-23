@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	"github.com/stretchr/testify/require"
+
+	"github.com/storacha/storage/pkg/database/sqlitedb"
 	testing2 "github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/internal/testing"
 	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
-	"github.com/stretchr/testify/require"
 )
 
 //go:embed schema.sql
@@ -275,7 +275,7 @@ func TestQueue_ReceiveAndWait(t *testing.T) {
 
 func TestSetup(t *testing.T) {
 	t.Run("creates the database table", func(t *testing.T) {
-		db, err := sql.Open("sqlite3", ":memory:")
+		db, err := sqlitedb.NewMemory()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -386,7 +386,14 @@ func newDB(t testing.TB, path string) *sql.DB {
 		})
 	}
 
-	db, err := sql.Open("sqlite3", path)
+	var db *sql.DB
+	var err error
+	if path == ":memory:" {
+		db, err = sqlitedb.NewMemory()
+	} else {
+		db, err = sqlitedb.New(path)
+
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

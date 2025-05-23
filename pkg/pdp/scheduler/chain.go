@@ -54,15 +54,15 @@ func (s *Chain) Run(ctx context.Context) {
 		if notifs == nil {
 			notifs, err = s.api.ChainNotify(ctx)
 			if err != nil {
-				log.Errorf("ChainNotify error: %+v", err)
+				log.Errorw("ChainNotify failed to get chain state, retrying...", "error", err)
 
 				// TODO use a mockable clock, like the one Raul wrote
-				time.Sleep(10 * time.Second)
+				time.Sleep(3 * time.Second)
 				continue
 			}
 
 			gotCur = false
-			log.Info("restarting chain scheduler")
+			log.Debug("restarting chain scheduler")
 		}
 
 		select {

@@ -37,9 +37,9 @@ func RegisterEchoRoutes(e *echo.Echo, p *PDP) {
 	e.GET("/pdp/ping", p.handlePing)
 
 	// /pdp/piece
-	e.POST(path.Join(PDPRoutePath, "/piece"), p.handlePreparePiece)
-	e.PUT(path.Join(PDPRoutePath, "/piece/upload/:uploadUUID"), p.handlePieceUpload)
-	e.GET(path.Join(PDPRoutePath, "/piece"), p.handleFindPiece)
+	e.POST(path.Join(PDPRoutePath, piecePrefix), p.handlePreparePiece)
+	e.PUT(path.Join(PDPRoutePath, piecePrefix, "/upload/:uploadUUID"), p.handlePieceUpload)
+	e.GET(path.Join(PDPRoutePath, piecePrefix), p.handleFindPiece)
 
 	// retrival
 	e.GET(path.Join(PiecePrefix, ":cid"), p.handleDownloadByPieceCid)

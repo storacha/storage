@@ -15,6 +15,8 @@ import (
 	"github.com/storacha/storage/pkg/wallet"
 )
 
+const WalletDir = "wallet"
+
 var WalletCmd = &cli.Command{
 	Name:  "wallet",
 	Usage: "Manage wallet",
@@ -113,17 +115,17 @@ var walletImport = &cli.Command{
 			dataDir = dir
 		}
 
-		pdpDir, err := mkdirp(dataDir, "local-pdp")
+		walletDir, err := mkdirp(dataDir, WalletDir)
 		if err != nil {
 			return err
 		}
 
-		pdpDs, err := leveldb.NewDatastore(pdpDir, nil)
+		walletDs, err := leveldb.NewDatastore(walletDir, nil)
 		if err != nil {
 			return err
 		}
 
-		keyStore, err := keystore.NewKeyStore(pdpDs)
+		keyStore, err := keystore.NewKeyStore(walletDs)
 		if err != nil {
 			return err
 		}
@@ -161,7 +163,7 @@ var walletList = &cli.Command{
 			log.Warnf("Data directory is not configured, using default: %s", dir)
 			dataDir = dir
 		}
-		pdpDir, err := mkdirp(dataDir, "local-pdp")
+		pdpDir, err := mkdirp(dataDir, WalletDir)
 		if err != nil {
 			return err
 		}

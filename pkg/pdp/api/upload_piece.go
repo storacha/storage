@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -25,9 +26,15 @@ func (p *PDP) handlePieceUpload(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "uploadUUID is invalid")
 	}
 
+	log.Debugw("Processing prepare piece request", "uploadID", uploadID)
+	start := time.Now()
 	if _, err := p.Service.UploadPiece(ctx, uploadID, c.Request().Body); err != nil {
 		return c.String(http.StatusBadRequest, "Failed to upload piece")
 	}
+
+	log.Infow("Successfully added roots to proofSet",
+		"uploadID", uploadID,
+		"duration", time.Since(start))
 
 	return c.NoContent(http.StatusNoContent)
 }

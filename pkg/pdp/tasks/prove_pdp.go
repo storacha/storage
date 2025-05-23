@@ -254,11 +254,7 @@ func (p *ProveTask) Do(taskID scheduler.TaskID) (done bool, err error) {
 	log.Infow("PDP Prove Task",
 		"proofSetID", proofSetID,
 		"taskID", taskID,
-		"proofs", proofs,
-		"data", hex.EncodeToString(data),
 		"gasFeeEstimate", gasFee,
-		"proofFee initial", proofFee.Div(proofFee, big.NewInt(3)),
-		"proofFee 3x", proofFee,
 		"txEth", txEth,
 	)
 

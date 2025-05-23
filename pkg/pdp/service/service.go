@@ -78,7 +78,7 @@ type EthClient interface {
 }
 
 func NewPDPService(
-	dialector gorm.Dialector,
+	db *gorm.DB,
 	address common.Address,
 	wallet wallet.Wallet,
 	bs blobstore.Blobstore,
@@ -91,12 +91,11 @@ func NewPDPService(
 		startFns []func(context.Context) error
 		stopFns  []func(context.Context) error
 	)
-	chainScheduler := scheduler.NewChain(chainClient)
-
-	db, err := SetupDatabase(dialector)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup database: %w", err)
+	// apply the PDP service database models to the database.
+	if err := models.AutoMigrateDB(db); err != nil {
+		return nil, err
 	}
+	chainScheduler := scheduler.NewChain(chainClient)
 
 	var t []scheduler.TaskInterface
 	sender, senderTask := tasks.NewSenderETH(ethClient, wallet, db)
@@ -172,42 +171,4 @@ func NewPDPService(
 		engine:         engine,
 		chainScheduler: chainScheduler,
 	}, nil
-}
-
-func SetupDatabase(d gorm.Dialector) (*gorm.DB, error) {
-	db, err := gorm.Open(d)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %s", err)
-	}
-	if err := db.AutoMigrate(
-		&models.Machine{},
-		&models.Task{},
-		&models.TaskHistory{},
-		&models.TaskFollow{},
-		&models.TaskImpl{},
-
-		&models.ParkedPiece{},
-		&models.ParkedPieceRef{},
-
-		&models.PDPService{},
-		&models.PDPPieceUpload{},
-		&models.PDPPieceRef{},
-		&models.PDPProofSet{},
-		&models.PDPProveTask{},
-		&models.PDPProofsetCreate{},
-		&models.PDPProofsetRoot{},
-		&models.PDPProofsetRootAdd{},
-		&models.PDPPieceMHToCommp{},
-
-		&models.EthKey{},
-		&models.MessageSendsEth{},
-		&models.MessageSendEthLock{},
-		&models.MessageWaitsEth{},
-	); err != nil {
-		return nil, fmt.Errorf("failed to auto migrate database: %s", err)
-	}
-	if err := db.Exec(models.Triggers).Error; err != nil {
-		return nil, fmt.Errorf("failed to install database triggers: %s", err)
-	}
-	return db, nil
 }

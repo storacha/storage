@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -14,8 +17,9 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	leveldb "github.com/ipfs/go-ds-leveldb"
-	"gorm.io/driver/sqlite"
 
+	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/storage/pkg/database/gormdb"
 	"github.com/storacha/storage/pkg/pdp/api"
 	"github.com/storacha/storage/pkg/pdp/curio"
 	"github.com/storacha/storage/pkg/pdp/pieceadder"
@@ -24,7 +28,6 @@ import (
 	"github.com/storacha/storage/pkg/pdp/service/contract"
 	"github.com/storacha/storage/pkg/pdp/store"
 	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/store/keystore"
 	"github.com/storacha/storage/pkg/wallet"
 )
 
@@ -60,23 +63,15 @@ func NewServer(
 	port int,
 	lotusClientAddr string,
 	ethClientAddr string,
-	dbConfig string,
 	address common.Address,
+	wlt *wallet.LocalWallet,
 ) (*Server, error) {
-	ds, err := leveldb.NewDatastore(dataDir, nil)
+	ds, err := leveldb.NewDatastore(filepath.Join(dataDir, "datastore"), nil)
 	if err != nil {
 		return nil, err
 	}
 	blobStore := blobstore.NewTODO_DsBlobstore(namespace.Wrap(ds, datastore.NewKey("blobs")))
-	stashStore, err := store.NewStashStore(path.Join(dataDir, "stash"))
-	if err != nil {
-		return nil, err
-	}
-	keyStore, err := keystore.NewKeyStore(ds)
-	if err != nil {
-		return nil, err
-	}
-	wlt, err := wallet.NewWallet(keyStore)
+	stashStore, err := store.NewStashStore(path.Join(dataDir))
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +103,24 @@ func NewServer(
 	if err != nil {
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
-	dialector := sqlite.Open("pdp.db")
-	pdpService, err := service.NewPDPService(dialector, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
+
+	stateDir, err := os.MkdirTemp(dataDir, "state")
+	if err != nil {
+		return nil, err
+	}
+
+	stateDB, err := gormdb.New(filepath.Join(stateDir, "state.db"),
+		// use a write ahead log for transactions, good for parallel operations.
+		database.WithJournalMode(database.JournalModeWAL),
+		// ensure foreign key constraints are respected.
+		database.WithForeignKeyConstraintsEnable(true),
+		// wait up to 5 seconds before failing to write due to bust database.
+		database.WithTimeout(5*time.Second))
+
+	if err != nil {
+		return nil, err
+	}
+	pdpService, err := service.NewPDPService(stateDB, address, wlt, blobStore, stashStore, chainClient, ethClient, &contract.PDPContract{})
 	if err != nil {
 		return nil, fmt.Errorf("creating pdp service: %w", err)
 	}
