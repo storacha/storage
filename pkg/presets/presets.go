@@ -6,8 +6,10 @@ import (
 	"github.com/storacha/go-ucanto/did"
 )
 
+var ipniAnnounceURL, _ = url.Parse("https://cid.contact/announce")
+
 var (
-	AnnounceURL, _        = url.Parse("https://cid.contact/announce")
+	IPNIAnnounceURLs      = []url.URL{*ipniAnnounceURL}
 	IndexingServiceDID, _ = did.Parse("did:web:indexer.storacha.network")
 	IndexingServiceURL, _ = url.Parse("https://indexer.storacha.network")
 	UploadServiceURL, _   = url.Parse("https://up.storacha.network")

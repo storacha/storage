@@ -127,10 +127,10 @@ type Config struct {
 	MetadataTableName              string
 	IPNIStoreBucket                string
 	IPNIStorePrefix                string
+	IPNIAnnounceURLs               []url.URL
 	ClaimStoreBucket               string
 	ClaimStorePrefix               string
 	PublicURL                      string
-	AnnounceURL                    string
 	IndexingServiceDID             string
 	IndexingServiceURL             string
 	IndexingServiceProof           string
@@ -239,6 +239,24 @@ func FromEnv(ctx context.Context) Config {
 		principalMapping = presets.PrincipalMapping
 	}
 
+	var ipniAnnounceURLs []url.URL
+	if os.Getenv("IPNI_ANNOUNCE_URLS") != "" {
+		var urls []string
+		err := json.Unmarshal([]byte(os.Getenv("IPNI_ANNOUNCE_URLS")), &urls)
+		if err != nil {
+			panic(fmt.Errorf("parsing IPNI announce URLs JSON: %w", err))
+		}
+		for _, s := range urls {
+			url, err := url.Parse(s)
+			if err != nil {
+				panic(fmt.Errorf("parsing IPNI announce URL: %s: %w", s, err))
+			}
+			ipniAnnounceURLs = append(ipniAnnounceURLs, *url)
+		}
+	} else {
+		ipniAnnounceURLs = presets.IPNIAnnounceURLs
+	}
+
 	return Config{
 		Config:                         awsConfig,
 		SentryDSN:                      os.Getenv("SENTRY_DSN"),
@@ -249,6 +267,7 @@ func FromEnv(ctx context.Context) Config {
 		IPNIStoreBucket:                mustGetEnv("IPNI_STORE_BUCKET_NAME"),
 		IPNIStorePrefix:                ipniStoreKeyPrefix,
 		IPNIPublisherAnnounceAddress:   ipniPublisherAnnounceAddress,
+		IPNIAnnounceURLs:               ipniAnnounceURLs,
 		BlobsPublicURL:                 blobsPublicURL,
 		ClaimStoreBucket:               mustGetEnv("CLAIM_STORE_BUCKET_NAME"),
 		ClaimStorePrefix:               os.Getenv("CLAIM_STORE_KEY_REFIX"),
@@ -263,7 +282,6 @@ func FromEnv(ctx context.Context) Config {
 		BufferPrefix:                   os.Getenv("BUFFER_KEY_PREFIX"),
 		AggregatesBucket:               os.Getenv("AGGREGATES_BUCKET_NAME"),
 		AggregatesPrefix:               os.Getenv("AGGREGATES_KEY_PREFIX"),
-		AnnounceURL:                    mustGetEnv("IPNI_ENDPOINT"),
 		PublicURL:                      mustGetEnv("PUBLIC_URL"),
 		IndexingServiceDID:             mustGetEnv("INDEXING_SERVICE_DID"),
 		IndexingServiceURL:             mustGetEnv("INDEXING_SERVICE_URL"),
@@ -318,10 +336,6 @@ func Construct(cfg Config) (storage.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing blob store public url: %w", err)
 	}
-	announceURL, err := url.Parse(cfg.AnnounceURL)
-	if err != nil {
-		return nil, fmt.Errorf("parsing announce url: %w", err)
-	}
 	indexingServiceDID, err := did.Parse(cfg.IndexingServiceDID)
 	if err != nil {
 		return nil, fmt.Errorf("parsing indexing service did: %w", err)
@@ -357,7 +371,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		storage.WithClaimStore(claimStore),
 		storage.WithPublisherStore(publisherStore),
 		storage.WithPublicURL(*pubURL),
-		storage.WithPublisherDirectAnnounce(*announceURL),
+		storage.WithPublisherDirectAnnounce(cfg.IPNIAnnounceURLs...),
 		storage.WithPublisherAnnounceAddress(announceAddr),
 		storage.WithPublisherIndexingServiceConfig(indexingServiceDID, *indexingServiceURL),
 		storage.WithPublisherIndexingServiceProof(indexingServiceProofs...),

@@ -68,3 +68,7 @@ TF_VAR_external_blob_bucket_secret_access_key=
 
 TF_VAR_indexing_service_did=did:web:indexer.storacha.network
 TF_VAR_indexing_service_url=https://indexer.storacha.network/claims
+
+# IPNI configuration ###########################################################
+
+TF_VAR_ipni_announce_urls=["https://cid.contact/announce"]
