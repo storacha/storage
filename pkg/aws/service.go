@@ -388,7 +388,7 @@ func Construct(cfg Config) (storage.Service, error) {
 		}
 
 		opts = append(opts, storage.WithPDPConfig(storage.PDPConfig{PDPService: pdp}))
-		curioURL, _ := url.Parse(cfg.CurioURL)
+		curioURL, err := url.Parse(cfg.CurioURL)
 		if err != nil {
 			return nil, fmt.Errorf("parsing curio URL: %w", err)
 		}
