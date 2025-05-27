@@ -43,7 +43,7 @@ TF_VAR_use_pdp=false
 TF_VAR_pdp_proofset=0
 TF_VAR_curio_url=
 
-# Error reporting to Sentry ####################################################
+# Sentry error reporting #######################################################
 
 # Sentry DSN for error reporting. Obtain from sentry.io.
 # Leave blank to disable error reporting.
