@@ -31,7 +31,7 @@ Generate a new identity:
 storage identity gen
 ```
 
-Make a note of your node identity. The string beginning `Mg` is your private key. Do not share this with anyone.
+Make a note of your node identity. The string beginning `Mg` is your private key. Do not share this with anyone!
 
 Next, obtain a delegation allowing your node to publish claims to the Storacha Indexer node(s). Contact the engineers in `#node-providers` on the Storacha Discord - give them your _public_ key (the string beginning with `did:key:`).
 
