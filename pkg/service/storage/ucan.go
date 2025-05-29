@@ -190,7 +190,7 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 					if err != nil {
 						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
-					claim, err := delegation.NewDelegationView(cap.Nb().Location, br)
+					claim, err := delegation.NewDelegationView(cap.Nb().Site, br)
 					if err != nil {
 						return replica.AllocateOk{}, nil, failure.FromError(err)
 					}
@@ -233,8 +233,8 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 								// an allocation already exists, and may or may not require transfer
 								Size: resp.Size,
 							},
-							Location: cap.Nb().Location,
-							Cause:    inv.Link(),
+							Site:  cap.Nb().Site,
+							Cause: inv.Link(),
 						},
 					)
 					if err != nil {
@@ -270,7 +270,18 @@ func NewUCANServer(storageService Service, options ...server.Option) (server.Ser
 						return replica.AllocateOk{}, nil, failure.FromError(fmt.Errorf("failed to enqueue replication task: %w", err))
 					}
 
-					return replica.AllocateOk{Size: resp.Size}, fx.NewEffects(fx.WithFork(fx.FromInvocation(trnsfInv))), nil
+					// Create a Promise for the transfer invocation
+					transferPromise := types.Promise{
+						UcanAwait: types.Await{
+							Selector: ".out.ok",
+							Link:     trnsfInv.Link(),
+						},
+					}
+
+					return replica.AllocateOk{
+						Size: resp.Size,
+						Site: transferPromise,
+					}, fx.NewEffects(fx.WithFork(fx.FromInvocation(trnsfInv))), nil
 				},
 			),
 		),
