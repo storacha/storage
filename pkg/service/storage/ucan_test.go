@@ -463,6 +463,10 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 			alloc := mustReadAllocationReceipt(t, rbi, res)
 			require.EqualValues(t, wantSize, alloc.Size)
 
+			// Assert that the Site promise field exists and has the correct structure
+			require.NotNil(t, alloc.Site)
+			require.Equal(t, ".out.ok", alloc.Site.UcanAwait.Selector)
+
 			// "Wait" for the transfer invocation to produce a receipt
 			// simulating the upload-service getting a receipt from this storage node.
 			transferOkMsg := mustWaitForTransferMsg(t, ctx, transferOkChan)
@@ -574,7 +578,7 @@ func buildReplicateInvocation(
 			Size:   size,
 		},
 		Replicas: replicas,
-		Location: lcd.Root().Link(),
+		Site:     lcd.Root().Link(),
 	}
 	bri, err := blob2.Replicate.Invoke(
 		testutil.Alice,
@@ -602,10 +606,10 @@ func buildAllocateInvocation(
 	size uint64,
 ) (invocation.Invocation, replica.AllocateCaveats) {
 	expectedAllocateCaveats := replica.AllocateCaveats{
-		Space:    space,
-		Blob:     types.Blob{Digest: digest, Size: size},
-		Location: lcd.Root().Link(),
-		Cause:    bri.Root().Link(),
+		Space: space,
+		Blob:  types.Blob{Digest: digest, Size: size},
+		Site:  lcd.Root().Link(),
+		Cause: bri.Root().Link(),
 	}
 	rbi, err := replica.Allocate.Invoke(
 		testutil.Alice,
@@ -694,7 +698,7 @@ func mustAssertTransferInvocation(
 
 	// extract the location claim from the transfer invocation
 	locationCav := mustGetInvocationCaveats[assert.LocationCaveats](
-		t, reader, transferCav.Location, assert.LocationCaveatsReader.Read,
+		t, reader, transferCav.Site, assert.LocationCaveatsReader.Read,
 	)
 	require.Equal(t, expectedLocationCav, locationCav)
 

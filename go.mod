@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go v1.55.6
+	github.com/aws/aws-sdk-go v1.55.7
 	github.com/aws/aws-sdk-go-v2 v1.34.0
 	github.com/aws/aws-sdk-go-v2/config v1.28.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.44
@@ -37,7 +37,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.24.1
 	github.com/samber/lo v1.39.0
 	github.com/snadrus/must v0.0.0-20240605044437-98cedd57f8eb
-	github.com/storacha/go-libstoracha v0.0.3
+	github.com/storacha/go-libstoracha v0.0.5
 	github.com/storacha/go-ucanto v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
