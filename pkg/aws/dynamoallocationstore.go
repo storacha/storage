@@ -43,6 +43,7 @@ func (d *DynamoAllocationStore) List(ctx context.Context, mh multihash.Multihash
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
+		ConsistentRead:            aws.Bool(true),
 	})
 	for queryPaginator.HasMorePages() {
 		response, err := queryPaginator.NextPage(ctx)
