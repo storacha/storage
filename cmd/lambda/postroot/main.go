@@ -5,10 +5,10 @@ import (
 
 	ucanserver "github.com/storacha/go-ucanto/server"
 
-	"github.com/storacha/storage/cmd/lambda"
-	"github.com/storacha/storage/pkg/aws"
-	"github.com/storacha/storage/pkg/principalresolver"
-	"github.com/storacha/storage/pkg/service/storage"
+	"github.com/storacha/piri/cmd/lambda"
+	"github.com/storacha/piri/pkg/aws"
+	"github.com/storacha/piri/pkg/principalresolver"
+	"github.com/storacha/piri/pkg/service/storage"
 )
 
 func main() {

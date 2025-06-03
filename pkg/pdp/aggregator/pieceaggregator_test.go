@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/storacha/storage/internal/mocks"
-	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/pdp/aggregator"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
+	"github.com/storacha/piri/internal/mocks"
+	"github.com/storacha/piri/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/aggregator/fns"
 )
 
 type fakeQueue struct {

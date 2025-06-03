@@ -7,8 +7,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/storacha/storage/pkg/pdp/api/middleware"
-	"github.com/storacha/storage/pkg/pdp/service"
+	"github.com/storacha/piri/pkg/pdp/api/middleware"
+	"github.com/storacha/piri/pkg/pdp/service"
 )
 
 type AddRootSubrootEntry struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storacha/storage/pkg/database/gormdb"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/database/gormdb"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 func TestOnDeleteSetNull(t *testing.T) {

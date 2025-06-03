@@ -6,15 +6,15 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/cmd"
+	"github.com/storacha/piri/cmd"
 )
 
-var log = logging.Logger("storage")
+var log = logging.Logger("piri")
 
 func main() {
 	app := &cli.App{
-		Name:  "storage",
-		Usage: "Manage running a storage node.",
+		Name:  "piri",
+		Usage: "Manage running a piri node.",
 		Commands: []*cli.Command{
 			cmd.StartCmd,
 			cmd.IdentityCmd,

@@ -12,11 +12,11 @@ import (
 	"github.com/storacha/go-libstoracha/capabilities/types"
 	"github.com/storacha/go-libstoracha/piece/piece"
 
-	"github.com/storacha/storage/cmd/lambda"
-	"github.com/storacha/storage/internal/ipldstore"
-	"github.com/storacha/storage/pkg/aws"
-	"github.com/storacha/storage/pkg/pdp/aggregator"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/cmd/lambda"
+	"github.com/storacha/piri/internal/ipldstore"
+	"github.com/storacha/piri/pkg/aws"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
 )
 
 func makeHandler(cfg aws.Config) (lambda.SQSEventHandler, error) {

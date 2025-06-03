@@ -9,11 +9,11 @@ import (
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/server"
-	"github.com/storacha/storage/pkg/build"
-	"github.com/storacha/storage/pkg/service/blobs"
-	"github.com/storacha/storage/pkg/service/claims"
-	"github.com/storacha/storage/pkg/service/publisher"
-	"github.com/storacha/storage/pkg/service/storage"
+	"github.com/storacha/piri/pkg/build"
+	"github.com/storacha/piri/pkg/service/blobs"
+	"github.com/storacha/piri/pkg/service/claims"
+	"github.com/storacha/piri/pkg/service/publisher"
+	"github.com/storacha/piri/pkg/service/storage"
 )
 
 var log = logging.Logger("server")
@@ -79,8 +79,8 @@ func NewServer(service storage.Service, options ...server.Option) (*http.ServeMu
 // NewHandler displays version info.
 func NewHandler(id principal.Signer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf("🔥 storage %s\n", build.Version)))
-		w.Write([]byte("- https://github.com/storacha/storage\n"))
+		w.Write([]byte(fmt.Sprintf("🔥 piri %s\n", build.Version)))
+		w.Write([]byte("- https://github.com/storacha/piri\n"))
 		w.Write([]byte(fmt.Sprintf("- %s", id.DID())))
 	})
 }

@@ -8,11 +8,11 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-ucanto/principal"
-	"github.com/storacha/storage/pkg/access"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store/allocationstore"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/access"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/presigner"
+	"github.com/storacha/piri/pkg/store/allocationstore"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 type options struct {

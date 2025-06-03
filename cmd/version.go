@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/storacha/storage/pkg/build"
+	"github.com/storacha/piri/pkg/build"
 	"github.com/urfave/cli/v2"
 )
 

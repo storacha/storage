@@ -8,8 +8,8 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"
 	multihash "github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/store/allocationstore/allocation"
 )
 
 type DsAllocationStore struct {

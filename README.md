@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://w3s.link/ipfs/bafybeidgd53ksarusewxkmf54ojnrmhneamtcvpqa7n7mi73k6hc7qlwym/centipede.png" alt="Storacha storage node logo" width="180" />
+  <img src="https://w3s.link/ipfs/bafybeidgd53ksarusewxkmf54ojnrmhneamtcvpqa7n7mi73k6hc7qlwym/centipede.png" alt="Storacha piri node logo" width="180" />
   <h1>Storage Node</h1>
-  <p>A storage node that runs on the Storacha network.</p>
+  <p>A piri node that runs on the Storacha network.</p>
 </div>
 
 ## Usage
@@ -10,13 +10,13 @@
 
 Install [Go](https://go.dev) v1.23.3 or higher.
 
-Next, generate a private key for your storage node. This can be done on any computer, not necessarily the deployment target.
+Next, generate a private key for your piri node. This can be done on any computer, not necessarily the deployment target.
 
 Clone the repo and `cd` into the repo directory:
 
 ```sh
-git clone https://github.com/storacha/storage.git
-cd storage
+git clone https://github.com/storacha/piri.git
+cd piri
 ```
 
 Build and install the CLI tool:
@@ -28,7 +28,7 @@ make install
 Generate a new identity:
 
 ```sh
-storage identity gen
+piri identity gen
 ```
 
 Make a note of your node identity. The string beginning `Mg` is your private key. Do not share this with anyone!
@@ -46,10 +46,10 @@ TODO
 The environment variables required to start a node are:
 
 ```sh
-STORAGE_PRIVATE_KEY=             # string beginning Mg...
-STORAGE_PUBLIC_URL=              # URL the node will be publically accessible at
-STORAGE_PORT=                    # local port to bind the server to
-STORAGE_INDEXING_SERVICE_PROOF=  # delegation(s) from the Storacha Indexing node(s)
+PIRI_PRIVATE_KEY=                # string beginning Mg...
+PIRI_PUBLIC_URL=                 # URL the node will be publically accessible at
+PIRI_PORT=                       # local port to bind the server to
+PIRI_INDEXING_SERVICE_PROOF=     # delegation(s) from the Storacha Indexing node(s)
 ```
 
 #### Deployment to a VM/Bare Metal
@@ -57,7 +57,7 @@ STORAGE_INDEXING_SERVICE_PROOF=  # delegation(s) from the Storacha Indexing node
 Clone the repo and build the binary as per the [getting started](#getting-started) section. Set environment variables as above. The following command will start the Storage Node daemon:
 
 ```sh
-storage start
+piri start
 ```
 
 #### Deployment to DigitalOcean
@@ -65,11 +65,11 @@ storage start
 The [Dockerfile](./Dockerfile) allows a Storage Node to be deployed to DigitalOcean Apps platform. You'll need to setup a "Spaces Object Storage" bucket to persist data. You must configure the following additional environment variables:
 
 ```sh
-STORAGE_S3_ENDPOINT=
-STORAGE_S3_REGION=
-STORAGE_S3_BUCKET=
-STORAGE_S3_ACCESS_KEY=
-STORAGE_S3_SECRET_KEY=
+PIRI_S3_ENDPOINT=
+PIRI_S3_REGION=
+PIRI_S3_BUCKET=
+PIRI_S3_ACCESS_KEY=
+PIRI_S3_SECRET_KEY=
 ```
 
 #### Deployment to AWS

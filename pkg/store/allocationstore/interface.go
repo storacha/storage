@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
+	"github.com/storacha/piri/pkg/store/allocationstore/allocation"
 )
 
 // AllocationStore tracks the items that have been, or will soon be stored on

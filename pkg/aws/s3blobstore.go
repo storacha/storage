@@ -13,9 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	multihash "github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/presigner"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 type KeyFormatterFunc func(digest multihash.Multihash) string

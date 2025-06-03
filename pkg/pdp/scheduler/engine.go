@@ -15,7 +15,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 var log = logging.Logger("pdp/scheduler")

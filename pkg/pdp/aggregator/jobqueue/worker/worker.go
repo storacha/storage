@@ -26,8 +26,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/serializer"
 )
 
 type Worker[T any] struct {

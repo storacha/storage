@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/storacha/go-libstoracha/piece/piece"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/aggregator/fns"
 )
 
 // Aggregator is an interface for accessing an aggregation queue

@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/storacha/storage/pkg/internal/revision"
+	"github.com/storacha/piri/pkg/internal/revision"
 )
 
 var (
 	// version is the built version.
-	// Set with ldflags in .goreleaser.yaml via -ldflags="-X github.com/storacha/storage/pkg/build.version=v{{.Version}}".
+	// Set with ldflags in .goreleaser.yaml via -ldflags="-X github.com/storacha/piri/pkg/build.version=v{{.Version}}".
 	version string
 	// Version returns the current version of the application
 	Version string

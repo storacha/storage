@@ -9,7 +9,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/curio"
 )
 
 var ProofSetCmd = &cli.Command{
@@ -28,7 +28,7 @@ var ProofSetCmd = &cli.Command{
 					Name:     "record-keeper",
 					Aliases:  []string{"rk"},
 					Usage:    "Hex address of the record keeper",
-					EnvVars:  []string{"STORAGE_RECORD_KEEPER_CONTRACT"},
+					EnvVars:  []string{"PIRI_RECORD_KEEPER_CONTRACT"},
 					Required: true,
 				},
 			},
@@ -70,7 +70,7 @@ var ProofSetCmd = &cli.Command{
 					Name:     "ref-url",
 					Aliases:  []string{"ru"},
 					Usage:    "Ref URL from create command",
-					EnvVars:  []string{"STORAGE_REF_URL"},
+					EnvVars:  []string{"PIRI_REF_URL"},
 					Required: true,
 				},
 			},

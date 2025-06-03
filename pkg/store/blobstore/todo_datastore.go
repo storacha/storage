@@ -10,8 +10,8 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/multiformats/go-multihash"
 
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/store"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/store"
 )
 
 type TODO_DsBlobstore struct {

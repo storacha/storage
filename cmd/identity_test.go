@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storacha/storage/cmd"
-	"github.com/storacha/storage/cmd/enum"
+	"github.com/storacha/piri/cmd"
+	"github.com/storacha/piri/cmd/enum"
 )
 
 func TestCreateSignerKeyPairAndPrincipalSignerFromFile(t *testing.T) {

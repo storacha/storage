@@ -3,7 +3,7 @@ package testing
 import (
 	"go.uber.org/mock/gomock"
 
-	mocks2 "github.com/storacha/storage/pkg/pdp/service/contract/mocks"
+	mocks2 "github.com/storacha/piri/pkg/pdp/service/contract/mocks"
 )
 
 func NewMockContractClient(ctrl *gomock.Controller) (*mocks2.MockPDP, *mocks2.MockPDPVerifier, *mocks2.MockPDPProvingSchedule) {

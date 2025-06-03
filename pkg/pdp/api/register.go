@@ -6,7 +6,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/labstack/echo/v4"
 
-	"github.com/storacha/storage/pkg/pdp/service"
+	"github.com/storacha/piri/pkg/pdp/service"
 )
 
 var log = logging.Logger("pdp/api")

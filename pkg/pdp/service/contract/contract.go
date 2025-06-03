@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"golang.org/x/xerrors"
 
-	"github.com/storacha/storage/pkg/pdp/service/contract/internal"
+	"github.com/storacha/piri/pkg/pdp/service/contract/internal"
 )
 
 type PDP interface {

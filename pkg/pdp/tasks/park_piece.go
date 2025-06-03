@@ -10,11 +10,11 @@ import (
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/promise"
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/pdp/store"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/pdp/promise"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/store"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 var PieceParkPollInterval = time.Second * 15

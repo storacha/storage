@@ -28,7 +28,7 @@ var DelegationCmd = &cli.Command{
 					Name:     "client-did",
 					Aliases:  []string{"d"},
 					Usage:    "did for a client",
-					EnvVars:  []string{"STORAGE_CLIENT_DID"},
+					EnvVars:  []string{"PIRI_CLIENT_DID"},
 					Required: true,
 				},
 			},

@@ -8,10 +8,10 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/storacha/storage/pkg/pdp/api/middleware"
-	"github.com/storacha/storage/pkg/pdp/proof"
-	"github.com/storacha/storage/pkg/pdp/service"
-	"github.com/storacha/storage/pkg/pdp/service/types"
+	"github.com/storacha/piri/pkg/pdp/api/middleware"
+	"github.com/storacha/piri/pkg/pdp/proof"
+	"github.com/storacha/piri/pkg/pdp/service"
+	"github.com/storacha/piri/pkg/pdp/service/types"
 )
 
 type PieceHash struct {

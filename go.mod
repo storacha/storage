@@ -1,4 +1,4 @@
-module github.com/storacha/storage
+module github.com/storacha/piri
 
 go 1.23.3
 

@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/piri/pkg/database"
 )
 
 var log = logging.Logger("database/gorm")

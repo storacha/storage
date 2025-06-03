@@ -16,7 +16,7 @@ import (
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/cmd/enum"
+	"github.com/storacha/piri/cmd/enum"
 )
 
 // JsonKey represents the structure of a JSON-formatted key

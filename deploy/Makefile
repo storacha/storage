@@ -8,7 +8,7 @@ VERSION=$(shell awk -F'"' '/"version":/ {print $$4}' ../version.json)
 LAMBDA_GOOS=linux
 LAMBDA_GOARCH=arm64
 LAMBDA_GOCC?=go
-LAMBDA_GOFLAGS=-tags=lambda.norpc -ldflags="-s -w -X github.com/storacha/storage/pkg/build.version=$(VERSION)"
+LAMBDA_GOFLAGS=-tags=lambda.norpc -ldflags="-s -w -X github.com/storacha/piri/pkg/build.version=$(VERSION)"
 LAMBDA_CGO_ENABLED=0
 LAMBDAS=build/aggregatesubmitter/bootstrap build/getclaim/bootstrap build/getroot/bootstrap build/pieceaccepter/bootstrap build/pieceaggregator/bootstrap build/postroot/bootstrap build/putblob/bootstrap
 

@@ -6,8 +6,8 @@ import (
 
 	"github.com/ipfs/go-cid"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/pdp/service/types"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/types"
 )
 
 func (p *PDPService) FindPiece(ctx context.Context, name, hash string, size int64) (cid.Cid, bool, error) {

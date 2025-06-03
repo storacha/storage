@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/snadrus/must"
 
-	"github.com/storacha/storage/pkg/build"
+	"github.com/storacha/piri/pkg/build"
 )
 
 type PDPContracts struct {

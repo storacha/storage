@@ -11,8 +11,8 @@ import (
 	"github.com/ipfs/go-cid"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 type AddRootRequest struct {

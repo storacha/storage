@@ -20,8 +20,8 @@ import (
 	"github.com/multiformats/go-multihash"
 	mhreg "github.com/multiformats/go-multihash/core"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/pdp/service/types"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/types"
 )
 
 func (p *PDPService) UploadPiece(ctx context.Context, uploadUUID uuid.UUID, piece io.Reader) (interface{}, error) {

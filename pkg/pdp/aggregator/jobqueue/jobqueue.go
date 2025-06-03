@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/queue"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/worker"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/queue"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/serializer"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/worker"
 )
 
 type Service[T any] interface {

@@ -12,7 +12,7 @@ import (
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 // DynamoRanLinkIndex implements the store.ProviderContextTable interface on dynamodb

@@ -9,11 +9,11 @@ import (
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/internal/ipldstore"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/internal/ipldstore"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/aggregator/fns"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 type QueuePieceAggregationFn func(context.Context, piece.PieceLink) error

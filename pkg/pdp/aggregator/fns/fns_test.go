@@ -3,12 +3,12 @@ package fns_test
 import (
 	"testing"
 
-	"github.com/storacha/storage/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/storacha/go-libstoracha/piece/piece"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/fns"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/aggregator/fns"
 )
 
 // Human-friendly byte sizes

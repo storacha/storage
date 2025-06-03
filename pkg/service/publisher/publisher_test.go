@@ -24,9 +24,9 @@ import (
 	"github.com/storacha/go-ucanto/principal"
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/service/publisher/advertisement"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/service/publisher/advertisement"
 	"github.com/stretchr/testify/require"
 )
 

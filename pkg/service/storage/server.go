@@ -7,7 +7,7 @@ import (
 
 	"github.com/storacha/go-ucanto/server"
 	ucanhttp "github.com/storacha/go-ucanto/transport/http"
-	"github.com/storacha/storage/internal/telemetry"
+	"github.com/storacha/piri/internal/telemetry"
 )
 
 type Server struct {

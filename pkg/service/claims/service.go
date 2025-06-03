@@ -4,8 +4,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 	"github.com/storacha/go-ucanto/principal"
-	"github.com/storacha/storage/pkg/service/publisher"
-	"github.com/storacha/storage/pkg/store/claimstore"
+	"github.com/storacha/piri/pkg/service/publisher"
+	"github.com/storacha/piri/pkg/store/claimstore"
 )
 
 type ClaimService struct {

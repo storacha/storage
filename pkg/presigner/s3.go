@@ -14,7 +14,7 @@ import (
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/internal/digestutil"
 )
 
 const ISO8601BasicFormat = "20060102T150405Z"

@@ -11,9 +11,9 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/store/keystore"
-	"github.com/storacha/storage/pkg/wallet"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/store/keystore"
+	"github.com/storacha/piri/pkg/wallet"
 )
 
 var ServeCmd = &cli.Command{
@@ -44,13 +44,13 @@ var pdpCmd = &cli.Command{
 			Name:    "data-dir",
 			Aliases: []string{"d"},
 			Usage:   "Root directory to store data in.",
-			EnvVars: []string{"PDP_STORAGE_DATA_DIR"},
+			EnvVars: []string{"PIRI_PDP_DATA_DIR"},
 		},
 		&cli.StringFlag{
 			Name:    "tmp-dir",
 			Aliases: []string{"t"},
 			Usage:   "Temporary directory data is uploaded to before being moved to data-dir.",
-			EnvVars: []string{"PDP_STORAGE_TMP_DIR"},
+			EnvVars: []string{"PIRI_PDP_TMP_DIR"},
 		},
 		// TODO: these were the default values from testing, and they are reused
 		// here for convince, TODO here is to figure out how to just use one

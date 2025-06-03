@@ -12,12 +12,12 @@ import (
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/capabilities/types"
-	"github.com/storacha/storage/cmd/lambda"
-	"github.com/storacha/storage/internal/ipldstore"
-	"github.com/storacha/storage/pkg/aws"
-	"github.com/storacha/storage/pkg/pdp/aggregator"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/piri/cmd/lambda"
+	"github.com/storacha/piri/internal/ipldstore"
+	"github.com/storacha/piri/pkg/aws"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/curio"
 )
 
 func main() {

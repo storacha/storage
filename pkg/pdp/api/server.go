@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
-	"github.com/storacha/storage/pkg/pdp/api/middleware"
+	"github.com/storacha/piri/pkg/pdp/api/middleware"
 )
 
 var logger = logging.Logger("pdp/server")
