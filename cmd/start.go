@@ -70,6 +70,12 @@ var StartCmd = &cli.Command{
 			Usage:   "A delegation that allows the node to cache claims with the indexing service.",
 			EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
 		},
+		&cli.BoolFlag{
+			Name:    "use-noop-blobstore",
+			Value:   false,
+			Usage:   "[FOR TESTING PURPOSES ONLY] Disables the blobstore, useful when testing to speed tests up and avoid storage and data transfer charges.",
+			EnvVars: []string{"STORAGE_USE_NOOP_BLOBSTORE"},
+		},
 	},
 	Action: func(cCtx *cli.Context) error {
 		id, err := PrincipalSignerFromFile(cCtx.String("key-file"))
@@ -102,9 +108,12 @@ var StartCmd = &cli.Command{
 			tmpDir = dir
 		}
 
-		blobStore, err := blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"), path.Join(tmpDir, "blobs"))
-		if err != nil {
-			return fmt.Errorf("creating blob storage: %w", err)
+		blobStore := blobstore.NewNoopBlobstore()
+		if !cCtx.Bool("use-noop-blobstore") {
+			blobStore, err = blobstore.NewFsBlobstore(path.Join(dataDir, "blobs"), path.Join(tmpDir, "blobs"))
+			if err != nil {
+				return fmt.Errorf("creating blob storage: %w", err)
+			}
 		}
 
 		allocsDir, err := mkdirp(dataDir, "allocation")
