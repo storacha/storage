@@ -11,7 +11,7 @@ import (
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/storacha/go-libstoracha/piece/piece"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
 )
 
 var PieceQueueMessageGroupID = "piece-queue"

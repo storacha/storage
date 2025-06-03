@@ -14,8 +14,8 @@ import (
 
 	types2 "github.com/filecoin-project/lotus/chain/types"
 
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 // TODO allow this to be tuned based on network and user preferences for risk.

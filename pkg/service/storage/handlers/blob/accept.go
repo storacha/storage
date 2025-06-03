@@ -15,11 +15,11 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
 
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/service/blobs"
-	"github.com/storacha/storage/pkg/service/claims"
-	"github.com/storacha/storage/pkg/store"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/service/blobs"
+	"github.com/storacha/piri/pkg/service/claims"
+	"github.com/storacha/piri/pkg/store"
 )
 
 type AcceptService interface {

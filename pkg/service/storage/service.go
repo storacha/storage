@@ -17,15 +17,15 @@ import (
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanhttp "github.com/storacha/go-ucanto/transport/http"
 
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/presets"
-	"github.com/storacha/storage/pkg/service/blobs"
-	"github.com/storacha/storage/pkg/service/claims"
-	"github.com/storacha/storage/pkg/service/replicator"
-	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/store/delegationstore"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/presets"
+	"github.com/storacha/piri/pkg/service/blobs"
+	"github.com/storacha/piri/pkg/service/claims"
+	"github.com/storacha/piri/pkg/service/replicator"
+	"github.com/storacha/piri/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/store/delegationstore"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 type StorageService struct {

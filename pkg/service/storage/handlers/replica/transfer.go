@@ -21,11 +21,11 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/principal"
 
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/service/blobs"
-	"github.com/storacha/storage/pkg/service/claims"
-	blobhandler "github.com/storacha/storage/pkg/service/storage/handlers/blob"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/service/blobs"
+	"github.com/storacha/piri/pkg/service/claims"
+	blobhandler "github.com/storacha/piri/pkg/service/storage/handlers/blob"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 type TransferService interface {

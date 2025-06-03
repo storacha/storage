@@ -12,8 +12,8 @@ import (
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 var _ scheduler.TaskInterface = &PDPNotifyTask{}

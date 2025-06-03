@@ -9,8 +9,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/database"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/database"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 // taskTypeHandler ties a task implementation with engine-specific metadata.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/storacha/storage/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

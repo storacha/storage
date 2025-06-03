@@ -18,17 +18,17 @@ import (
 	"github.com/ipfs/go-datastore/namespace"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 
-	"github.com/storacha/storage/pkg/database"
-	"github.com/storacha/storage/pkg/database/gormdb"
-	"github.com/storacha/storage/pkg/pdp/api"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/pdp/pieceadder"
-	"github.com/storacha/storage/pkg/pdp/piecefinder"
-	"github.com/storacha/storage/pkg/pdp/service"
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/store"
-	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/wallet"
+	"github.com/storacha/piri/pkg/database"
+	"github.com/storacha/piri/pkg/database/gormdb"
+	"github.com/storacha/piri/pkg/pdp/api"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/pieceadder"
+	"github.com/storacha/piri/pkg/pdp/piecefinder"
+	"github.com/storacha/piri/pkg/pdp/service"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/store"
+	"github.com/storacha/piri/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/wallet"
 )
 
 type Server struct {

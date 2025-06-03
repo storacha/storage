@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 type ProofSetStatus struct {

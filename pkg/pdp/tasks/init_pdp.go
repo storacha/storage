@@ -15,11 +15,11 @@ import (
 	"github.com/filecoin-project/go-state-types/abi"
 	chaintypes "github.com/filecoin-project/lotus/chain/types"
 
-	"github.com/storacha/storage/pkg/pdp/ethereum"
-	"github.com/storacha/storage/pkg/pdp/promise"
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/ethereum"
+	"github.com/storacha/piri/pkg/pdp/promise"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 var log = logging.Logger("pdp/tasks")

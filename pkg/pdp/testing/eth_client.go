@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/storacha/storage/internal/mocks"
+	"github.com/storacha/piri/internal/mocks"
 )
 
 // MockEthClient combines all mock interfaces for EthClient

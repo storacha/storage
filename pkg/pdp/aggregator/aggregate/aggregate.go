@@ -14,7 +14,7 @@ import (
 	"github.com/storacha/go-ucanto/core/iterable"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/curio"
 )
 
 //go:embed aggregate.ipldsch

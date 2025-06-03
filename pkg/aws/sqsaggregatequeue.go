@@ -11,7 +11,7 @@ import (
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
 )
 
 // LinkMessage is a struct that is serialized onto an SQS message queue in JSON

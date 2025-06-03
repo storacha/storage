@@ -11,10 +11,10 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/internal/telemetry"
-	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store/allocationstore"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/internal/telemetry"
+	"github.com/storacha/piri/pkg/presigner"
+	"github.com/storacha/piri/pkg/store/allocationstore"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 var log = logging.Logger("blobs")

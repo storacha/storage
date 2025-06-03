@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/curio"
 )
 
 type PieceAdder interface {

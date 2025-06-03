@@ -22,8 +22,8 @@ import (
 	"github.com/storacha/go-ucanto/server"
 	"github.com/storacha/go-ucanto/ucan"
 
-	blobhandler "github.com/storacha/storage/pkg/service/storage/handlers/blob"
-	replicahandler "github.com/storacha/storage/pkg/service/storage/handlers/replica"
+	blobhandler "github.com/storacha/piri/pkg/service/storage/handlers/blob"
+	replicahandler "github.com/storacha/piri/pkg/service/storage/handlers/replica"
 )
 
 var log = logging.Logger("storage")

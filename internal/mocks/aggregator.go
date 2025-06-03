@@ -14,8 +14,8 @@ import (
 	reflect "reflect"
 
 	piece "github.com/storacha/go-libstoracha/piece/piece"
-	aggregate "github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	fns "github.com/storacha/storage/pkg/pdp/aggregator/fns"
+	aggregate "github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	fns "github.com/storacha/piri/pkg/pdp/aggregator/fns"
 	gomock "go.uber.org/mock/gomock"
 )
 

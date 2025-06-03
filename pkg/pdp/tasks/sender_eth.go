@@ -14,10 +14,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/storacha/storage/pkg/pdp/promise"
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/wallet"
+	"github.com/storacha/piri/pkg/pdp/promise"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/wallet"
 )
 
 var SendLockedWait = 100 * time.Millisecond

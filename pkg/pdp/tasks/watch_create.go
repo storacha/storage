@@ -14,9 +14,9 @@ import (
 
 	chaintypes "github.com/filecoin-project/lotus/chain/types"
 
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 type ProofSetCreate struct {

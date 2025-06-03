@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/database"
-	"github.com/storacha/storage/pkg/database/gormdb"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/database"
+	"github.com/storacha/piri/pkg/database/gormdb"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 // MockTask implements TaskInterface for testing

@@ -22,8 +22,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/curio"
 )
 
 var log = logging.Logger("fns")

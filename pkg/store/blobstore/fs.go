@@ -15,8 +15,8 @@ import (
 
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/store"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/store"
 )
 
 type FileObject struct {

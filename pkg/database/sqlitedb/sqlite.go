@@ -10,7 +10,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
-	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/piri/pkg/database"
 )
 
 var log = logging.Logger("database")

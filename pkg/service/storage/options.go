@@ -13,13 +13,13 @@ import (
 	"github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
 
-	"github.com/storacha/storage/pkg/access"
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store/allocationstore"
-	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/store/claimstore"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/access"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/presigner"
+	"github.com/storacha/piri/pkg/store/allocationstore"
+	"github.com/storacha/piri/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/store/claimstore"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 type PDPConfig struct {

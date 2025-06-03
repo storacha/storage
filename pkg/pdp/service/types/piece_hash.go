@@ -10,7 +10,7 @@ import (
 	"github.com/multiformats/go-multihash"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 // PieceSizeLimit in bytes

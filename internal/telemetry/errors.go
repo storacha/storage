@@ -7,7 +7,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
-	"github.com/storacha/storage/pkg/build"
+	"github.com/storacha/piri/pkg/build"
 )
 
 // HTTPError is an error that also has an associated HTTP status code

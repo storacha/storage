@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	multihash "github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/internal/digestutil"
 )
 
 const pattern = "{blob}"

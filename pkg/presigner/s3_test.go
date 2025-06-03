@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/storage/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

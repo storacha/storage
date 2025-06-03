@@ -18,7 +18,7 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/pkg/client"
+	"github.com/storacha/piri/pkg/client"
 )
 
 var ErrMustBePieceLinkOrHaveSize = errors.New("passing pieceCID v1 requires a size to be present")
@@ -37,14 +37,14 @@ var ClientCmd = &cli.Command{
 					Name:     "space-did",
 					Aliases:  []string{"sd"},
 					Usage:    "did for the space to use",
-					EnvVars:  []string{"STORAGE_CLIENT_SPACE_DID"},
+					EnvVars:  []string{"PIRI_CLIENT_SPACE_DID"},
 					Required: true,
 				},
 				&cli.StringFlag{
 					Name:     "blob",
 					Aliases:  []string{"b"},
 					Usage:    "blob to upload",
-					EnvVars:  []string{"STORAGE_CLIENT_BLOB_FILE"},
+					EnvVars:  []string{"PIRI_CLIENT_BLOB_FILE"},
 					Required: true,
 				},
 			}, ClientSetupFlags...),
@@ -113,14 +113,14 @@ var ClientCmd = &cli.Command{
 					Name:     "piece",
 					Aliases:  []string{"pc"},
 					Usage:    "pieceCID to get information on",
-					EnvVars:  []string{"STORAGE_PIECE_CID"},
+					EnvVars:  []string{"PIRI_PIECE_CID"},
 					Required: true,
 				},
 				&cli.Uint64Flag{
 					Name:    "size",
 					Aliases: []string{"ps"},
 					Usage:   "optional size if passing a piece cid v1 of data",
-					EnvVars: []string{"STORAGE_PIECE_SIZE"},
+					EnvVars: []string{"PIRI_PIECE_SIZE"},
 				},
 			}, ClientSetupFlags...),
 			Action: func(cCtx *cli.Context) error {

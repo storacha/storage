@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 
 	datamodel "github.com/ipld/go-ipld-prime/datamodel"
-	fns "github.com/storacha/storage/pkg/pdp/aggregator/fns"
+	fns "github.com/storacha/piri/pkg/pdp/aggregator/fns"
 	gomock "go.uber.org/mock/gomock"
 )
 

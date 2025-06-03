@@ -8,7 +8,7 @@ import (
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/ucan"
-	"github.com/storacha/storage/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

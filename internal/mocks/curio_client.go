@@ -15,7 +15,7 @@ import (
 	url "net/url"
 	reflect "reflect"
 
-	curio "github.com/storacha/storage/pkg/pdp/curio"
+	curio "github.com/storacha/piri/pkg/pdp/curio"
 	gomock "go.uber.org/mock/gomock"
 )
 

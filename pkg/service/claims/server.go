@@ -9,9 +9,9 @@ import (
 
 	"github.com/ipfs/go-cid"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/storacha/storage/internal/telemetry"
-	"github.com/storacha/storage/pkg/store"
-	"github.com/storacha/storage/pkg/store/claimstore"
+	"github.com/storacha/piri/internal/telemetry"
+	"github.com/storacha/piri/pkg/store"
+	"github.com/storacha/piri/pkg/store/claimstore"
 )
 
 type Server struct {

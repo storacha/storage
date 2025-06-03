@@ -14,11 +14,11 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	"github.com/storacha/go-ucanto/ucan"
 
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/service/blobs"
-	"github.com/storacha/storage/pkg/store"
-	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/service/blobs"
+	"github.com/storacha/piri/pkg/store"
+	"github.com/storacha/piri/pkg/store/allocationstore/allocation"
 )
 
 var log = logging.Logger("storage/handlers/blob")

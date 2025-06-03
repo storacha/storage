@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 
-	"github.com/storacha/storage/pkg/pdp/api/middleware"
+	"github.com/storacha/piri/pkg/pdp/api/middleware"
 )
 
 type CreateProofSetRequest struct {

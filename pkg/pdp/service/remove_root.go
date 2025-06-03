@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
 )
 
 func (p *PDPService) RemoveRoot(ctx context.Context, proofSetID uint64, rootID uint64) error {

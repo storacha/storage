@@ -11,8 +11,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 
-	"github.com/storacha/storage/pkg/store/keystore"
-	"github.com/storacha/storage/pkg/wallet"
+	"github.com/storacha/piri/pkg/store/keystore"
+	"github.com/storacha/piri/pkg/wallet"
 )
 
 const WalletDir = "wallet"
@@ -25,7 +25,7 @@ var WalletCmd = &cli.Command{
 			Name:    "data-dir",
 			Aliases: []string{"d"},
 			Usage:   "Root directory to store data in.",
-			EnvVars: []string{"STORAGE_DATA_DIR"},
+			EnvVars: []string{"PIRI_DATA_DIR"},
 		},
 	},
 	Subcommands: []*cli.Command{

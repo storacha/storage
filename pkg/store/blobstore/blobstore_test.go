@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/multiformats/go-multihash"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/store"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/store"
 	"github.com/stretchr/testify/require"
 )
 

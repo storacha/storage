@@ -30,13 +30,13 @@ import (
 
 	pool "github.com/libp2p/go-buffer-pool"
 
-	"github.com/storacha/storage/pkg/pdp/ethereum"
-	"github.com/storacha/storage/pkg/pdp/promise"
-	"github.com/storacha/storage/pkg/pdp/proof"
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/pdp/ethereum"
+	"github.com/storacha/piri/pkg/pdp/promise"
+	"github.com/storacha/piri/pkg/pdp/proof"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 var _ scheduler.TaskInterface = &ProveTask{}

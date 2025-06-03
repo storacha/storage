@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storacha/storage/pkg/database"
+	"github.com/storacha/piri/pkg/database"
 )
 
 func TestSQLiteOptions(t *testing.T) {

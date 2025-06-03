@@ -8,11 +8,11 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/storacha/go-ucanto/ucan"
 
-	"github.com/storacha/storage/pkg/pdp/aggregator"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/pdp/pieceadder"
-	"github.com/storacha/storage/pkg/pdp/piecefinder"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/pieceadder"
+	"github.com/storacha/piri/pkg/pdp/piecefinder"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 type PDPService struct {

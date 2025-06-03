@@ -3,9 +3,9 @@ package main
 import (
 	"net/http"
 
-	"github.com/storacha/storage/cmd/lambda"
-	"github.com/storacha/storage/pkg/aws"
-	"github.com/storacha/storage/pkg/service/blobs"
+	"github.com/storacha/piri/cmd/lambda"
+	"github.com/storacha/piri/pkg/aws"
+	"github.com/storacha/piri/pkg/service/blobs"
 )
 
 func main() {

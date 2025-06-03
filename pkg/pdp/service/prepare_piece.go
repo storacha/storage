@@ -13,9 +13,9 @@ import (
 	"github.com/snadrus/must"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/proof"
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/pdp/service/types"
+	"github.com/storacha/piri/pkg/pdp/proof"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/service/types"
 )
 
 var PieceSizeLimit = abi.PaddedPieceSize(proof.MaxMemtreeSize).Unpadded()

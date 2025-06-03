@@ -1,8 +1,8 @@
 package claims
 
 import (
-	"github.com/storacha/storage/pkg/service/publisher"
-	"github.com/storacha/storage/pkg/store/claimstore"
+	"github.com/storacha/piri/pkg/service/publisher"
+	"github.com/storacha/piri/pkg/store/claimstore"
 )
 
 type Claims interface {

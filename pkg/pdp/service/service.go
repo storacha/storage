@@ -14,14 +14,14 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"gorm.io/gorm"
 
-	"github.com/storacha/storage/pkg/pdp/ethereum"
-	"github.com/storacha/storage/pkg/pdp/scheduler"
-	"github.com/storacha/storage/pkg/pdp/service/contract"
-	"github.com/storacha/storage/pkg/pdp/service/models"
-	"github.com/storacha/storage/pkg/pdp/store"
-	"github.com/storacha/storage/pkg/pdp/tasks"
-	"github.com/storacha/storage/pkg/store/blobstore"
-	"github.com/storacha/storage/pkg/wallet"
+	"github.com/storacha/piri/pkg/pdp/ethereum"
+	"github.com/storacha/piri/pkg/pdp/scheduler"
+	"github.com/storacha/piri/pkg/pdp/service/contract"
+	"github.com/storacha/piri/pkg/pdp/service/models"
+	"github.com/storacha/piri/pkg/pdp/store"
+	"github.com/storacha/piri/pkg/pdp/tasks"
+	"github.com/storacha/piri/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/wallet"
 )
 
 var log = logging.Logger("pdp/service")

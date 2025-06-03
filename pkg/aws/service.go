@@ -30,16 +30,16 @@ import (
 
 	"github.com/storacha/go-libstoracha/ipnipublisher/store"
 
-	"github.com/storacha/storage/pkg/access"
-	"github.com/storacha/storage/pkg/pdp"
-	"github.com/storacha/storage/pkg/pdp/aggregator"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/pdp/pieceadder"
-	"github.com/storacha/storage/pkg/pdp/piecefinder"
-	"github.com/storacha/storage/pkg/presets"
-	"github.com/storacha/storage/pkg/service/storage"
-	"github.com/storacha/storage/pkg/store/delegationstore"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/pkg/access"
+	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/pdp/aggregator"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/pdp/pieceadder"
+	"github.com/storacha/piri/pkg/pdp/piecefinder"
+	"github.com/storacha/piri/pkg/presets"
+	"github.com/storacha/piri/pkg/service/storage"
+	"github.com/storacha/piri/pkg/store/delegationstore"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 // ErrMissingSecret means that the value returned from Secrets was empty

@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
-	"github.com/storacha/storage/internal/telemetry"
-	"github.com/storacha/storage/pkg/aws"
+	"github.com/storacha/piri/internal/telemetry"
+	"github.com/storacha/piri/pkg/aws"
 )
 
 // SQSEventHandler is a function that handles SQS events, suitable to use as a lambda handler.

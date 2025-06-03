@@ -1,7 +1,7 @@
 variable "app" {
   description = "The name of the application"
   type        = string
-  default     = "storage"
+  default     = "piri"
 }
 
 variable "owner" {

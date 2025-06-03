@@ -16,12 +16,12 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/multiformats/go-multihash"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
-	"github.com/storacha/storage/pkg/internal/digestutil"
-	"github.com/storacha/storage/pkg/internal/testutil"
-	"github.com/storacha/storage/pkg/presigner"
-	"github.com/storacha/storage/pkg/store/allocationstore"
-	"github.com/storacha/storage/pkg/store/allocationstore/allocation"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/pkg/internal/digestutil"
+	"github.com/storacha/piri/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/presigner"
+	"github.com/storacha/piri/pkg/store/allocationstore"
+	"github.com/storacha/piri/pkg/store/allocationstore/allocation"
+	"github.com/storacha/piri/pkg/store/blobstore"
 	"github.com/stretchr/testify/require"
 )
 

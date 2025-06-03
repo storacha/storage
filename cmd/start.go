@@ -25,17 +25,17 @@ import (
 	ucanserver "github.com/storacha/go-ucanto/server"
 	"github.com/urfave/cli/v2"
 
-	"github.com/storacha/storage/cmd/enum"
-	"github.com/storacha/storage/pkg/presets"
-	"github.com/storacha/storage/pkg/principalresolver"
-	"github.com/storacha/storage/pkg/server"
-	"github.com/storacha/storage/pkg/service/storage"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/cmd/enum"
+	"github.com/storacha/piri/pkg/presets"
+	"github.com/storacha/piri/pkg/principalresolver"
+	"github.com/storacha/piri/pkg/server"
+	"github.com/storacha/piri/pkg/service/storage"
+	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 var StartCmd = &cli.Command{
 	Name:  "start",
-	Usage: "Start the storage node daemon.",
+	Usage: "Start the piri node daemon.",
 	Flags: []cli.Flag{
 		KeyFileFlag,
 		CurioURLFlag,
@@ -44,31 +44,31 @@ var StartCmd = &cli.Command{
 			Aliases: []string{"p"},
 			Value:   3000,
 			Usage:   "Port to bind the server to.",
-			EnvVars: []string{"STORAGE_PORT"},
+			EnvVars: []string{"PIRI_PORT"},
 		},
 		&cli.StringFlag{
 			Name:    "data-dir",
 			Aliases: []string{"d"},
 			Usage:   "Root directory to store data in.",
-			EnvVars: []string{"STORAGE_DATA_DIR"},
+			EnvVars: []string{"PIRI_DATA_DIR"},
 		},
 		&cli.StringFlag{
 			Name:    "tmp-dir",
 			Aliases: []string{"t"},
 			Usage:   "Temporary directory data is uploaded to before being moved to data-dir.",
-			EnvVars: []string{"STORAGE_TMP_DIR"},
+			EnvVars: []string{"PIRI_TMP_DIR"},
 		},
 		&cli.StringFlag{
 			Name:    "public-url",
 			Aliases: []string{"u"},
 			Usage:   "URL the node is publically accessible at.",
-			EnvVars: []string{"STORAGE_PUBLIC_URL"},
+			EnvVars: []string{"PIRI_PUBLIC_URL"},
 		},
 		ProofSetFlag,
 		&cli.StringFlag{
 			Name:    "indexing-service-proof",
 			Usage:   "A delegation that allows the node to cache claims with the indexing service.",
-			EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
+			EnvVars: []string{"PIRI_INDEXING_SERVICE_PROOF"},
 		},
 	},
 	Action: func(cCtx *cli.Context) error {
@@ -210,9 +210,9 @@ var StartCmd = &cli.Command{
 		}
 
 		var ipniAnnounceURLs []url.URL
-		if os.Getenv("STORAGE_IPNI_ANNOUNCE_URLS") != "" {
+		if os.Getenv("PIRI_IPNI_ANNOUNCE_URLS") != "" {
 			var urls []string
-			err := json.Unmarshal([]byte(os.Getenv("STORAGE_IPNI_ANNOUNCE_URLS")), &urls)
+			err := json.Unmarshal([]byte(os.Getenv("PIRI_IPNI_ANNOUNCE_URLS")), &urls)
 			if err != nil {
 				return fmt.Errorf("parsing IPNI announce URLs JSON: %w", err)
 			}
@@ -228,8 +228,8 @@ var StartCmd = &cli.Command{
 		}
 
 		indexingServiceDID := presets.IndexingServiceDID
-		if os.Getenv("STORAGE_INDEXING_SERVICE_DID") != "" {
-			d, err := did.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_DID"))
+		if os.Getenv("PIRI_INDEXING_SERVICE_DID") != "" {
+			d, err := did.Parse(os.Getenv("PIRI_INDEXING_SERVICE_DID"))
 			if err != nil {
 				return fmt.Errorf("parsing indexing service DID: %w", err)
 			}
@@ -237,8 +237,8 @@ var StartCmd = &cli.Command{
 		}
 
 		indexingServiceURL := *presets.IndexingServiceURL
-		if os.Getenv("STORAGE_INDEXING_SERVICE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_URL"))
+		if os.Getenv("PIRI_INDEXING_SERVICE_URL") != "" {
+			u, err := url.Parse(os.Getenv("PIRI_INDEXING_SERVICE_URL"))
 			if err != nil {
 				return fmt.Errorf("parsing indexing service URL: %w", err)
 			}
@@ -246,8 +246,8 @@ var StartCmd = &cli.Command{
 		}
 
 		uploadServiceDID := presets.UploadServiceDID
-		if os.Getenv("STORAGE_UPLOAD_SERVICE_DID") != "" {
-			d, err := did.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_DID"))
+		if os.Getenv("PIRI_UPLOAD_SERVICE_DID") != "" {
+			d, err := did.Parse(os.Getenv("PIRI_UPLOAD_SERVICE_DID"))
 			if err != nil {
 				return fmt.Errorf("parsing indexing service DID: %w", err)
 			}
@@ -255,8 +255,8 @@ var StartCmd = &cli.Command{
 		}
 
 		uploadServiceURL := *presets.UploadServiceURL
-		if os.Getenv("STORAGE_UPLOAD_SERVICE_URL") != "" {
-			u, err := url.Parse(os.Getenv("STORAGE_UPLOAD_SERVICE_URL"))
+		if os.Getenv("PIRI_UPLOAD_SERVICE_URL") != "" {
+			u, err := url.Parse(os.Getenv("PIRI_UPLOAD_SERVICE_URL"))
 			if err != nil {
 				return fmt.Errorf("parsing indexing service URL: %w", err)
 			}
@@ -303,9 +303,9 @@ var StartCmd = &cli.Command{
 		defer svc.Close(cCtx.Context)
 
 		principalMapping := presets.PrincipalMapping
-		if os.Getenv("STORAGE_PRINCIPAL_MAPPING") != "" {
+		if os.Getenv("PIRI_PRINCIPAL_MAPPING") != "" {
 			var pm map[string]string
-			err := json.Unmarshal([]byte(os.Getenv("STORAGE_PRINCIPAL_MAPPING")), &pm)
+			err := json.Unmarshal([]byte(os.Getenv("PIRI_PRINCIPAL_MAPPING")), &pm)
 			if err != nil {
 				return fmt.Errorf("parsing principal mapping: %w", err)
 			}

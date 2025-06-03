@@ -14,11 +14,11 @@ import (
 	"github.com/storacha/go-ucanto/did"
 	ed25519 "github.com/storacha/go-ucanto/principal/ed25519/signer"
 	ucanserver "github.com/storacha/go-ucanto/server"
-	"github.com/storacha/storage/cmd"
-	"github.com/storacha/storage/pkg/principalresolver"
-	"github.com/storacha/storage/pkg/server"
-	"github.com/storacha/storage/pkg/service/storage"
-	"github.com/storacha/storage/pkg/store/blobstore"
+	"github.com/storacha/piri/cmd"
+	"github.com/storacha/piri/pkg/principalresolver"
+	"github.com/storacha/piri/pkg/server"
+	"github.com/storacha/piri/pkg/service/storage"
+	"github.com/storacha/piri/pkg/store/blobstore"
 	"github.com/urfave/cli/v2"
 )
 
@@ -47,7 +47,7 @@ func main() {
 						Name:     "private-key",
 						Aliases:  []string{"s"},
 						Usage:    "Multibase base64 encoded private key identity for the node.",
-						EnvVars:  []string{"STORAGE_PRIVATE_KEY"},
+						EnvVars:  []string{"PIRI_PRIVATE_KEY"},
 						Required: true,
 					},
 					&cli.IntFlag{
@@ -55,47 +55,47 @@ func main() {
 						Aliases: []string{"p"},
 						Value:   3000,
 						Usage:   "Port to bind the server to.",
-						EnvVars: []string{"STORAGE_PORT"},
+						EnvVars: []string{"PIRI_PORT"},
 					},
 					&cli.StringFlag{
 						Name:    "public-url",
 						Aliases: []string{"u"},
 						Usage:   "URL the node is publically accessible at.",
-						EnvVars: []string{"STORAGE_PUBLIC_URL"},
+						EnvVars: []string{"PIRI_PUBLIC_URL"},
 					},
 					&cli.StringFlag{
 						Name:    "indexing-service-proof",
 						Usage:   "A delegation that allows the node to cache claims with the indexing service.",
-						EnvVars: []string{"STORAGE_INDEXING_SERVICE_PROOF"},
+						EnvVars: []string{"PIRI_INDEXING_SERVICE_PROOF"},
 					},
 					&cli.StringFlag{
 						Name:     "s3-region",
 						Usage:    "Bucket region.",
-						EnvVars:  []string{"STORAGE_S3_REGION"},
+						EnvVars:  []string{"PIRI_S3_REGION"},
 						Required: true,
 					},
 					&cli.StringFlag{
 						Name:     "s3-endpoint",
 						Usage:    "Bucket edpoint.",
-						EnvVars:  []string{"STORAGE_S3_ENDPOINT"},
+						EnvVars:  []string{"PIRI_S3_ENDPOINT"},
 						Required: true,
 					},
 					&cli.StringFlag{
 						Name:     "s3-access-key",
 						Usage:    "Access key.",
-						EnvVars:  []string{"STORAGE_S3_ACCESS_KEY"},
+						EnvVars:  []string{"PIRI_S3_ACCESS_KEY"},
 						Required: true,
 					},
 					&cli.StringFlag{
 						Name:     "s3-secret-key",
 						Usage:    "Secret key.",
-						EnvVars:  []string{"STORAGE_S3_SECRET_KEY"},
+						EnvVars:  []string{"PIRI_S3_SECRET_KEY"},
 						Required: true,
 					},
 					&cli.StringFlag{
 						Name:     "s3-bucket",
 						Usage:    "Bucket name.",
-						EnvVars:  []string{"STORAGE_S3_BUCKET"},
+						EnvVars:  []string{"PIRI_S3_BUCKET"},
 						Required: true,
 					},
 				},
@@ -150,8 +150,8 @@ func main() {
 					}
 
 					announceURL := *AnnounceURL
-					if os.Getenv("STORAGE_ANNOUNCE_URL") != "" {
-						u, err := url.Parse(os.Getenv("STORAGE_ANNOUNCE_URL"))
+					if os.Getenv("PIRI_ANNOUNCE_URL") != "" {
+						u, err := url.Parse(os.Getenv("PIRI_ANNOUNCE_URL"))
 						if err != nil {
 							return fmt.Errorf("parsing announce URL: %w", err)
 						}
@@ -159,8 +159,8 @@ func main() {
 					}
 
 					indexingServiceDID := IndexingServiceDID
-					if os.Getenv("STORAGE_INDEXING_SERVICE_DID") != "" {
-						d, err := did.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_DID"))
+					if os.Getenv("PIRI_INDEXING_SERVICE_DID") != "" {
+						d, err := did.Parse(os.Getenv("PIRI_INDEXING_SERVICE_DID"))
 						if err != nil {
 							return fmt.Errorf("parsing indexing service DID: %w", err)
 						}
@@ -168,8 +168,8 @@ func main() {
 					}
 
 					indexingServiceURL := *IndexingServiceURL
-					if os.Getenv("STORAGE_INDEXING_SERVICE_URL") != "" {
-						u, err := url.Parse(os.Getenv("STORAGE_INDEXING_SERVICE_URL"))
+					if os.Getenv("PIRI_INDEXING_SERVICE_URL") != "" {
+						u, err := url.Parse(os.Getenv("PIRI_INDEXING_SERVICE_URL"))
 						if err != nil {
 							return fmt.Errorf("parsing indexing service URL: %w", err)
 						}

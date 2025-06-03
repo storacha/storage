@@ -16,14 +16,14 @@ import (
 	"github.com/storacha/go-libstoracha/piece/piece"
 	"github.com/storacha/go-ucanto/ucan"
 
-	"github.com/storacha/storage/internal/ipldstore"
-	"github.com/storacha/storage/pkg/database"
-	"github.com/storacha/storage/pkg/database/sqlitedb"
-	"github.com/storacha/storage/pkg/pdp/aggregator/aggregate"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue"
-	"github.com/storacha/storage/pkg/pdp/aggregator/jobqueue/serializer"
-	"github.com/storacha/storage/pkg/pdp/curio"
-	"github.com/storacha/storage/pkg/store/receiptstore"
+	"github.com/storacha/piri/internal/ipldstore"
+	"github.com/storacha/piri/pkg/database"
+	"github.com/storacha/piri/pkg/database/sqlitedb"
+	"github.com/storacha/piri/pkg/pdp/aggregator/aggregate"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/serializer"
+	"github.com/storacha/piri/pkg/pdp/curio"
+	"github.com/storacha/piri/pkg/store/receiptstore"
 )
 
 var log = logging.Logger("pdp/aggregator")
