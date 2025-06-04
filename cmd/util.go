@@ -7,24 +7,22 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-ucanto/did"
+	"github.com/storacha/piri/pkg/build"
 )
 
 var log = logging.Logger("cmd")
 
 func PrintHero(id did.DID) {
 	fmt.Printf(`
- 00000000                                                   00                  
-00      00    00                                            00                  
- 000        000000   00000000   00000  0000000    0000000   00000000    0000000 
-    00000     00    00     000  00           00  00     0   00    00         00 
-        000   00    00      00  00     00000000  00         00    00    0000000 
-000     000   00    00     000  00    000    00  000    00  00    00   00    00 
- 000000000    0000   0000000    00     000000000   000000   00    00   000000000
+▗▄▄▖ ▄  ▄▄▄ ▄ 
+▐▌ ▐▌▄ █    ▄ 
+▐▛▀▘ █ █    █ 
+▐▌   █      █
 
-🔥 Storage Node %s
+🔥 %s
 🆔 %s
 🚀 Ready!
-`, "v0.0.0", id.String())
+`, build.Version, id.String())
 }
 
 func mkdirp(dirpath ...string) (string, error) {
