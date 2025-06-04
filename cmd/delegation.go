@@ -2,10 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/storacha/go-libstoracha/capabilities/blob"
+	"github.com/storacha/go-libstoracha/capabilities/blob/replica"
 	"github.com/storacha/go-libstoracha/capabilities/pdp"
 	"github.com/storacha/go-ucanto/core/delegation"
 	"github.com/storacha/go-ucanto/did"
@@ -41,7 +40,7 @@ var DelegationCmd = &cli.Command{
 				if err != nil {
 					return fmt.Errorf("parsing client-did: %w", err)
 				}
-				delegation, err := delegation.Delegate(
+				dlg, err := delegation.Delegate(
 					id,
 					clientDid,
 					[]ucan.Capability[ucan.NoCaveats]{
@@ -60,14 +59,23 @@ var DelegationCmd = &cli.Command{
 							id.DID().String(),
 							ucan.NoCaveats{},
 						),
+						ucan.NewCapability(
+							replica.AllocateAbility,
+							id.DID().String(),
+							ucan.NoCaveats{},
+						),
 					},
 					delegation.WithNoExpiration(),
 				)
 				if err != nil {
 					return fmt.Errorf("generating delegation: %w", err)
 				}
-				_, err = io.Copy(os.Stdout, delegation.Archive())
-				return err
+				dlgStr, err := delegation.Format(dlg)
+				if err != nil {
+					return fmt.Errorf("formatting delegation: %w", err)
+				}
+				fmt.Println(dlgStr)
+				return nil
 			},
 		},
 	},
