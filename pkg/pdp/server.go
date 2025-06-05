@@ -104,8 +104,8 @@ func NewServer(
 		return nil, fmt.Errorf("connecting to eth client: %w", err)
 	}
 
-	stateDir, err := os.MkdirTemp(dataDir, "state")
-	if err != nil {
+	stateDir := filepath.Join(dataDir, "state")
+	if err := os.Mkdir(stateDir, 0755); err != nil {
 		return nil, err
 	}
 
