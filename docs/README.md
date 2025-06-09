@@ -71,7 +71,7 @@ curl https://pdp.your-domain.com/health
 
 ### Create a Proof Set
 ```bash
-piri proofset create --key-file=service.pem --curio-url=https://pdp-domain.com
+piri proofset create --key-file=service.pem --pdp-server-url=https://pdp-domain.com
 ```
 
 ## 🆘 Getting Help

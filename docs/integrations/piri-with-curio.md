@@ -66,7 +66,7 @@ Before accepting uploads, create a proof set in Curio:
 ```bash
 piri proofset create \
   --key-file=service.pem \
-  --curio-url=https://curio.example.com \
+  --pdp-server-url=https://curio.example.com \
   --record-keeper=0x6170dE2b09b404776197485F3dc6c968Ef948505
 ```
 
