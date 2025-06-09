@@ -148,8 +148,7 @@ User=piri
 Group=piri
 WorkingDirectory=/var/lib/piri/pdp
 ExecStart=/usr/local/bin/piri serve pdp \
-  --lotus-client-host=wss://YOUR_LOTUS_ENDPOINT/rpc/v1 \
-  --eth-client-host=wss://YOUR_LOTUS_ENDPOINT/rpc/v1 \
+  --lotus-host-url=wss://YOUR_LOTUS_ENDPOINT/rpc/v1 \
   --pdp-address=YOUR_ETH_ADDRESS \
   --port=3001 \
   --storage-dir=/var/lib/piri/pdp/storage \
@@ -182,7 +181,7 @@ Using the running PDP server:
 cd /etc/piri
 sudo -u piri piri proofset create \
   --key-file=service.pem \
-  --curio-url=https://pdp.example.com \
+  --pdp-server-url=https://pdp.example.com \
   --record-keeper=0x6170dE2b09b404776197485F3dc6c968Ef948505
 
 # Monitor status

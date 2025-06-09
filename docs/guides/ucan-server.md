@@ -63,7 +63,7 @@ Before accepting data, you need to create a proof set on the PDP backend:
 ```bash
 piri proofset create \
   --key-file=service.pem \
-  --curio-url=https://YOUR_PDP_DOMAIN \
+  --pdp-server-url=https://YOUR_PDP_DOMAIN \
   --record-keeper=0x6170dE2b09b404776197485F3dc6c968Ef948505
 ```
 
