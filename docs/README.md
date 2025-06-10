@@ -1,6 +1,8 @@
 # Piri Documentation
 
-Welcome to the Piri documentation! Piri is a storage provider implementation for the Storacha network, offering both PDP (Proof of Data Possession) and UCAN (User Controlled Authorization Network) server capabilities.
+Welcome to the Piri documentation!
+Piri is the software run by all storage providers on the Storacha network. 
+Piri can run entirely on its own with no software other than Filecoin Lotus, or it can integrate into Filecoin storage provider operation running Curio.
 
 ## 🚀 Quick Start
 
