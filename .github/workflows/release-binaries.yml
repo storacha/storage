@@ -1,4 +1,4 @@
-name: GoReleaser
+name: Binaries Releaser
 on:
   release:
     types: [ published ]
