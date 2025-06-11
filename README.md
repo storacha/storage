@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://w3s.link/ipfs/bafybeidgd53ksarusewxkmf54ojnrmhneamtcvpqa7n7mi73k6hc7qlwym/centipede.png" alt="Storacha piri node logo" width="180" />
-  <h1>Storage Node</h1>
-  <p>A piri node that runs on the Storacha network.</p>
+  <h1>Piri</h1>
+  <p>A storage node that runs on the Storacha network.</p>
 </div>
 
 ## Usage
