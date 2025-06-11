@@ -21,7 +21,8 @@ The PDP server is responsible for:
 The UCAN server is responsible for:
 - **Client Interface**: Accepts data uploads from Storacha network clients
 - **Authentication**: Handles delegated authorization via UCAN tokens
-- **Data Routing**: Routes uploaded data to the configured PDP backend
+- **Aggregation**: Aggregates data uploads into appropriately sized pieces for PDP operations
+- **Data Routing**: Routes pieces to the configured PDP backend
 - **Delegation Management**: Manages authorization delegations from the Storacha network
 
 ### 3. Key Relationships

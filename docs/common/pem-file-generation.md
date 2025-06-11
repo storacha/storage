@@ -19,43 +19,16 @@ Piri requires an **Ed25519** private key. Ed25519 is a modern elliptic curve sig
 
 ## Generating a PEM File
 
-### Option 1: Using Piri (Recommended)
-
 1. Generate a new Ed25519 PEM file using Piri:
    ```bash
-   piri id gen -t=pem
+   piri id gen -t=pem > service.pem
    ```
 
-2. Save the **Private Key** block to a file named `service.pem`:
-   ```
-   -----BEGIN PRIVATE KEY-----
-   MC4CAQAwBQYDK2VwBCIEIG[...]
-   -----END PRIVATE KEY-----
-   ```
-
-3. Verify the file and derive your DID:
+2. Verify the file and derive your DID:
    ```bash
    piri id parse service.pem | jq .did
    ```
    Example output: `did:key:z6MkhaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
-
-### Option 2: Using OpenSSL
-
-1. Generate an Ed25519 private key:
-   ```bash
-   openssl genpkey -algorithm Ed25519 -out service.pem
-   ```
-
-2. Verify the key was created correctly:
-   ```bash
-   openssl pkey -in service.pem -text -noout
-   ```
-   You should see output indicating "ED25519 Private-Key"
-
-3. Extract the DID using Piri:
-   ```bash
-   piri id parse service.pem | jq .did
-   ```
 
 ## Important Usage Notes
 
@@ -89,6 +62,6 @@ While you can place `service.pem` anywhere, we recommend:
 ## Next Steps
 
 After generating your PEM file:
-- For PDP server setup: The file path will be used in configuration
+- For PDP server setup: Pass via --key-file=service.pem parameter
 - For UCAN server setup: Pass via `--key-file=service.pem` parameter
 - For delegation: Your DID (derived above) will be registered with Storacha
