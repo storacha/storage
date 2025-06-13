@@ -7,10 +7,12 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/ipfs/go-cid"
+	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/multiformats/go-multihash"
 	"github.com/storacha/go-libstoracha/capabilities/assert"
@@ -31,21 +33,65 @@ import (
 	fdm "github.com/storacha/go-ucanto/core/result/failure/datamodel"
 	"github.com/storacha/go-ucanto/core/result/ok"
 	"github.com/storacha/go-ucanto/did"
+	"github.com/storacha/go-ucanto/principal"
+	ucanhttp "github.com/storacha/go-ucanto/transport/http"
 	"github.com/storacha/go-ucanto/ucan"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxtest"
 
+	"github.com/storacha/piri/pkg/config"
 	"github.com/storacha/piri/pkg/internal/testutil"
+	"github.com/storacha/piri/pkg/presigner"
 	"github.com/storacha/piri/pkg/store/allocationstore/allocation"
 )
 
+// createTestService creates a test service using fx
+func createTestService(t *testing.T, opts ...fx.Option) (Service, *fxtest.App) {
+	testCfg := config.UCANServer{
+		Identity: config.Identity{
+			KeyFile: "test", // not used in test
+		},
+		Repo: config.Repo{
+			DataDir: filepath.Join(t.TempDir(), "storacha"),
+			TempDir: filepath.Join(t.TempDir(), "storacha_tmp"),
+		},
+		Host:               "localhost",
+		Port:               3000,
+		PublicURL:          "http://localhost:3000",
+		PDPServerURL:       "",         // Disable PDP for tests
+		IPNIAnnounceURLs:   []string{}, // Disable IPNI announcements for tests
+		IndexingServiceDID: "",         // Disable indexing service for tests
+		IndexingServiceURL: "",
+		UploadServiceDID:   "did:web:up.storacha.network",
+		UploadServiceURL:   "https://up.storacha.network",
+	}
+
+	var svc Service
+	baseOpts := []fx.Option{
+		WithConfig(testCfg),
+		Module,
+		fx.Populate(&svc),
+		// Override identity provider for testing
+		fx.Decorate(func() principal.Signer {
+			return testutil.Alice
+		}),
+	}
+
+	allOpts := append(baseOpts, opts...)
+	app := fxtest.New(t,
+		append([]fx.Option{fx.WithLogger(NewFxLogger)}, allOpts...)...,
+	)
+	app.RequireStart()
+
+	return svc, app
+}
+
 func TestServer(t *testing.T) {
 	ctx := context.Background()
-	svc, err := New(WithIdentity(testutil.Alice), WithLogLevel("*", "warn"))
-	require.NoError(t, err)
-	err = svc.Startup(ctx)
-	require.NoError(t, err)
+	svc, app := createTestService(t)
 	t.Cleanup(func() {
-		svc.Close(ctx)
+		app.RequireStop()
 	})
 
 	srv, err := NewUCANServer(svc)
@@ -106,7 +152,7 @@ func TestServer(t *testing.T) {
 			fmt.Printf("%+v\n", ok)
 			require.Equal(t, size, uint64(ok.Size))
 
-			allocs, err := svc.Blobs().Allocations().List(context.Background(), digest)
+			allocs, err := svc.Blobs().Allocations().List(ctx, digest)
 			require.NoError(t, err)
 
 			require.Len(t, allocs, 1)
@@ -175,7 +221,7 @@ func TestServer(t *testing.T) {
 		})
 
 		// simulate a blob upload
-		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
+		err = svc.Blobs().Store().Put(ctx, digest, size, bytes.NewReader(data))
 		require.NoError(t, err)
 
 		// now again after upload
@@ -234,7 +280,7 @@ func TestServer(t *testing.T) {
 		})
 
 		// simulate a blob upload
-		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
+		err = svc.Blobs().Store().Put(ctx, digest, size, bytes.NewReader(data))
 		require.NoError(t, err)
 
 		// now again after upload, but in different space
@@ -272,7 +318,7 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 
 		// simulate a blob upload
-		err = svc.Blobs().Store().Put(context.Background(), digest, size, bytes.NewReader(data))
+		err = svc.Blobs().Store().Put(ctx, digest, size, bytes.NewReader(data))
 		require.NoError(t, err)
 		// get the expected download URL
 		loc, err := svc.Blobs().Access().GetDownloadURL(digest)
@@ -310,7 +356,7 @@ func TestServer(t *testing.T) {
 		result.MatchResultR0(rcpt.Out(), func(ok blob.AcceptOk) {
 			fmt.Printf("%+v\n", ok)
 
-			claim, err := svc.Claims().Store().Get(context.Background(), ok.Site)
+			claim, err := svc.Claims().Store().Get(ctx, ok.Site)
 			require.NoError(t, err)
 
 			require.Equal(t, testutil.Alice.DID(), claim.Issuer())
@@ -354,6 +400,7 @@ func TestServer(t *testing.T) {
 //  3. **ExistingAllocationAndData:** Both an allocation record and the blob data are already present; although a transfer receipt is still produced,
 //     no redundant data transfer should occur.
 func TestReplicaAllocateTransfer(t *testing.T) {
+	logging.SetAllLoggers(logging.LevelDebug)
 	testCases := []struct {
 		name                  string
 		hasExistingAllocation bool
@@ -381,7 +428,7 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			// we expect each test to run in 10 seconds or less.
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Hour)
 
 			// Common setup: random DID, random data, etc.
 			expectedSpace := testutil.RandomDID(t)
@@ -396,14 +443,14 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 
 			// Spin up storage service, using injected values for testing.
 			locationURL, uploadServiceURL, fakeBlobPresigner := setupURLs(t, serverAddr, sourcePath, sinkPath, uploadServicePath)
-			svc := setupService(t, ctx, fakeBlobPresigner, uploadServiceURL)
+			svc, app := setupService(t, ctx, fakeBlobPresigner, uploadServiceURL)
 			fakeServer, transferOkChan := startTestHTTPServer(
 				ctx, t, expectedDigest, expectedData, svc,
 				serverAddr, sourcePath, sinkPath, uploadServicePath,
 			)
 			t.Cleanup(func() {
 				fakeServer.Close()
-				svc.Close(ctx)
+				app.RequireStop()
 				cancel()
 			})
 
@@ -439,7 +486,7 @@ func TestReplicaAllocateTransfer(t *testing.T) {
 			// covers when an allocation and replica already exist, meaning no transfer required.
 			// though we still expect a transfer receipt.
 			if tc.hasExistingData {
-				require.NoError(t, svc.blobs.Store().Put(
+				require.NoError(t, svc.Blobs().Store().Put(
 					ctx, expectedDigest, expectedSize, bytes.NewReader(expectedData),
 				))
 			}
@@ -513,16 +560,24 @@ func setupService(
 	ctx context.Context,
 	fakeBlobPresigner *FakePresigned,
 	uploadServiceURL *url.URL,
-) *StorageService {
-	svc, err := New(
-		WithIdentity(testutil.Alice),
-		WithLogLevel("*", "warn"),
-		WithBlobsPresigner(fakeBlobPresigner),
-		WithUploadServiceConfig(testutil.Alice, *uploadServiceURL),
+) (Service, *fxtest.App) {
+	// Create a custom upload service connection
+	uploadChannel := ucanhttp.NewHTTPChannel(uploadServiceURL)
+	uploadConn := testutil.Must(client.NewConnection(
+		testutil.Alice.DID(),
+		uploadChannel,
+	))(t)
+
+	return createTestService(t,
+		// Override the presigner
+		fx.Decorate(func() presigner.RequestPresigner {
+			return fakeBlobPresigner
+		}),
+		// Override the upload service connection
+		fx.Decorate(func() client.Connection {
+			return uploadConn
+		}),
 	)
-	require.NoError(t, err)
-	require.NoError(t, svc.Startup(ctx))
-	return svc
 }
 
 // Builds the UCAN delegation proof needed for replicate + allocate

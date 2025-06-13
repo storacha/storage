@@ -8,15 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	Identity   Identity   `mapstructure:"identity" validate:"required"`
-	Repo       Repo       `mapstructure:"repo" validate:"required"`
-	UCANServer UCANServer `mapstructure:"ucan_server" validate:"required"`
-	PDPServer  PDPServer  `mapstructure:"pdp_server" validate:"required"`
-	PDPClient  PDPClient  `mapstructure:"pdp_client" validate:"required"`
-	UCANClient UCANClient `mapstructure:"ucan_client" validate:"required"`
-}
-
 type Identity struct {
 	KeyFile string `mapstructure:"key_file" validate:"required" flag:"key-file"`
 }
@@ -45,7 +36,7 @@ type UCANServer struct {
 
 	Port                    uint              `mapstructure:"port" validate:"required,min=1,max=65535" flag:"port"`
 	Host                    string            `mapstructure:"host" validate:"required" flag:"host"`
-	PDPServerURL            string            `mapstructure:"pdp_server_url" validate:"required,url" flag:"pdp-server-url"`
+	PDPServerURL            string            `mapstructure:"pdp_server_url" validate:"omitempty,url" flag:"pdp-server-url"`
 	PublicURL               string            `mapstructure:"public_url" validate:"omitempty,url" flag:"public-url"`
 	IndexingServiceProof    string            `mapstructure:"indexing_service_proof" flag:"indexing-service-proof"`
 	ProofSet                uint64            `mapstructure:"proof_set" flag:"proof-set"`
@@ -64,7 +55,7 @@ func (u UCANServer) Validate() error {
 var DefaultUCANServer = UCANServer{
 	Host:               "localhost",
 	Port:               3000,
-	PDPServerURL:       "http://localhost:3001",
+	PDPServerURL:       "",
 	IPNIAnnounceURLs:   []string{"https://cid.contact/announce"},
 	IndexingServiceDID: "did:web:indexer.storacha.network",
 	IndexingServiceURL: "https://indexer.storacha.network",

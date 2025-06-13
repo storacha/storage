@@ -2,13 +2,20 @@ package replicator
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
+	"runtime"
+	"time"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/storacha/go-libstoracha/jobqueue"
 	"github.com/storacha/go-ucanto/client"
 	"github.com/storacha/go-ucanto/principal"
 
+	"github.com/storacha/piri/pkg/database"
+	"github.com/storacha/piri/pkg/database/sqlitedb"
 	"github.com/storacha/piri/pkg/pdp"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue"
+	"github.com/storacha/piri/pkg/pdp/aggregator/jobqueue/serializer"
 	"github.com/storacha/piri/pkg/service/blobs"
 	"github.com/storacha/piri/pkg/service/claims"
 	replicahandler "github.com/storacha/piri/pkg/service/storage/handlers/replica"
@@ -22,7 +29,8 @@ type Replicator interface {
 }
 
 type Service struct {
-	queue *jobqueue.JobQueue[*replicahandler.TransferRequest]
+	queue  *jobqueue.JobQueue[*replicahandler.TransferRequest]
+	cancel context.CancelFunc
 }
 
 type adapter struct {
@@ -48,38 +56,61 @@ func New(
 	c claims.Claims,
 	rstore receiptstore.ReceiptStore,
 	uploadConn client.Connection,
+	stateDir string,
 ) (*Service, error) {
 
-	replicationQueue := jobqueue.NewJobQueue[*replicahandler.TransferRequest](
-		jobqueue.JobHandler(func(ctx context.Context, request *replicahandler.TransferRequest) error {
-			return replicahandler.Transfer(ctx,
-				&adapter{
-					id:         id,
-					pdp:        p,
-					blobs:      b,
-					claims:     c,
-					receipts:   rstore,
-					uploadConn: uploadConn,
-				},
-				request)
-		}),
-		jobqueue.WithErrorHandler(func(err error) {
-			log.Errorf("error while handling replication request: %s", err)
-		}),
+	db, err := sqlitedb.New(filepath.Join(stateDir, "replicator.db"),
+		database.WithJournalMode("WAL"),
+		database.WithTimeout(5*time.Second),
+		database.WithSyncMode(database.SyncModeNORMAL),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("creating jobqueue database: %w", err)
+	}
+	replicationQueue, err := jobqueue.New[*replicahandler.TransferRequest](
+		"replication",
+		db,
+		&serializer.JSON[*replicahandler.TransferRequest]{},
+		jobqueue.WithLogger(log),
+		jobqueue.WithMaxRetries(10),
+		jobqueue.WithMaxWorkers(uint(runtime.NumCPU())),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := replicationQueue.Register("transfer-task", func(ctx context.Context, request *replicahandler.TransferRequest) error {
+		return replicahandler.Transfer(ctx,
+			&adapter{
+				id:         id,
+				pdp:        p,
+				blobs:      b,
+				claims:     c,
+				receipts:   rstore,
+				uploadConn: uploadConn,
+			},
+			request)
+	}); err != nil {
+		return nil, err
+	}
 
 	return &Service{queue: replicationQueue}, nil
 }
 
 func (r *Service) Replicate(ctx context.Context, task *replicahandler.TransferRequest) error {
-	return r.queue.Queue(ctx, task)
+	return r.queue.Enqueue(ctx, "transfer-task", task)
 }
 
-func (r *Service) Start(_ context.Context) error {
-	r.queue.Startup()
+func (r *Service) Start(ctx context.Context) error {
+	// Create a cancelable context for the queue that lives beyond fx startup
+	queueCtx, cancel := context.WithCancel(context.Background())
+	r.cancel = cancel
+	go r.queue.Start(queueCtx)
 	return nil
 }
 
 func (r *Service) Stop(ctx context.Context) error {
-	return r.queue.Shutdown(ctx)
+	if r.cancel != nil {
+		r.cancel()
+	}
+	return nil
 }

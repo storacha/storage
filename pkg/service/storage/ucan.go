@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/storacha/go-libstoracha/capabilities/assert"
 	"github.com/storacha/go-libstoracha/capabilities/blob"
 	"github.com/storacha/go-libstoracha/capabilities/blob/replica"
@@ -25,8 +24,6 @@ import (
 	blobhandler "github.com/storacha/piri/pkg/service/storage/handlers/blob"
 	replicahandler "github.com/storacha/piri/pkg/service/storage/handlers/replica"
 )
-
-var log = logging.Logger("storage")
 
 const maxUploadSize = 127 * (1 << 25)
 

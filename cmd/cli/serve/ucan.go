@@ -1,27 +1,21 @@
 package serve
 
 import (
+	"context"
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
+	"strconv"
 	"time"
 
-	leveldb "github.com/ipfs/go-ds-leveldb"
-	"github.com/ipni/go-libipni/maurl"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/storacha/go-ucanto/core/delegation"
-	"github.com/storacha/go-ucanto/did"
 	ucanserver "github.com/storacha/go-ucanto/server"
+	"go.uber.org/fx"
 
 	"github.com/storacha/piri/cmd/cliutil"
 	"github.com/storacha/piri/pkg/config"
 	"github.com/storacha/piri/pkg/principalresolver"
 	"github.com/storacha/piri/pkg/server"
 	"github.com/storacha/piri/pkg/service/storage"
-	"github.com/storacha/piri/pkg/store/blobstore"
 )
 
 var (
@@ -56,7 +50,7 @@ func init() {
 
 	UCANCmd.Flags().String(
 		"pdp-server-url",
-		config.DefaultUCANServer.PDPServerURL,
+		"",
 		"URL used to connect to pdp server",
 	)
 	cobra.CheckErr(viper.BindPFlag("pdp_server_url", UCANCmd.Flags().Lookup("pdp-server-url")))
@@ -133,197 +127,43 @@ func startServer(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	id, err := cliutil.ReadPrivateKeyFromPEM(cfg.KeyFile)
-	if err != nil {
-		return fmt.Errorf("loading principal signer: %w", err)
-	}
-
-	if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
-		return fmt.Errorf("creating directory: %s: %w", cfg.DataDir, err)
-	}
-	if err := os.MkdirAll(cfg.TempDir, 0755); err != nil {
-		return fmt.Errorf("creating directory: %s: %w", cfg.TempDir, err)
-	}
-	blobStore, err := blobstore.NewFsBlobstore(
-		filepath.Join(cfg.DataDir, "blobs"),
-		filepath.Join(cfg.TempDir, "blobs"),
-	)
-	if err != nil {
-		return fmt.Errorf("creating blob storage: %w", err)
-	}
-
-	allocsDir, err := cliutil.Mkdirp(cfg.DataDir, "allocation")
-	if err != nil {
-		return err
-	}
-	allocDs, err := leveldb.NewDatastore(allocsDir, nil)
-	if err != nil {
-		return err
-	}
-	claimsDir, err := cliutil.Mkdirp(cfg.DataDir, "claim")
-	if err != nil {
-		return err
-	}
-	claimDs, err := leveldb.NewDatastore(claimsDir, nil)
-	if err != nil {
-		return err
-	}
-	publisherDir, err := cliutil.Mkdirp(cfg.DataDir, "publisher")
-	if err != nil {
-		return err
-	}
-	publisherDs, err := leveldb.NewDatastore(publisherDir, nil)
-	if err != nil {
-		return err
-	}
-	receiptDir, err := cliutil.Mkdirp(cfg.DataDir, "receipt")
-	if err != nil {
-		return err
-	}
-	receiptDs, err := leveldb.NewDatastore(receiptDir, nil)
-	if err != nil {
-		return err
-	}
-
-	var pdpConfig *storage.PDPConfig
-	var blobAddr multiaddr.Multiaddr
-	if pdpServerURL := cfg.PDPServerURL; pdpServerURL != "" {
-		pdpServerURL, err := url.Parse(pdpServerURL)
-		if err != nil {
-			return fmt.Errorf("parsing curio URL: %w", err)
-		}
-		aggRootDir, err := cliutil.Mkdirp(cfg.DataDir, "aggregator")
-		if err != nil {
-			return err
-		}
-		aggDsDir, err := cliutil.Mkdirp(aggRootDir, "datastore")
-		if err != nil {
-			return err
-		}
-		aggDs, err := leveldb.NewDatastore(aggDsDir, nil)
-		if err != nil {
-			return err
-		}
-		aggJobQueueDir, err := cliutil.Mkdirp(aggRootDir, "jobqueue")
-		if err != nil {
-			return err
-		}
-		pdpConfig = &storage.PDPConfig{
-			PDPDatastore: aggDs,
-			PDPServerURL: pdpServerURL,
-			ProofSet:     cfg.ProofSet,
-			DatabasePath: filepath.Join(aggJobQueueDir, "jobqueue.db"),
-		}
-		curioAddr, err := maurl.FromURL(pdpServerURL)
-		if err != nil {
-			return fmt.Errorf("parsing pdp server url: %w", err)
-		}
-		pieceAddr, err := multiaddr.NewMultiaddr("/http-path/" + url.PathEscape("piece/{blobCID}"))
-		if err != nil {
-			return err
-		}
-		blobAddr = multiaddr.Join(curioAddr, pieceAddr)
-	}
-
-	var ipniAnnounceURLs []url.URL
-	for _, s := range cfg.IPNIAnnounceURLs {
-		url, err := url.Parse(s)
-		if err != nil {
-			return fmt.Errorf("parsing IPNI announce URL: %s: %w", s, err)
-		}
-		ipniAnnounceURLs = append(ipniAnnounceURLs, *url)
-	}
-
-	uploadServiceDID, err := did.Parse(cfg.UploadServiceDID)
-	if err != nil {
-		return fmt.Errorf("parsing upload service DID: %w", err)
-	}
-
-	uploadServiceURL, err := url.Parse(cfg.UploadServiceURL)
-	if err != nil {
-		return fmt.Errorf("parsing upload service URL: %w", err)
-	}
-
-	indexingServiceDID, err := did.Parse(cfg.IndexingServiceDID)
-	if err != nil {
-		return fmt.Errorf("parsing indexing service DID: %w", err)
-	}
-
-	indexingServiceURL, err := url.Parse(cfg.IndexingServiceURL)
-	if err != nil {
-		return fmt.Errorf("parsing indexing service URL: %w", err)
-	}
-
-	var indexingServiceProof delegation.Proof
-	if cfg.IndexingServiceProof != "" {
-		dlg, err := delegation.Parse(cfg.IndexingServiceProof)
-		if err != nil {
-			return fmt.Errorf("parsing indexing service proof: %w", err)
-		}
-		indexingServiceProof = delegation.FromDelegation(dlg)
-	}
-
-	var pubURL *url.URL
-	if cfg.PublicURL == "" {
-		pubURL, err = url.Parse(fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port))
-		if err != nil {
-			return fmt.Errorf("DEVELOPER ERROR parsing public URL: %w", err)
-		}
-		log.Warnf("no public URL configured, using %s", pubURL)
-	} else {
-		pubURL, err = url.Parse(cfg.PublicURL)
-		if err != nil {
-			return fmt.Errorf("parsing server public url: %w", err)
-		}
-	}
-
-	opts := []storage.Option{
-		storage.WithIdentity(id),
-		storage.WithBlobstore(blobStore),
-		storage.WithAllocationDatastore(allocDs),
-		storage.WithClaimDatastore(claimDs),
-		storage.WithPublisherDatastore(publisherDs),
-		storage.WithPublicURL(*pubURL),
-		storage.WithPublisherDirectAnnounce(ipniAnnounceURLs...),
-		storage.WithUploadServiceConfig(uploadServiceDID, *uploadServiceURL),
-		storage.WithPublisherIndexingServiceConfig(indexingServiceDID, *indexingServiceURL),
-		storage.WithPublisherIndexingServiceProof(indexingServiceProof),
-		storage.WithReceiptDatastore(receiptDs),
-	}
-	if pdpConfig != nil {
-		opts = append(opts, storage.WithPDPConfig(*pdpConfig))
-	}
-	if blobAddr != nil {
-		opts = append(opts, storage.WithPublisherBlobAddress(blobAddr))
-	}
-	svc, err := storage.New(opts...)
-	if err != nil {
-		return fmt.Errorf("creating service instance: %w", err)
-	}
-	err = svc.Startup(ctx)
-	if err != nil {
-		return fmt.Errorf("starting service: %w", err)
-	}
-
-	defer svc.Close(ctx)
-
 	presolv, err := principalresolver.New(cfg.ServicePrincipalMapping)
 	if err != nil {
 		return fmt.Errorf("creating principal resolver: %w", err)
 	}
 
-	go func() {
-		time.Sleep(time.Millisecond * 50)
-		if err == nil {
-			cliutil.PrintHero(id.DID())
-		}
-	}()
-
-	err = server.ListenAndServe(
-		fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
-		svc,
-		ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey),
+	app := storage.NewApp(cfg,
+		fx.Invoke(func(lc fx.Lifecycle, svc storage.Service) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					// Start server in a goroutine since it blocks
+					go func() {
+						err := server.ListenAndServe(
+							fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+							svc,
+							ucanserver.WithPrincipalResolver(presolv.ResolveDIDKey),
+						)
+						if err != nil {
+							log.Errorf("failed to start server: %w", err)
+						}
+					}()
+					cliutil.PrintHero(svc.ID().DID())
+					cmd.Println("Listening on", cfg.Host+":"+strconv.Itoa(int(cfg.Port)))
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					// Implement graceful shutdown if server.ListenAndServe supports it
+					return nil
+				},
+			})
+		}),
 	)
-	return err
 
+	if err := app.Start(ctx); err != nil {
+		return fmt.Errorf("starting app: %w", err)
+	}
+	<-ctx.Done()
+	stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return app.Stop(stopCtx)
 }
